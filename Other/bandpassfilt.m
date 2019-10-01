@@ -1,0 +1,6 @@
+function dataOut= bandpassfilt(order, dataIn, FR, low, high)
+lpfilt = designfilt('bandpassiir', 'FilterOrder', order, ...
+                    'PassbandFrequency1', low, 'PassbandFrequency2', ...
+                    high, 'PassbandRipple', 1, 'SampleRate', FR);
+    dataOut= filter(lpfilt, dataIn);
+end
