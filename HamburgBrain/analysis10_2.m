@@ -211,4 +211,4 @@ D= load_HamburgBrain_data(pig);
 xax= 1: size(vv, 1);
 vv= D.seq1.eit.data;
 
-inspect_eit_elec_and_data(D.seq1, imdl)
+inspect_eit_elec_and_data(D.seq1, imdl);

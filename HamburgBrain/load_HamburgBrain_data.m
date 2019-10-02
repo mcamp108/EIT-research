@@ -1,8 +1,12 @@
 function D= load_HamburgBrain_data(pig)
-
+% -------------------------------------------------------------------------
+% DESCRIPTION:
+%
+%   D= load_HamburgBrain_data(pig)
+%
 % Each sequence in the data struct is an experimental trial. Each sequence
 % has the following fields:
-
+% -------------------------------------------------------------------------
 % name: Formatted file name used as title of figures for this sequence
 % pig: Pig name
 % imgr: Reconstructed images using eit.fdata and imdl for this pig
@@ -160,7 +164,6 @@ for i= 1:length(eit_files)
     msel= imdl.fwd_model.meas_select;
     mm = find(msel);
     use_data= D.(fn{i}).eit.data(mm, :);
-    use_data= detrend(use_data.').';
     
     % filter eit data
     lowpass_cutoff= 8;
