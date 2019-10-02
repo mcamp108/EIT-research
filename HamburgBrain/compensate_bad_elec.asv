@@ -33,11 +33,14 @@ bad_elecs= find(ei> 400);
 % bad_elecs= find( abs( av_meas- mean(av_meas) )> std(av_meas));
 
 % Find measurements from bad electrodes
-kk=meas_icov_rm_elecs(imdl_comp, bad_elecs);
+kk= meas_icov_rm_elecs(imdl_comp, bad_elecs);
 ee = find(diag(kk)~=1); % bad channels of meas_sel
-msel= imdl.fwd_model.stimulation.meas_pattern;
+msel= imdl.fwd_model.meas_select;
+vv_prime= real(vv(find(msel), :));
 vv_star= find(diag(kk)==1); % good channels of meas_sel
-
+ee = find(diag(kk)~=1);
+    mm = find(msel);
+    ee = mm(ee);
 % do work on reconstruction matrix
 imdl_comp.solve_use_matrix.RM_orig= imdl_comp.solve_use_matrix.RM;
 PJt= imdl_comp.solve_use_matrix.PJt;

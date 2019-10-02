@@ -159,7 +159,7 @@ for i= 1:length(eit_files)
     D.(fn{i})= allign_eit_and_perf(D.(fn{i}));
     
     % adjust recontruction matrix for noisy electrodes
-    [imdl_comp, bad_elecs]= compensate_bad_elec(D.(fn{i}).eit.data, D.(fn{i}).eit.elec_impedance, imdl);
+    [imdl_comp, vv_prime]= compensate_bad_elec(D.(fn{i}).eit.data, D.(fn{i}).eit.elec_impedance, imdl);
     
     % use only good measurements
     msel= imdl.fwd_model.meas_select;
@@ -172,6 +172,9 @@ for i= 1:length(eit_files)
     
     % compensate for noisy electrodes and calculate reconstructed images
     D.(fn{i}).imgr= get_imgr( D.(fn{i}).eit.fdata, D.(fn{i}).eit.inj, imdl_comp );
+
+    % re-write fdata with noisy measurements removed.
+    D.(fn{i}).eit.fdata= lowpass_iir(vv_prime, lowpass_cutoff, D.(fn{i}).eit.fs);
     
 end % end for
 

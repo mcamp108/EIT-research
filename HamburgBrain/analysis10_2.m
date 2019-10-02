@@ -15,10 +15,10 @@ pig= "10.2";
 D= load_HamburgBrain_data(pig);
 fn= fieldnames(D);
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
+suffix= ' rm_1_13_14_18_19_23_28';
 %% VIDEO OF RECONSTRUCTED IMAGE AND BRAIN SEGMENTATION
 
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
-suffix= " new RM";
 for i= 1:numel(fn)
     start= D.(fn{i}).eit.inj;
     stop= D.(fn{i}).eit.inj+ 1000;
@@ -26,7 +26,6 @@ for i= 1:numel(fn)
 end % end for
 %% EIT, PREFUSION, AND RECONSTRUCTED IMAGE ENSEMBLES IN ONE FIGURE
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
-suffix= ' rm bad elec single CC';
 opt.pv= 3;
 opt.usefData= 1;
 opt.plotLM= 2;
@@ -37,13 +36,14 @@ for i= 1:numel(fn)
         opt.section= j;
         show_ensemble(D.(fn{i}), opt);
         figureTitle= horzcat(num2str(j), ' ', D.(fn{i}).name, ' - ensemble', suffix);
-        print_convert(char(figureTitle+ ".png"));
+        print_convert(horzcat(figureTitle, '.png'));
     end % end for
     close all
 end % end for
 cd ../
 %% TIME TO PEAK
 opt.sel= [0 0 0 1];
+opt.plotLM= 1;
 ttp1= [];
 ttp2= [];
 for i= [1, 3, 5]
@@ -71,10 +71,10 @@ for i= 1:numel(fn)
     meanFrame = mean(calc_slices(D.(fn{i}).imgr), 3);
     figure('units','normalized','outerposition',[0 0 1 1]);
     imagesc(meanFrame);
-    title(D.(fn{i}).name+ " Mean Frame simplified model cleaned");
+    title(D.(fn{i}).name+ suffix);
     colorbar;
     axis equal
-    print_convert(char(D.(fn{i}).name+ " - Mean Frame simplified model.png"));
+    print_convert(char(D.(fn{i}).name+ suffix+ ".png"));
 end % end for
 close all
 cd ../
@@ -86,7 +86,7 @@ opt.pv= 3;
 opt.usefdata= 1;
 for i= 1:numel(fn)
     plot_seq_data(D.(fn{i}), opt);
-    print_convert(char(D.(fn{i}).name+ " perf and EIT denoised new filter.png"));
+    print_convert(char(D.(fn{i}).name+ suffix+ ".png"));
 end % end for
 close all
 cd ../

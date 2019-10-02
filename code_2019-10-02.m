@@ -54,8 +54,7 @@ for be=1:32; kk=meas_icov_rm_elecs(imdl, be); disp(full([be, kk(263,263)])); end
 
 find(any(abs((dd'-0.0014577))<1e-8))
 
-kk=meas_icov_rm_elecs(imdl, [28,32,1]); ee = find(diag(kk)~=1);plot(1:4638,dd','k', 1:4638,dd(ee,:)','r')
-notee=1:544; notee(ee)=[];
+
 kk=meas_icov_rm_elecs(imdl, [28,32,1]); ee = find(diag(kk)~=1);plot(1:4638,dd','k', 1:4638,dd(ee,:)','r');notee=1:544; notee(ee)=[];
 plot(1:4638,dd(ee,:)','Color',[1,0.7,0.7]); hold on; plot(1:4638,dd(notee,:)','k'); hold off
 kk=meas_icov_rm_elecs(imdl, [28,32,1,8]); ee = find(diag(kk)~=1);plot(1:4638,dd','k', 1:4638,dd(ee,:)','r');notee=1:544; notee(ee)=[];
@@ -76,6 +75,15 @@ plot(sum(dd(notee,:)))
 
 for be=1:32; kk=meas_icov_rm_elecs(imdl, be); ee = find(diag(kk)~=1); plot(dd(ee,'k')'); title(sprintf('bad=%d',be)); pause; end
 
+% load data
+dd= real(D.seq1.eit.data);
 % plot each electrode and look for worst ones.
 for be=1:32; kk=meas_icov_rm_elecs(imdl, be); ee = find(diag(kk)~=1); plot(dd(ee,:)','k'); title(sprintf('bad=%d',be)); pause; end
 plot(sum(dd(notee,:)))
+% look at weird ones, find which channel they belong to
+channel= find( abs( df(:,2205) - 0.0012848096189744)<1e-10 );
+% find which ellec this belongs to
+for be=1:32; kk=meas_icov_rm_elecs(imdl, be); disp(full([be, kk(channel,channel)])); end
+% plot with this electrode removed
+kk=meas_icov_rm_elecs(imdl, [2,3,7,9, 13, 14, 19, 20, 22, 24, 28, 29, 30]); ee = find(diag(kk)~=1);plot(1:4638,dd','k', 1:4638,dd(ee,:)','r')
+notee=1:544; notee(ee)=[];

@@ -1,4 +1,4 @@
-function [imdl_comp, bad_elecs]= compensate_bad_elec(vv, elec_impedance, imdl)
+function [imdl_comp, vv_prime]= compensate_bad_elec(vv, elec_impedance, imdl)
 % -------------------------------------------------------------------------
 % Description:
 %   imdl_comp= compensate_bad_elec(vv, imdl) 
@@ -33,9 +33,14 @@ bad_elecs= find(ei> 400);
 % bad_elecs= find( abs( av_meas- mean(av_meas) )> std(av_meas));
 
 % Find measurements from bad electrodes
-kk=meas_icov_rm_elecs(imdl_comp, bad_elecs);
-ee = find(diag(kk)~=1);
-vv_star= find(diag(kk)==1);
+kk= meas_icov_rm_elecs(imdl_comp, bad_elecs);
+ee = find(diag(kk)~=1); % bad channels of meas_sel
+ge= find(diag(kk)==1); % good channels of meas_sel
+
+% remove noisy channels from data
+msel= imdl.fwd_model.meas_select;
+vv_prime= real(vv(find(msel), :));
+vv_prime= vv_prime(ge, :);
 
 % do work on reconstruction matrix
 imdl_comp.solve_use_matrix.RM_orig= imdl_comp.solve_use_matrix.RM;

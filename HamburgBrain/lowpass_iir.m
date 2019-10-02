@@ -15,9 +15,9 @@ data_in= (real(data_in))';
 % prefix and append data to prevent filter edge effect
 % https://www.mathworks.com/matlabcentral/answers/161223-how-to-remove-transient-effect-in-the-beginning-of-the-filtered-signal
 R= 0.1;
-Nr= 50;
+Nr= 75;
 N= size(data_in, 1);
-NR= min(round(N* R), Nr); % At most 50 points
+NR= min(round(N* R), Nr); % At most 75 points
 
 for i=1:size(data_in, 2)
     x1(:, i)= 2* data_in(1, i)- flipud(data_in(2: NR+ 1, i));  % maintain continuity in level and slope
