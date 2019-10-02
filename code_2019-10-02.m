@@ -1,3 +1,5 @@
+dd= 
+
 find(any((dd-0.0014057)<1e-7)')
 
 
@@ -44,7 +46,6 @@ find(any(abs((dd'-0.0013542))<1e-8))
 
 find(any(abs((dd'-0.0013491))<1e-8))
 
-for be=1:32; kk=meas_icov_rm_elecs(imdl_comp, bad_elecs);
 
 for be=1:32; kk=meas_icov_rm_elecs(imdl, be); disp([be, kk(263,263)]); end
   
@@ -72,7 +73,9 @@ plot(sum(dd(notee,:)))
 plot(1:4638,dd(ee,:)','Color',[1,0.7,0.7]); hold on; plot(1:4638,dd(notee,:)','k'); hold off
 plot(1:4638,dd(ee,:)','Color',[1,0.7,0.7]); hold on; plot(1:4638,dd(notee,:)','k'); hold off
 plot(sum(dd(notee,:)))
+
 for be=1:32; kk=meas_icov_rm_elecs(imdl, be); ee = find(diag(kk)~=1); plot(dd(ee,'k')'); title(sprintf('bad=%d',be)); pause; end
 
+% plot each electrode and look for worst ones.
 for be=1:32; kk=meas_icov_rm_elecs(imdl, be); ee = find(diag(kk)~=1); plot(dd(ee,:)','k'); title(sprintf('bad=%d',be)); pause; end
 plot(sum(dd(notee,:)))

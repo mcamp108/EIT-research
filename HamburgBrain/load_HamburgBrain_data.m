@@ -140,7 +140,8 @@ for i= 1:length(eit_files)
     
     % assign struct fields
     D.(fn{i}).eit.data= vv;
-    D.(fn{i}).eit.elec_impedance= aux.elec_impedance/1e3;
+    impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
+    D.(fn{i}).eit.elec_impedance= impedanceFactor* aux.elec_impedance;
     D.(fn{i}).name= char(remove_underscores(eit_files{i}));
     D.(fn{i}).pig= pig;
     D.(fn{i}).eit.fs= eitfs;
@@ -158,7 +159,7 @@ for i= 1:length(eit_files)
     D.(fn{i})= allign_eit_and_perf(D.(fn{i}));
     
     % adjust recontruction matrix for noisy electrodes
-    imdl_comp= compensate_bad_elec(D.(fn{i}).eit.data, imdl);
+    [imdl_comp, bad_elecs]= compensate_bad_elec(D.(fn{i}).eit.data, D.(fn{i}).eit.elec_impedance, imdl);
     
     % use only good measurements
     msel= imdl.fwd_model.meas_select;

@@ -1,23 +1,24 @@
 function inspect_eit_elec_and_data(seq, imdl)
-
+% -------------------------------------------------------------------------
 % Description:
-%   
 %
+% -------------------------------------------------------------------------
 % Parameters:
 %   
-%   
+% ------------------------------------------------------------------------- 
 % Returns:
 %   IQ plot
 %   U-shape plot
 %   Contact impedance plot
 %   Frequency spectrum plot
-%   
+% ------------------------------------------------------------------------- 
 % Author:
 %   Mark Campbell
 %   Carleton University
 %   markacampbell@cmail.carleton.ca
 %   27.Sep.2019
-
+% -------------------------------------------------------------------------
+myStartup
 vv= seq.eit.data;
 FR= seq.eit.fs;
 msel= imdl.fwd_model.meas_select;
@@ -83,11 +84,5 @@ subplot(324);
     box off; 
     xlim([0, 12]);
     title 'Spectrum (Hz)';
-    
-end % end function
-
-function bad_elecs= find_bad_elecs(vv)
-
-
     
 end % end function
