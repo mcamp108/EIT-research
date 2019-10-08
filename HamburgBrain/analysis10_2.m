@@ -11,11 +11,12 @@ run 'myStartup.m';
 maxsz= 0.2; maxh= 2; imgsize= [64 64];
 [fmdl, imdl]= mk_pighead_fmdl(maxsz, maxh, imgsize);
 % Load data
-pig= "12.2";
+pig= "10.2";
 D= load_HamburgBrain_data(pig);
 fn= fieldnames(D);
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
-suffix= ' rm_high_range_gt500CI';
+% suffix= ' rm_high_range_gt500CI';
+suffix= ' rm_CI_over_400';
 %% VIDEO OF RECONSTRUCTED IMAGE AND BRAIN SEGMENTATION
 
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
@@ -25,12 +26,12 @@ for i= 4:numel(fn)
     mk_vid(D.(fn{i}), start, stop, suffix);
 end % end for
 %% EIT, PREFUSION, AND RECONSTRUCTED IMAGE ENSEMBLES IN ONE FIGURE
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\12.2';
+cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
 opt.pv= 3;
 opt.usefData= 1;
 opt.plotLM= 2;
-opt.ensemble= 'each';
-cd ensemble;
+opt.ensemble= 'one';
+cd 'ensemble/rm CI greater than 400/singleCC';
 for i= 1:numel(fn)
     for j= 0:4
         opt.section= j;

@@ -1,14 +1,11 @@
 function show_ensemble(seq, opt)
 % -------------------------------------------------------------------------
 % DESCRIPTION:
-%
 %   show_ensemble(seq, opt)
 %
 %   Plots ensembles.
-%
 % -------------------------------------------------------------------------
 % PARAMETERS:
-%
 %   seq:        
 %       A swine sequence struct from load_HamburgBrain_data.
 %
@@ -32,12 +29,9 @@ function show_ensemble(seq, opt)
 %       ensemble:
 %           'each': show the mean of each ensemble as one frame
 %           'one':  show the mean of all ensembles
-%
 % -------------------------------------------------------------------------
 % RETURNS:
-%
 %   Figure showing specified ensembles.
-%
 % -------------------------------------------------------------------------  
 % AUTHOR:
 %   Mark Campbell
@@ -132,8 +126,9 @@ subplot(4, 1, 1);
     imgc.elem_data= imgr_e(:, use_frames);
     clim= max(imgc.elem_data(:));
     imgc.calc_colours.ref_level= 0;
-    imgc.calc_colours.lim= clim;
+    imgc.calc_colours.clim= clim;
     show_slices(imgc);
+    colorbar;
     title("Reconstructed Frames");
 
 % Plot EIT TBV data alongside

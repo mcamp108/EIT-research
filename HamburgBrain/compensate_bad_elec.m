@@ -27,16 +27,16 @@ imdl_comp= imdl;
 % vk = 1e3* mean(real(vv), 2);
 % by_stim_pair= reshape(vk, 32, 32);
 ei= mean(real(abs(elec_impedance)), 2);
-bad_elecs= find(ei> 500);
+bad_elecs= find(ei> 400);
 
 % Identify bad electrodes based on jumps in contact impedance
-d= abs(elec_impedance');
-dm= movmean(d, 5);
-ddt= detrend(dm);
-drng= range(ddt);
-bad_elecs= [bad_elecs; find(drng> 15)'];
-
-bad_elecs= unique(bad_elecs);
+% d= abs(elec_impedance');
+% dm= movmean(d, 5);
+% ddt= detrend(dm);
+% drng= range(ddt);
+% bad_elecs= [bad_elecs; find(drng> 15)'];
+% 
+% bad_elecs= unique(bad_elecs);
 
 % av_meas= (mean(by_stim_pair, 2))';
 % bad_elecs= find( abs( av_meas- mean(av_meas) )> std(av_meas));
