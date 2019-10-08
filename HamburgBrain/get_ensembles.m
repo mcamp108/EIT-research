@@ -90,6 +90,10 @@ else
     stop= size(seq.eit.fdata, 2);
 end % end if
 
+if stop<1
+    stop= size(seq.eit.fdata, 2);
+end % end if
+
 if isfield(opt, 'pixels')
     use_pixels= opt.pixels;
 else

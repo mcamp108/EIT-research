@@ -9,7 +9,7 @@ end % end if
 
 % Make video of reconstructed image over time
 cd vid
-vidfile = VideoWriter(seq.name+ suffix+ ".mp4",'MPEG-4');
+vidfile = VideoWriter(horzcat(seq.name, suffix, '.mp4','MPEG-4'));
 vidfile.FrameRate= round(seq.eit.fs);
 brainSeg= get_brain_segmentation_for_pig(seq);
 

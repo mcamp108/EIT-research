@@ -1,58 +1,67 @@
 import java.awt.Robot;
 import java.awt.event.*;
-mouse = Robot;
+Mouse.mouse = Robot;
+Mouse.left_click = InputEvent.BUTTON1_MASK;
+Mouse.right_click = InputEvent.BUTTON2_MASK;
 % C = get(0, 'PointerLocation');
-% screenSize = get(0, 'screensize');
+screenSize = get(0, 'screensize');
 if ~exist('launched', 'var')
-    launch_stem();
+    launch_stem(Mouse);
     launched= 1;
 end % end if
 n= 2; correct= 10; len= 20;
 [nBackSet, answers]= build_nBack_set(n, correct, len);
 set_up_screen();
-
+% save_button= [1722 168];
+% confirm_button= [1353 493];
 for i= 1:len
-    start_capture();
+    start_capture(Mouse);
     stimulus= text(0.4, 0.5, nBackSet(i), 'fontsize', 200,'color', 'b');
     pause(1);
     delete(stimulus);
     pause(1);
-    stop_capture(answer(i));
+    response= '';
+    stop_capture(Mouse, answers(i), response);
+    keyboard;
 end % end for
 
 
-function launch_stem()
+function launch_stem(Mouse)
     cd 'C:\Users\Mark\Desktop\STEM';
     system('run.bat');
     cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\Thesis\Data\Headcap';
     mkdir(date);
+    % click sensor quality screen
+    Mouse.mouse.mouseMove(232, 1080-1004);
+    left_click(Mouse);
 end % end function
 
-function start_capture()
+function start_capture(Mouse)
     % move mouse to record button (when stem fullscreen)
-    mouse.mouseMove(1720, 1080-170);
-    left_mouse_click();
+    Mouse.mouse.mouseMove(1720, 1080-170);
+    left_click(Mouse);
 end % end function
 
-function stop_capture(isCorrect)
+function stop_capture(Mouse, isCorrect, response)
     % called with isCorrect= 1 if stimulus should have elicitied user
     % response
     
     % move mouse to record button (when stem fullscreen)
-    mouse.mouseMove(1720, 1080-170);
-    left_mouse_click();
-    % save file
-    if isCorrect
-        % name file with should have been positive response
-    else
-        % name file normally
-    end
+    Mouse.mouse.mouseMove(1720, 1080-170);
+    left_click(Mouse);
     
+    % save file
+    name= horzcat('was_', isCorrect, '_ans_', response);
+    clipboard('copy', name);
+    clipboard('paste');
+    % click confirm button
+    Mouse.mouse.mouseMove(1720, 1080-493);
+    left_click(Mouse);
 end % end function
 
-function left_mouse_click()
-    mouse.mousePress(InputEvent.BUTTON1_MASK);
-    mouse.mouseRelease(InputEvent.BUTTON1_MASK);
+function left_click(Mouse)    
+    Mouse.mouse.mousePress(Mouse.left_click);
+    Mouse.mouse.mouseRelease(Mouse.left_click);
 end % end function
 
 function [nBackSet, answers]= build_nBack_set(n, correct, len)

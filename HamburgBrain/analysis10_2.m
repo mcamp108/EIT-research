@@ -11,25 +11,25 @@ run 'myStartup.m';
 maxsz= 0.2; maxh= 2; imgsize= [64 64];
 [fmdl, imdl]= mk_pighead_fmdl(maxsz, maxh, imgsize);
 % Load data
-pig= "10.2";
+pig= "12.2";
 D= load_HamburgBrain_data(pig);
 fn= fieldnames(D);
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
-suffix= ' rm_1_13_14_18_19_23_28';
+suffix= ' rm_high_range_gt500CI';
 %% VIDEO OF RECONSTRUCTED IMAGE AND BRAIN SEGMENTATION
 
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
-for i= 1:numel(fn)
+for i= 4:numel(fn)
     start= D.(fn{i}).eit.inj;
     stop= D.(fn{i}).eit.inj+ 1000;
     mk_vid(D.(fn{i}), start, stop, suffix);
 end % end for
 %% EIT, PREFUSION, AND RECONSTRUCTED IMAGE ENSEMBLES IN ONE FIGURE
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
+cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\12.2';
 opt.pv= 3;
 opt.usefData= 1;
 opt.plotLM= 2;
-opt.ensemble= 'one';
+opt.ensemble= 'each';
 cd ensemble;
 for i= 1:numel(fn)
     for j= 0:4
@@ -102,19 +102,6 @@ for r= 1:size(result, 1)
     mtx(r)= find(row== max(row));
 end % end for
 imagesc(mtx); % loks kinda cool
-
-%%
-% % Plot ensemble average of pixels in brain segmentation
-% opt.plotLM= 2;
-% for i= 1:numel(fn)
-%     for j= 0:4
-%         opt.section= j;
-%         plot_ensemble_per_pixel(D.(fn{i}), opt);
-%     end % end for
-%     close all
-% end % end for
-
-
 
 %%
 opt.start= D.seq2.eit.inj;
@@ -207,8 +194,42 @@ figure; imagesc(meas_pattern); axis 'equal'
 % Stuff to show Andy
 
 % show raw data
-D= load_HamburgBrain_data(pig);
-xax= 1: size(vv, 1);
-vv= D.seq1.eit.data;
+dd= real(D.seq1.eit.data);
 
 inspect_eit_elec_and_data(D.seq1, imdl);
+
+for be=1:32; kk=meas_icov_rm_elecs(imdl, be); ee = find(diag(kk)~=1); plot(dd(ee,'k')'); title(sprintf('bad=%d',be)); pause; end
+
+% load data
+dd= real(D.seq1.eit.data);
+% plot each electrode and look for worst ones.
+for be=1:32; kk=meas_icov_rm_elecs(imdl, be); ee = find(diag(kk)~=1); plot(dd(ee,:)','k'); title(sprintf('bad=%d',be)); pause; end
+plot(sum(dd(notee,:)))
+% look at weird ones, find which channel they belong to
+channel= find( abs( df(:,2205) - 0.0012848096189744)<1e-10 );
+% find which ellec this belongs to
+for be=1:32; kk=meas_icov_rm_elecs(imdl, be); disp(full([be, kk(channel,channel)])); end
+% plot with this electrode removed
+kk=meas_icov_rm_elecs(imdl, [2,3,7,9, 13, 14, 19, 20, 22, 24, 28, 29, 30]); ee = find(diag(kk)~=1);plot(1:4638,dd','k', 1:4638,dd(ee,:)','r')
+notee=1:544; notee(ee)=[];
+
+ddm= dd- mean(dd, 2);
+vv= real(D.seq1.eit.data)';
+vvdt= detrend(vv);
+xmax= max(ddm(:));
+xmin= min(ddm(:));
+for i= 1:1024; plot(ddm(i,:)), ylim([xmin xmax]); title(i);pause(1);end
+rsqaured= zeros(1024, 1);
+for i= 1:1024; mdl = fitlm(1:size(ddm, 2),ddm(i,:)); rsqaured(i)=mdl.Rsquared.Adjusted;end
+xax= 1: size(D.seq1.eit.elec_impedance, 2);
+xax1= 1:size(dd, 2);
+plot(xax1, ddm');
+for i= 1:32; plot(xax, real(D.seq2.eit.elec_impedance(i,:))'); title(i); pause(); end
+for i= 1:32; plot(xax, hilbert(real(D.seq2.eit.elec_impedance(i,:))')); title(i); pause(); end
+
+d= abs(D.seq2.eit.elec_impedance');
+dm= movmean(d, 5);
+ddt= detrend(dm);
+drng= range(ddt);
+plot(xax, ddt);
+bar(drng);

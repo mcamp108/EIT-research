@@ -48,10 +48,10 @@ imgr_e= squeeze(mean(imgr_e, take_mean_of_dim));
 ttp= zeros(1, size(imgr_e, 1));
 for row= 1: size(imgr_e, 1)
     this_row= imgr_e(row, :);
-%     ttp(row)= var(this_row);
+    ttp(row)= var(this_row);
 %     ttp(row)= max(this_row)- mean(this_row);
 %     ttp(row)= mean(this_row)- min(this_row);
-    ttp(row)= find(this_row== max(this_row));
+%     ttp(row)= find(this_row== max(this_row));
 %     ttp(row)= mean(this_row);
 %     ttp(row)= range(this_row);
 %     ttp(row)= std(this_row);

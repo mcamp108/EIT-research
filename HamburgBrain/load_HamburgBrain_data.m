@@ -3,40 +3,59 @@ function D= load_HamburgBrain_data(pig)
 % DESCRIPTION:
 %
 %   D= load_HamburgBrain_data(pig)
-%
-% Each sequence in the data struct is an experimental trial. Each sequence
-% has the following fields:
 % -------------------------------------------------------------------------
-% name: Formatted file name used as title of figures for this sequence
-% pig: Pig name
-% imgr: Reconstructed images using eit.fdata and imdl for this pig
-% eit: EIT part of data struct
-%     data: EIT data output from eidors_readdata()
-%     fs: EIT data framerate
-%     sync1: First syncronization spike in EIT data
-%     sync2: Second syncronization spike in EIT data
-%     apn: Using the LabChart file, the time relative to the beginning of the first EIT synchronization spike that the apnoea flush occured in the arterial pressure data
-%     inj: Same as above, but for the injection flush
-%     vnt: Same as above, but for the end of apnoea flush
-%     fdata: 9 Hz lowpass-filtered EIT data
-% perf: Arterial pressure part of data struct
-%     data: Perfusion data
-%     tickrate: Arterial pressure framerate
-%     apn: Apnoea flush spike in arterial pressure data
-%     inj: Injection flush spike in arterial pressure data
-%     vnt: End of apnoea flush spike in arterial pressure data
-% fdata now calculated in align sequence to trim filter edge effect.
-% 
-% To change the lowpass filter stopband, go to lowpass_iir function.
-% 
-% Author:
+% RETURNS: 
+%   D: 
+%       A struct containing one field per sequence taken using this
+%       pig. Each sequence in the data struct is an experimental trial. Each
+%       sequence has the following fields: 
+%       
+%     name: 
+%         Formatted file name used as
+%         title of figures for this sequence pig: Pig name imgr: Reconstructed
+%         images using eit.fdata and imdl for this pig eit: EIT part of data struct
+%     data: 
+%           EIT data output from eidors_readdata()
+%     fs: 
+%           EIT data framerate
+%     sync1: 
+%           First syncronization spike in EIT data
+%     sync2: 
+%           Second syncronization spike in EIT data
+%     apn: 
+%           Using the LabChart file, the time relative to the beginning of
+%           the first EIT synchronization spike that the apnoea flush
+%           occured in the arterial pressure data
+%     inj: 
+%           Same as above, but for the injection flush
+%     vnt: 
+%           Same as above, but for the end of apnoea flush
+%     fdata: 
+%           9 Hz lowpass-filtered EIT data
+%     perf: 
+%           Arterial pressure part of data struct
+%     data: 
+%           Perfusion data
+%     tickrate: 
+%           Arterial pressure framerate
+%     apn: 
+%           Apnoea flush spike in arterial pressure data
+%     inj: 
+%           Injection flush spike in arterial pressure data
+%     vnt: 
+%           End of apnoea flush spike in arterial pressure data
+% -------------------------------------------------------------------------
+% NOTES:
+%   To change the lowpass filter stopband, go to lowpass_iir function.
+% -------------------------------------------------------------------------
+% AUTHOR:
 %   Mark Campbell
 %   Carleton University
 %   markacampbell@cmail.carleton.ca
-% eitfs= 47.68;
+% -------------------------------------------------------------------------
+
 maxsz= 0.2; maxh= 2; imgsize= [64 64];
 [fmdl, imdl]= mk_pighead_fmdl(maxsz, maxh, imgsize);
-% lpass= 9;
 
 % 8.2
 if pig== "8.2"

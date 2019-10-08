@@ -69,7 +69,7 @@ else
 end % end if
 
 % which dimension of ensemble to average
-if ~isfield(opt, 'ensemble')
+if ~isfield(opt, 'ensemble') || strcmp(opt.ensemble, 'each')
     take_mean_of_dim= 3; % set to 'each'
 elseif strcmp(opt.ensemble, 'one')
     take_mean_of_dim= 2;
