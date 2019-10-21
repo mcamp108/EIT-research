@@ -1,10 +1,6 @@
 run('myStartup.m');
-F1 = 'ProneNoEx2min.eit'; 
-% F2 = 'StandingArmLoweredNoEx.eit'; 
-[dd,auxdata]= eidors_readdata(F1); 
-[dd2,auxdata2]= eidors_readdata(F1); %time represented as xxxxxxxxx (microseconds)
-FR = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
 
+%% MODEL
 numElecs= 32;
 numRings= 2;
 elecPerRing= numElecs/numRings;
@@ -27,11 +23,38 @@ vopt.square_pixels = true;
 vopt.zvec = linspace(0.3,0.7,4);
 vopt.save_memory = 1;
 opt.noise_figure = 1.0;
+opt.keep_intermediate_results= true;
 [imdl_t, opt.distr] = GREIT3D_distribution(fmdl, vopt);
 imdl= mk_GREIT_model(imdl_t, 0.2, [], opt);
 
-imgr= inv_solve(imdl, mean(dd, 2), dd); % data 1 == referene frame, data 2== other frames in time series.
-show_slices(imgr);
+% DATA
+sref= '2019_08_01_P1_standingReference.eit';
+pref= '2019_08_01_P1_proneRef.eit';
+wref= '2019_08_01_P1_proneRefWeight.eit';
+wepos= '2019_08_01_P1_proneWeightExercisePos3.eit';
+epos = '2019_08_01_P1_proneNoWeightExercisePos3.eit';
+files= {sref, pref, wref, wepos, epos};
+
+%%
+msel= imdl.fwd_model.meas_select;
+mm = find(msel);
+impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
+
+for i= files
+    [dd,auxdata]= eidors_readdata(i); 
+    FR = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
+
+    %% CLEAN DATA
+    
+    elec_impedance= mean(real(abs(auxdata.elec_impedance* impedanceFactor)), 2);
+    [imdl_comp, vv_prime]= compensate_bad_elec(dd, elec_impedance, imdl);
+    use_data= real(dd(mm, :));
+
+    %% SOLVE
+    imgr= inv_solve(imdl_comp, mean(use_data, 2), use_data); % data 1 == referene frame, data 2== other frames in time series.
+end % end for
+%% ANALYZE
+show_slices(imgr, [inf,inf,0.5]);
 show_fem(imgr);
 figure; plot(sum(real(dd(1:500,:)),1)); % time slice control
 xlim([0,100]);

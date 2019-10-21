@@ -1,30 +1,73 @@
 import java.awt.Robot;
 import java.awt.event.*;
-Mouse.mouse = Robot;
-Mouse.left_click = InputEvent.BUTTON1_MASK;
-Mouse.right_click = InputEvent.BUTTON2_MASK;
-% C = get(0, 'PointerLocation');
+Markbot_mk_1.mouse = Robot;
+Markbot_mk_1.left_click = InputEvent.BUTTON1_MASK;
+Markbot_mk_1.right_click = InputEvent.BUTTON2_MASK;
+
+C = get(0, 'PointerLocation');
+Markbot_mk_1.mouse.mouseMove(C(1), 1080-C(2));
 screenSize = get(0, 'screensize');
+
 if ~exist('launched', 'var')
-    launch_stem(Mouse);
+    launch_stem(Markbot_mk_1);
     launched= 1;
 end % end if
+
 n= 2; correct= 10; len= 20;
 [nBackSet, answers]= build_nBack_set(n, correct, len);
 set_up_screen();
-% save_button= [1722 168];
-% confirm_button= [1353 493];
+prompt= "Enter 1 for a match, 0 for no match";
+
+t  = timer;
+t.StartDelay= 2;
+t.TimerFcn = @(Markbot_mk_1.keyPress(KeyEvent.VK_ENTER), Markbot_mk_1.keyRelease(KeyEvent.VK_ENTER);
+stimulus= text(0.4, 0.5, 'M', 'fontsize', 200,'color', 'b');
+start(t)
+
+response= input(prompt);
+
+pause(1);
+delete(stimulus);
+fixation= text(0.4, 0.5, '+', 'fontsize', 200,'color', 'b');
+pause(1);
+delete(fixation);
+    Timeout(2)
+g = gpib('ni',0,1);
 for i= 1:len
-    start_capture(Mouse);
+    start_capture(Markbot_mk_1);
     stimulus= text(0.4, 0.5, nBackSet(i), 'fontsize', 200,'color', 'b');
+    
+    % Start 2 second timer
+    t  = timer('StopFcn', [@stop_capture, Markbot_mk_1, answers(i), response], 'Period', 2);
+    
+    % Collect response
+    response= input(prompt);
     pause(1);
+    
     delete(stimulus);
+    fixation= text(0.4, 0.5, '+', 'fontsize', 200,'color', 'b');
     pause(1);
-    response= '';
-    stop_capture(Mouse, answers(i), response);
+    
+    if isempty(response)
+        response= 2;
+    end % end if
+    
+    stop_capture(Markbot_mk_1, answers(i), response);
     keyboard;
 end % end for
 
+function run_n_back_cycle(i, Mouse)
+    start_capture(Mouse);
+    stimulus= text(0.4, 0.5, nBackSet(i), 'fontsize', 200,'color', 'b');
+    response= input(prompt);
+    pause(1);
+    if isempty(response)
+        response= 2;
+    end % end if
+    delete(stimulus);
+    pause(1);
+    stop_capture(Mouse, answers(i), response);
+end % end function
 
 function launch_stem(Mouse)
     cd 'C:\Users\Mark\Desktop\STEM';
@@ -106,3 +149,4 @@ function set_up_screen()
     set(gca,'XColor','white');
     set(gca,'YColor','white');
 end % end function
+
