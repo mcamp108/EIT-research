@@ -80,7 +80,7 @@ subplot(3,2,2)
     hold on; plot(exp_to_exp); hold off;
     legend(["Standing Reference", "Prone Reference", "Weighted Prone Reference", "Weighted Posture Exercise", "Unweighted Posture Exercise"]);
 subplot(3,2,3)
-    ins_to_exp= (breaths.expIdx- breaths.insIdx)./FR;
+    ins_to_exp= abs((breaths.expIdx- breaths.insIdx)./FR);
     hold on; plot(ins_to_exp); hold off;
     legend(["Standing Reference", "Prone Reference", "Weighted Prone Reference", "Weighted Posture Exercise", "Unweighted Posture Exercise"]);
 subplot(3,2,4)
