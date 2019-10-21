@@ -4,15 +4,20 @@ function [imdl_comp, vv_prime]= compensate_bad_elec(vv, elec_impedance, imdl)
 %   imdl_comp= compensate_bad_elec(vv, imdl) 
 %
 %   Modify reconstruction matrix of imdl to compensate for noisy or
-%   disconnected electrodes using the method from Mamatjan 2017.
+%   disconnected electrodes using the method from Mamatjan 2017. This
+%   function will remove no more than 6 electrodes.
 % -------------------------------------------------------------------------
 % Parameters:
 %   vv:         EIT data with or without complex component.
 % -------------------------------------------------------------------------   
 % Returns:
-%   vv_cleaned: real and complex component (if applicable) of EIT data with
-%               measurements involving bad
-%               elecs set to 0.
+%   imdl_comp:
+%       inverse model whose reconstruction matrix has been modified with a
+%       series of rank one updates that compensate for the removal of the
+%       removed electrodes.
+%   vv_prime: 
+%       real and complex component (if applicable) of EIT data with
+%       measurements involving bad elecs set to 0.
 % -------------------------------------------------------------------------   
 % Author:
 %   Mark Campbell
@@ -28,18 +33,13 @@ imdl_comp= imdl;
 % by_stim_pair= reshape(vk, 32, 32);
 ei= mean(real(abs(elec_impedance)), 2);
 bad_elecs= find(ei> 400);
-
-% Identify bad electrodes based on jumps in contact impedance
-% d= abs(elec_impedance');
-% dm= movmean(d, 5);
-% ddt= detrend(dm);
-% drng= range(ddt);
-% bad_elecs= [bad_elecs; find(drng> 15)'];
-% 
-% bad_elecs= unique(bad_elecs);
-
-% av_meas= (mean(by_stim_pair, 2))';
-% bad_elecs= find( abs( av_meas- mean(av_meas) )> std(av_meas));
+if length(bad_elecs)> 6
+    be_ci= sort(ei(bad_elecs), 'descend');
+    bad_elecs= zeros(6, 1);
+    for i= 1:6
+        bad_elecs(i)= find(ei== be_ci(i));
+    end % end for
+end % end if
 
 % Find measurements from bad electrodes
 kk= meas_icov_rm_elecs(imdl_comp, bad_elecs);
