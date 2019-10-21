@@ -5,7 +5,9 @@ function [imdl_comp, vv_prime]= compensate_bad_elec(vv, elec_impedance, imdl)
 %
 %   Modify reconstruction matrix of imdl to compensate for noisy or
 %   disconnected electrodes using the method from Mamatjan 2017. This
-%   function will remove no more than 6 electrodes.
+%   function will remove electrodes whose average contact impedance was
+%   over 400 ohms. If more than 6 electrodes are identified, only the worst
+%   6 are removed.
 % -------------------------------------------------------------------------
 % Parameters:
 %   vv:         EIT data with or without complex component.
