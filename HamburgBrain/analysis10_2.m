@@ -30,8 +30,8 @@ cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
 opt.pv= 3;
 opt.usefData= 1;
 opt.plotLM= 2;
-opt.ensemble= 'one';
-cd 'ensemble/rm CI greater than 400/singleCC';
+opt.ensemble= 'each';
+cd 'ensemble/rm CI greater than 400/each';
 for i= 1:numel(fn)
     for j= 0:4
         opt.section= j;

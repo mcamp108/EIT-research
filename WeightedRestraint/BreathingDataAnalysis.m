@@ -36,23 +36,59 @@ epos = '2019_08_01_P1_proneNoWeightExercisePos3.eit';
 files= {sref, pref, wref, wepos, epos};
 
 %%
+
 msel= imdl.fwd_model.meas_select;
 mm = find(msel);
 impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
-
+clip= 50;
 for i= files
+    i= i{1};
     [dd,auxdata]= eidors_readdata(i); 
     FR = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
-
-    %% CLEAN DATA
     
-    elec_impedance= mean(real(abs(auxdata.elec_impedance* impedanceFactor)), 2);
+    % CLEAN DATA
+    elec_impedance= auxdata.elec_impedance* impedanceFactor;
     [imdl_comp, vv_prime]= compensate_bad_elec(dd, elec_impedance, imdl);
     use_data= real(dd(mm, :));
-
-    %% SOLVE
-    imgr= inv_solve(imdl_comp, mean(use_data, 2), use_data); % data 1 == referene frame, data 2== other frames in time series.
+    use_data= lowpass(use_data', 1, FR)';
+    use_data= use_data(:, clip:(size(use_data,2)-clip) );
+    % SOLVE
+%     imgr= inv_solve(imdl_comp, mean(use_data, 2), use_data); % data 1 == referene frame, data 2== other frames in time series.
+    
+    % BREATH BOUNDARIES
+    numBreaths= 5;
+    tbv= sum(use_data, 1);
+    breaths= findBreaths(tbv);
+    if length(breaths.insIdx) > length(breaths.expIdx)
+        breaths.insIdx= breaths.insIdx(1: length(breaths.expIdx));
+    else
+        breaths.expIdx= breaths.expIdx(1: length(breaths.insIdx));
+    end % end if
+    useBreaths= round( linspace(2, length(breaths.insIdx), numBreaths) );
+    end_ex = breaths.expIdx(useBreaths);
+    end_in = breaths.insIdx(useBreaths);
+    ann_max= max(tbv);
+    ann_min= min(tbv);
+subplot(3,2,[5 6])
+    plot(tbv); hold on; for i= 1:length(breaths.expIdx); plot([breaths.expIdx(i) breaths.expIdx(i)], [ann_min ann_max]); plot([breaths.insIdx(i) breaths.insIdx(i)], [ann_min ann_max]); end; hold off;
+subplot(3,2,1)    
+    ins_to_ins= diff(breaths.insIdx)./FR;
+    hold on; plot(ins_to_ins); hold off;
+    legend(["Standing Reference", "Prone Reference", "Weighted Prone Reference", "Weighted Posture Exercise", "Unweighted Posture Exercise"]);
+subplot(3,2,2)
+    exp_to_exp= diff(breaths.expIdx)./FR;
+    hold on; plot(exp_to_exp); hold off;
+    legend(["Standing Reference", "Prone Reference", "Weighted Prone Reference", "Weighted Posture Exercise", "Unweighted Posture Exercise"]);
+subplot(3,2,3)
+    ins_to_exp= (breaths.expIdx- breaths.insIdx)./FR;
+    hold on; plot(ins_to_exp); hold off;
+    legend(["Standing Reference", "Prone Reference", "Weighted Prone Reference", "Weighted Posture Exercise", "Unweighted Posture Exercise"]);
+subplot(3,2,4)
+    breath_depth= tbv(breaths.insIdx)- tbv(breaths.expIdx);
+    hold on; plot(breath_depth); hold off;
+    legend(["Standing Reference", "Prone Reference", "Weighted Prone Reference", "Weighted Posture Exercise", "Unweighted Posture Exercise"]);
 end % end for
+
 %% ANALYZE
 show_slices(imgr, [inf,inf,0.5]);
 show_fem(imgr);
