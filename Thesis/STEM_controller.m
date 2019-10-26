@@ -1,4 +1,4 @@
-function STEM_controller(Mouse, argin)
+function STEM_controller(varargin)
 
 % -------------------------------------------------------------------------
 % DESCRIPTION:
@@ -24,12 +24,15 @@ function STEM_controller(Mouse, argin)
 % VERSION:
 %   1.0.0
 % -------------------------------------------------------------------------
-if nargin== 2 && isstring(argin)
-    command= argin;
-elseif nargin== 4
-    command= nargin(2);
-    isCorrect= nargin(3);
-    response= nargin(4);
+Mouse= varargin{1};
+command= varargin{2};
+
+% record mouse's original location
+C = get(0, 'PointerLocation');
+
+if nargin== 4
+    isCorrect= varargin(3);
+    response= varargin(4);
 end % end if
 
 if command== "launch stem"
@@ -45,6 +48,9 @@ elseif command== "stop capture"
         disp("Missing arguments argin.isCorrect and/or argin.response.");
     end % end if
 end
+
+% move mouse back to its original location
+Mouse.mouse.mouseMove(C(1), 1080-C(2));
 
 end % end function
 
