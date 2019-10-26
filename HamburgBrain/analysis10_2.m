@@ -87,7 +87,7 @@ opt.pv= 3;
 opt.usefdata= 1;
 for i= 1:numel(fn)
     plot_seq_data(D.(fn{i}), opt);
-    print_convert(char(D.(fn{i}).name+ suffix+ ".png"));
+    print_convert( horzcat(D.(fn{i}).name, suffix, '.png') );
 end % end for
 close all
 cd ../

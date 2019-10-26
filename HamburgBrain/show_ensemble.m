@@ -119,7 +119,7 @@ brain_botR= imgr_e(brain_seg.botR, :);
 figure('units','normalized','outerposition',[0 0 1 1]);
 % plot slices
 subplot(4, 1, 1);
-    sgtitle(figureTitle);
+    sgtitle(figureTitle, 'FontSize', 20);
     imgc= seq.imgr;
     imgc.show_slices.img_cols = imgCols;
     use_frames= round(linspace(1, size(imgr_e, 2), imgCols));
@@ -129,7 +129,7 @@ subplot(4, 1, 1);
     imgc.calc_colours.clim= clim;
     show_slices(imgc);
     colorbar;
-    title("Reconstructed Frames");
+    title("Reconstructed Frames",'FontSize', 12);
 
 % Plot EIT TBV data alongside
 subplot(4, 1, 2);
@@ -143,7 +143,7 @@ subplot(4, 1, 2);
         plot([i, i], [minEit, maxEit], 'r');
     end % end for
     hold off
-    title("Ensemble EIT Signal");
+    title("Ensemble EIT Signal",'FontSize', 12);
     xlabel("Frame");
     ylabel("Voltage (mV)");
 
@@ -155,7 +155,7 @@ subplot(4, 1, 3);
     plot(sum(brain_topR, 1));
     plot(sum(brain_botL, 1));
     plot(sum(brain_botR, 1));
-    title("Ensemble EIT Brain Signal");
+    title("Ensemble EIT Brain Signal",'FontSize', 12);
     legend('Whole Brain', 'Top Left', 'Top Right', 'Bottom Left', 'Bottom Right');
     xlabel("Frame");
     ylabel("Conductivity");
@@ -163,7 +163,7 @@ subplot(4, 1, 3);
 
 subplot(4, 1, 4);
 plot(perf_e);
-title("Ensemble Perfusion Signal");
+title("Ensemble Perfusion Signal",'FontSize', 12);
 xlabel("Frame");
 ylabel("Arterial Pressure (mmHg)");
 

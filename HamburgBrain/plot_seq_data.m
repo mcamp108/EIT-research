@@ -69,7 +69,7 @@ function plot_sum_data(seq, usefdata)
         plot([apn, apn], [tsMin, tsMax]); 
         plot([inj, inj], [tsMin, tsMax]); 
         plot([vnt, vnt], [tsMin, tsMax]); 
-        legend('Total Boundary Voltage', 'Start of Apnoea' , 'Saline Injected', 'End of Apnoea');
+        legend('Total Boundary Voltage', 'Start of Apnoea' , 'Bolus Injection', 'End of Apnoea');
     else
         legend('Total Boundary Voltage');
     end % end if

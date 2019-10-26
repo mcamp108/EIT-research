@@ -3,7 +3,7 @@ run('myStartup.m');
 % Test the complex 3D mesh to add electrodes
 
 % Load the volume file
-ng_vol_filename = 'C:\Users\MarkCampbell\Documents\GraduateStudies\LAB\RestraintBreathing\Models\external2.vol';
+ng_vol_filename = 'C:\Users\MarkCampbell\Documents\GraduateStudies\LAB\RestraintBreathing\Models\external.vol';
 % set parameters required to run forward model maker - will be overwritten later
 cent = [1,1,1];
 stim = [0];

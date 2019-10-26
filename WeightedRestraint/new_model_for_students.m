@@ -20,7 +20,7 @@ fmdl.electrode(idx) = fmdl.electrode(:);
 ng_opt_file = []; % use the default
 [fmdl.stimulation, fmdl.meas_select]=mk_stim_patterns(32,1,[0,5],[0,5],{'no_meas_current_next2'},1); % Skip 4 
 fmdl.normalize = 0;
-
+%%
 % Show the forward model to confirm
 figure(1); clf;
 % show_fem(fmdl, [0 1 0]);
