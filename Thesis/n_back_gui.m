@@ -22,7 +22,7 @@ function varargout = n_back_gui(varargin)
 
 % Edit the above text to modify the response to help n_back_gui
 
-% Last Modified by GUIDE v2.5 26-Oct-2019 10:13:50
+% Last Modified by GUIDE v2.5 27-Oct-2019 17:01:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,29 +52,34 @@ function n_back_gui_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to n_back_gui (see VARARGIN)
 
+
+% initialize controller robot
 import java.awt.Robot;
 import java.awt.event.*;
-
 handles.Markbot_mk_1.mouse = Robot;
 handles.Markbot_mk_1.left_click = InputEvent.BUTTON1_MASK;
 handles.Markbot_mk_1.right_click = InputEvent.BUTTON2_MASK;
 handles.screenSize = get(0, 'screensize');
 
-if ~exist('launched', 'var')
-%     STEM_controller(Markbot_mk_1, "launch stem");
-    launched= 1;
-end % end if
+% launch STEM
+%     STEM_controller(handles.Markbot_mk_1, "launch stem");
 
 % Set default command line output for n_back_gui
+global Start;
+global Stop;
+Start= false;
+Stop= false;
 handles.n_value= str2double(handles.n_value_popup.String{handles.n_value_popup.Value});
 handles.n_correct= str2double(handles.n_correct_popup.String{handles.n_correct_popup.Value});
 handles.deck_length= str2double(handles.length_popup.String{handles.length_popup.Value});
-handles.Start= 0;
 handles.output = hObject;
 
-% Update handles structure
+handles.mainscreen.FontSize= 20;
+handles.mainscreen.HorizontalAlignment= 'center';
+handles.mainscreen.String= "Welcome to the N-back working memory exercise! Select your test parameters from the bottom left corner of the screen, then press 'Start' to begin.";
+handles.stimulus_number.String= "Stimulus number: ";
+handles.your_answer.String= "Your answer: ";
 guidata(hObject, handles);
-
 % UIWAIT makes n_back_gui wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
@@ -87,7 +92,7 @@ function varargout = n_back_gui_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.output;
+% varargout{1} = handles.output;
 
 
 % --- Executes on button press in 'No Match".
@@ -96,9 +101,17 @@ function pushbutton_nomatch_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % Display surf plot of the currently selected data.
-handles.responses(handles.stimulus_number)= 0;
-guidata(hObject, handles);
+global Start;
 
+if Start== false
+    current_text= handles.mainscreen.String;
+    handles.mainscreen.String= "The exercise not started yet.";
+    pause(1);
+    handles.mainscreen.String= current_text;
+else
+    handles.your_answer.String= "Your answer: No Match";
+end
+guidata(hObject, handles);
 
 % --- Executes on button press in "Match".
 function pushbutton_match_Callback(hObject, eventdata, handles)
@@ -106,27 +119,55 @@ function pushbutton_match_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % Display mesh plot of the currently selected data.
-handles.responses(handles.stimulus_number)= 1;
+global Start;
+
+if Start== false
+    current_text= handles.mainscreen.String;
+    handles.mainscreen.String= "The exercise not started yet.";
+    pause(1);
+    handles.mainscreen.String= current_text;
+else
+    handles.your_answer.String= "Your answer: Match";
+end
 guidata(hObject, handles);
 
   
 % --- Executes on button press in starts test.
 function pushbutton_start_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton3 (see GCBO)
+% hObject    handle to pushbutton_start (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % Display contour plot of the currently selected data.
-if handles.Start==0 
+global Start;
+global Stop;
+
+if Start== false
+%     Stop= false;
+%     handles.mainscreen.FontSize= 20;
+%     handles.mainscreen.HorizontalAlignment= 'center';
+%     handles.mainscreen.String= "Welcome to the N-back working memory exercise! Select your test parameters from the bottom left corner of the screen, then press 'Start' to begin.";
+%     handles.stimulus_number.String= "Stimulus number: ";
+%     handles.your_answer.String= "Your answer: ";
+%     Start= false;
+% 
+% % Start has been pressed once. Show the instructions
+% elseif Start== false 
     [handles.n_back_deck, handles.answers]= build_nBack_deck(handles.n_value, handles.n_correct, handles.deck_length);
-    handles.responses= zeros(1, handles.deck_length);
+    handles.mainscreen.HorizontalAlignment= 'left';
     handles.mainscreen.String= ["Instructions:", newline,... 
                                 "You will be shown a random series of letters. The goal of this exercise is to press 'Match' when the letter being shown is the same as the letter that was shown 'n' times ago. If the current letter does not match the letter shown 'n' times ago, press 'No Match' instead.", newline, "Press 'Start' again when are are ready to begin."];
-    handles.Start= 1;
+    Start= true;
+
+% Start has been pressed a second time. Start the exercise
 else
-    handles.Start= 0;
+    Stop= false;
+    handles.mainscreen.FontSize= 20;
+    handles.mainscreen.HorizontalAlignment= 'center';
     time= 5;
     while time> -1
-        if time== 1
+        if Stop== true
+            time= -1;
+        elseif time== 1
             handles.mainscreen.String= "The exercise will begin in " + num2str(time) + " second.";
         else
             handles.mainscreen.String= "The exercise will begin in " + num2str(time) + " seconds.";
@@ -134,53 +175,79 @@ else
         pause(1);
         time= time-1;
     end % end while
+    
     handles.mainscreen.String= " ";
-    handles.mainscreen.FontSize= 200;
+    handles.mainscreen.FontSize= 400;
     
     for i= 1:handles.deck_length
-        handles.stimulus_number= i;
-        guidata(hObject, handles);
-        
-        STEM_controller(handles.Markbot_mk_1, "start capture");
-        
-        % present stimulus for 1 second
-        handles.mainscreen.String= handles.n_back_deck(i);
-        pause(1);
+        if Stop== false
+            handles.stimulus_num= i;
+            handles.stimulus_number.String= "Stimulus number: " + i + " of " + handles.deck_length;        
+            STEM_controller(handles.Markbot_mk_1, "start capture");
 
-        % present fixation cross for 1 second
-        handles.mainscreen.String= "+";
-        pause(1);
+            % present stimulus for 1 second
+            handles.mainscreen.String= handles.n_back_deck(i);
+            pause(1);
 
-%         STEM_controller(handles.Markbot_mk_1, "stop capture", handles.answers(i), response);
+            % present fixation cross for 1 second
+            handles.mainscreen.String= "+";
+            pause(1);
+
+    %         STEM_controller(handles.Markbot_mk_1, "stop capture", handles.answers(i), handles.your_answer.String);
+        end % end if
     end % end for
-    keyboard;
-    handles.mainscreen.FontSize= 20;
-    handles.mainscreen.String= "End of Exercise.";
+    Stop= true;
+    pushbutton_stop_Callback(hObject, eventdata, handles);
+    guidata(hObject, handles);
 end % end if
 
-% Update handles structure
-guidata(hObject, handles);
 
 
 % --- Executes on button press in pauses test.
 function pushbutton_pause_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton4 (see GCBO)
+% hObject    handle to pushbutton_pause (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if handles.pushbutton4.String== "Pause"
-    handles.pushbutton4.String= "Unpause";
+if handles.pushbutton_pause.String== "Pause"
+    handles.pushbutton_pause.String= "Unpause";
     pause();
 else
-    handles.pushbutton4.String= "Pause";
+    handles.pushbutton_pause.String= "Pause";
 end % end if
-
+guidata(hObject, handles);
 
 % --- Executes on button press in ends test.
 function pushbutton_stop_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton5 (see GCBO)
+% hObject    handle to pushbutton_stop (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)  
-  
+global Start;
+global Stop;
+
+handles.mainscreen.FontSize= 20;
+handles.mainscreen.HorizontalAlignment= 'center';
+
+if Start== true % if it was started, stop it
+    Stop= true;
+    handles.mainscreen.String= "End of Exercise.";
+    Start= false;
+    pause(1.5);
+elseif Start== false && Stop== true % if it wasn't started, don't stop it
+    handles.mainscreen.String= "Welcome to the N-back working memory exercise! Select your test parameters from the bottom left corner of the screen, then press 'Start' to begin.";
+    Stop= false;
+elseif Start== false && Stop== false
+    handles.mainscreen.String= "The exercise has not started yet.";
+    Stop= false;
+    pause(1.5);
+% else
+%     message= "Welcome to the N-back working memory exercise! Select your test parameters from the bottom left corner of the screen, then press 'Start' to begin.";
+end % end if
+
+handles.mainscreen.String= "Welcome to the N-back working memory exercise! Select your test parameters from the bottom left corner of the screen, then press 'Start' to begin.";
+handles.stimulus_number.String= "Stimulus number: ";
+handles.your_answer.String= "Your answer: ";
+guidata(hObject, handles);
+
 
 % --- Executes on selection change in selects value of n for test.
 function popupmenu_nvalue_Callback(hObject, eventdata, handles)
@@ -297,21 +364,21 @@ function pushbutton_nomatch_CreateFcn(hObject, eventdata, handles)
 
 % --- Executes during object creation, after setting all properties.
 function pushbutton_start_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to pushbutton3 (see GCBO)
+% hObject    handle to pushbutton_start (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
 
 % --- Executes during object creation, after setting all properties.
 function pushbutton_pause_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to pushbutton4 (see GCBO)
+% hObject    handle to pushbutton_pause (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
 
 % --- Executes during object creation, after setting all properties.
 function pushbutton_stop_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to pushbutton5 (see GCBO)
+% hObject    handle to pushbutton_stop (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
