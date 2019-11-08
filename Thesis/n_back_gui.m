@@ -102,6 +102,8 @@ function pushbutton_nomatch_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % Display surf plot of the currently selected data.
 global Start;
+global response_time;
+global responses;
 
 if Start== false
     current_text= handles.mainscreen.String;
@@ -109,6 +111,8 @@ if Start== false
     pause(1);
     handles.mainscreen.String= current_text;
 else
+    response_time(handles.stimulus_num)= toc;
+    responses(handles.stimulus_num)= 0;
     handles.your_answer.String= "Your answer: No Match";
 end
 guidata(hObject, handles);
@@ -120,6 +124,8 @@ function pushbutton_match_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % Display mesh plot of the currently selected data.
 global Start;
+global response_time;
+global responses;
 
 if Start== false
     current_text= handles.mainscreen.String;
@@ -127,6 +133,8 @@ if Start== false
     pause(1);
     handles.mainscreen.String= current_text;
 else
+    response_time(handles.stimulus_num)= toc;
+    responses(handles.stimulus_num)= 1;
     handles.your_answer.String= "Your answer: Match";
 end
 guidata(hObject, handles);
@@ -140,6 +148,8 @@ function pushbutton_start_Callback(hObject, eventdata, handles)
 % Display contour plot of the currently selected data.
 global Start;
 global Stop;
+global response_time;
+global responses;
 
 if Start== false
 %     Stop= false;
@@ -161,10 +171,12 @@ if Start== false
 % Start has been pressed a second time. Start the exercise
 else
     Stop= false;
+    response_time= zeros(handles.deck_length, 1);
+    responses= zeros(handles.deck_length, 1);
     handles.mainscreen.FontSize= 20;
     handles.mainscreen.HorizontalAlignment= 'center';
-    time= 5;
-    while time> -1
+    time= 3;
+    while time> 0
         if Stop== true
             time= -1;
         elseif time== 1
@@ -177,30 +189,33 @@ else
     end % end while
     
     handles.mainscreen.String= " ";
-    handles.mainscreen.FontSize= 400;
-    
+    stimulus_time= zeros(handles.deck_length, 1);
+    STEM_controller(handles.Markbot_mk_1, "start capture");
+    tic;
     for i= 1:handles.deck_length
+        handles.mainscreen.FontSize= 400;
         if Stop== false
             handles.stimulus_num= i;
+            guidata(hObject, handles);
             handles.stimulus_number.String= "Stimulus number: " + i + " of " + handles.deck_length;        
-            STEM_controller(handles.Markbot_mk_1, "start capture");
 
             % present stimulus for 1 second
             handles.mainscreen.String= handles.n_back_deck(i);
+            stimulus_time(i)= toc;
             pause(1);
 
             % present fixation cross for 1 second
             handles.mainscreen.String= "+";
             pause(1);
 
-    %         STEM_controller(handles.Markbot_mk_1, "stop capture", handles.answers(i), handles.your_answer.String);
         end % end if
     end % end for
+    STEM_controller(handles.Markbot_mk_1, "stop capture", stimulus_time, response_time, handles.answers, responses);
     Stop= true;
     pushbutton_stop_Callback(hObject, eventdata, handles);
-    guidata(hObject, handles);
+    
 end % end if
-
+guidata(hObject, handles);
 
 
 % --- Executes on button press in pauses test.

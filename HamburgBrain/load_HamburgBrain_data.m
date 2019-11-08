@@ -55,7 +55,7 @@ function D= load_HamburgBrain_data(pig)
 % -------------------------------------------------------------------------
 
 maxsz= 0.2; maxh= 2; imgsize= [64 64];
-[fmdl, imdl]= mk_pighead_fmdl(maxsz, maxh, imgsize);
+[fmdl, imdl]= mk_pighead_fmdl(maxsz, maxh, imgsize, pig);
 
 % 8.2
 if pig== "8.2"

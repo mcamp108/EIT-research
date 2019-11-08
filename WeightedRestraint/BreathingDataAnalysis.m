@@ -1,47 +1,9 @@
 %% MODEL
 run('myStartup.m');
-
-thorax = shape_library('get','adult_male','boundary');
-shape = { 2, {thorax}, [4,40], 0.5};
-
-% Set up the electrodes with 1:16 on bottom and 17:32 on top
-elec_pos = [16,0,0.75,1.25];
-elec_spec = [0.1];
-% elec_spec = [0.5, 0, 0.1]; % Radius of circular electrodes
-fmdl = ng_mk_extruded_model(shape, elec_pos, elec_spec);
-row1= [5:16, 1:4]; 
-row2= [21:32, 17:20]; 
-idx= [row1;row2]';
-fmdl.electrode(idx)= fmdl.electrode(:);
-
-% Set up square pattern
-idx = reshape([32, 1:31],2,[])'; %matrix of 32 elem numbered from 1:32, shaped with row length= L then transposed so numbering goes across rows
-idx(2:2:end,:) = fliplr(idx(2:2:end,:)); % flips every second row to get proper square electrode arrangement
-fmdl.electrode(idx) = fmdl.electrode(:);
-
-% Stim pattern
-[fmdl.stimulation, fmdl.meas_select]=mk_stim_patterns(32,1,[0,5],[0,5],{'no_meas_current_next2'},1); % Skip 4 
-fmdl.normalize = 0;
-show_fem(fmdl, [0 1 0]);
-
-% imdl
-vopt.imgsz = [32 32];
-vopt.square_pixels = true;
-vopt.zvec = linspace(0.5,1.5,4);
-vopt.save_memory = 1;
-opt.noise_figure = 1.0;
-opt.keep_intermediate_results= true;
-[imdl_t, opt.distr] = GREIT3D_distribution(fmdl, vopt);
-imdl= mk_GREIT_model(imdl_t, 0.2, [], opt);
-
+[fmdl, imdl]= mk_weighted_restraint_model();
 %% DATA
-
-msel= imdl.fwd_model.meas_select;
-mm = find(msel);
-impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
-clip= 50;
-
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\data\Mali Weighted Restraint';
+clip= 50;
 dirs= ls;
 
 for i= 3: size(ls, 1)
@@ -76,12 +38,20 @@ for i= 3: size(ls, 1)
     
     for f= files
         f= f{1};
+        [fmdl, imdl]= mk_weighted_restraint_model();
+        
+        % Inspect data quality
+%         inspect_eit_elec_and_data(f, imdl);
+%         keyboard;
+        
+        % Import data
         [dd,auxdata]= eidors_readdata(f); 
         FR = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
-
-        % CLEAN DATA
-        elec_impedance= auxdata.elec_impedance* impedanceFactor;
-        [imdl_comp, vv_prime]= compensate_bad_elec(dd, elec_impedance, imdl);
+        
+        % Clean data
+        msel= imdl.fwd_model.meas_select;
+        mm = find(msel);
+        imdl_comp= compensate_bad_elec(f, imdl);
         use_data= real(dd(mm, :));
         
         % for removing cardiac component

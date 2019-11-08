@@ -35,7 +35,7 @@ imgr_e= ensemble.imgr_ensemble;
 
 % which dimension of ensemble to average
 
-if ~isfield(opt, 'ensemble')
+if ~isfield(opt, 'ensemble') || strcmp(opt.ensemble, 'each')
     take_mean_of_dim= 3; % set to 'each'
 elseif strcmp(opt.ensemble, 'one')
     take_mean_of_dim= 2;
@@ -48,13 +48,13 @@ imgr_e= squeeze(mean(imgr_e, take_mean_of_dim));
 ttp= zeros(1, size(imgr_e, 1));
 for row= 1: size(imgr_e, 1)
     this_row= imgr_e(row, :);
-    ttp(row)= var(this_row);
+%     ttp(row)= var(this_row);
 %     ttp(row)= max(this_row)- mean(this_row);
 %     ttp(row)= mean(this_row)- min(this_row);
 %     ttp(row)= find(this_row== max(this_row));
 %     ttp(row)= mean(this_row);
 %     ttp(row)= range(this_row);
-%     ttp(row)= std(this_row);
+    ttp(row)= std(this_row);
 end % end for
 
 % xax= 1:size(ensemble_t, 2);

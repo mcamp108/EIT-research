@@ -8,24 +8,25 @@
 % -------------------------------------------------------------------------
 
 run 'myStartup.m';
-maxsz= 0.2; maxh= 2; imgsize= [64 64]; pig= "10.2";
+maxsz= 0.2; maxh= 2; imgsize= [64 64]; pig= "8.2";
 [fmdl, imdl]= mk_pighead_fmdl(maxsz, maxh, imgsize, pig);
 % Load data
 D= load_HamburgBrain_data(pig);
 fn= fieldnames(D);
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
+cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\8.2';
 % suffix= ' rm_high_range_gt500CI';
 suffix= ' rm_CI_over_400';
 %% VIDEO OF RECONSTRUCTED IMAGE AND BRAIN SEGMENTATION
 
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
+cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\8.2';
 for i= 4:numel(fn)
     start= D.(fn{i}).eit.inj;
     stop= D.(fn{i}).eit.inj+ 1000;
     mk_vid(D.(fn{i}), start, stop, suffix);
 end % end for
+
 %% EIT, PREFUSION, AND RECONSTRUCTED IMAGE ENSEMBLES IN ONE FIGURE
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
+cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\8.2';
 opt.pv= 3;
 opt.usefData= 1;
 opt.plotLM= 2;
@@ -45,8 +46,7 @@ cd ../
 opt.sel= [0 0 0 1];
 opt.plotLM= 1;
 ttp1= [];
-ttp2= [];
-for i= [1, 3, 5]
+for i= [1, 2, 3, 4]
 %     opt.start= 50;
 %     opt.stop= D.(fn{i}).eit.inj;
     opt.start= D.(fn{i}).eit.inj;
@@ -54,16 +54,7 @@ for i= [1, 3, 5]
     ttp1= [ttp1, get_ttp(D.(fn{i}), 2, opt)];
 %     title("time to peak for " + D.(fn{i}).name);
 end % end for
-for i= [2, 4, 6]
-%     opt.start= 50;
-%     opt.stop= D.(fn{i}).eit.inj;
-    opt.start= D.(fn{i}).eit.inj;
-    opt.stop= D.(fn{i}).eit.inj+ 1000;
-    ttp2= [ttp2, get_ttp(D.(fn{i}), 2, opt)];
-%     title("time to peak for " + D.(fn{i}).name);
-end % end for
 figure; imagesc(ttp1); axis 'equal'; colorbar;
-figure; imagesc(ttp2); axis 'equal'; colorbar;
 
 %% SHOW MEAN FRAME
 cd meanFrame
@@ -85,7 +76,7 @@ close all
 cd ../
 
 %% SHOW EIT AND PERFUSION DATA WITH PERFUSION ANNOTATIONS
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
+cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\8.2';
 cd seqData
 opt.pv= 3;
 opt.usefdata= 1;

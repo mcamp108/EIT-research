@@ -1,31 +1,65 @@
-function [fmdl, imdl]= mk_pighead_fmdl(maxsz, maxh, imgsize)
+function [fmdl, imdl]= mk_pighead_fmdl(maxsz, maxh, imgsize, pig)
 % This function was written by :
 %                               Mark Campbell
 %                               Carleton University
 
-% cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Models\HamburgPig';
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Models\10-2';
+addpath(genpath('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Models'));
 
-if exist('fmdl_10_2.mat', 'file') == 2
-    fmdl= load('fmdl_10_2.mat');
+switch pig
+    case "8.2"
+        fmdl_file= 'fmdl_8_2.mat';
+        imdl_file= 'imdl_8_2.mat';
+        volFilename1= '8-2_with_scalp_msh';
+        name= '8-2_scalp';
+        volFilename2= '8-2_no_scalp_msh';
+        name2= '8-2_noscalp';
+        elec_z_plane= 93; % average of reference dot z planes from elec_loc_refs
+    
+    case "9.2"
+        fmdl_file= 'fmdl_9_2.mat';
+        imdl_file= 'imdl_9_2.mat';
+        volFilename1= '9-2_with_scalp_msh';
+        name= '9-2_scalp';
+        volFilename2= '9-2_no_scalp_msh';
+        name2= '9-2_noscalp';
+    
+    case "10.2"
+        fmdl_file= 'fmdl_10_2.mat';
+        imdl_file= 'imdl_10_2.mat';
+        volFilename1= '10-2 simplified segmentations msh';
+        name= '10-2_scalp';
+        volFilename2= '10-2simplifiednoScalpmsh';
+        name2= '10-2_noscalp';
+        elec_z_plane= 116; % average of reference dot z planes from elec_loc_refs
+    
+    case "11.2"
+        fmdl_file= 'fmdl_11_2.mat';
+        imdl_file= 'imdl_11_2.mat';
+        volFilename1= '11-2_with_scalp_msh';
+        name= '11-2_scalp';
+        volFilename2= '11-2_no_scalp_msh';
+        name2= '11-2_noscalp';
+    
+    case "12.2"
+        fmdl_file= 'fmdl_12_2.mat';
+        imdl_file= 'imdl_12_2.mat';
+        volFilename1= '12-2_with_scalp_msh';
+        name= '12-2_scalp';
+        volFilename2= '12-2_no_scalp_msh';
+        name2= '12-2_noscalp';
+end % end switch
+
+if exist(fmdl_file, 'file') == 2
+    fmdl= load(fmdl_file);
     fmdl= fmdl.fmdl;
-    imdl= load('imdl_10_2.mat');
+    imdl= load(imdl_file);
     imdl= imdl.imdl;
 else    
     numElec= 32;
-    elec_z_plane= 116; % average of reference dot z planes from elec_loc_refs
     degrees= linspace(0, 360, numElec+1);
     elec_pos= [degrees(1:32)', repmat(elec_z_plane, numElec, 1)];
     e_rad= 1;
     e_height= 0;
-%         volFilename1= 'Airchill_3D_sbde6_msh_ascii4';
-%         name= 'airchill3D';
-%         volFilename2= 'Airchill_3D_sbde6_noScalp_ascii2';
-%         name2= 'airchillNoScalp';
-    volFilename1= '10-2 simplified segmentations msh';
-    name= '10-2';
-    volFilename2= '10-2simplifiednoScalpmsh';
-    name2= '10-2NoScalp';
     stim_pattern= [];
     z_contact= 0.01;
     radius= 0.2; % - requested weighting matrix  (recommend 0.2 for 16 electrodes)
@@ -58,24 +92,17 @@ else
     
     % Set conductivity parameters
     img = mk_image(fmdl, 0.41); % Background conductivity is scalp
-%         img.elem_data([fmdl.mat_idx{1}]) = 0.44;    %   1: scalp        0.44 (soft tissue)
-%         img.elem_data([fmdl.mat_idx{2}]) = 0.018;   %   2: skull        0.018
-%         img.elem_data([fmdl.mat_idx{3}]) = 0.3;     %   3: white matter 0.3
-%         img.elem_data([fmdl.mat_idx{4}]) = 0.15;    %   4: grey matter  0.15
-%         img.elem_data([fmdl.mat_idx{5}]) = 0.0001;  %   5: air          0.0001
-%         img.elem_data([fmdl.mat_idx{6}]) = 1.79;    %   6: CSF          1.79
-%         img.elem_data([fmdl.mat_idx{7}]) = 0.7;     %   7: diploe       0.7
     img.elem_data([fmdl.mat_idx{1}]) = 0.41;    %   1: scalp        0.41
-    img.elem_data([fmdl.mat_idx{2}]) = 0.0001;  %   2: air          0.0001
+    img.elem_data([fmdl.mat_idx{2}]) = 0.016;   %   2: skull        0.016
     img.elem_data([fmdl.mat_idx{3}]) = 0.47;    %   3: grey matter  0.47
-    img.elem_data([fmdl.mat_idx{4}]) = 0.016;   %   4: skull        0.016
+    img.elem_data([fmdl.mat_idx{4}]) = 0.0001;  %   4: air          0.0001
 
     % Set stim patterns
     [img.fwd_model.stimulation, img.fwd_model.meas_select] = mk_stim_patterns(32,1,[0,5],[0,5],{'no_meas_current_next2'},1);
     img.fwd_model.normalize_measurements = 0;
     imdl = mk_GREIT_model(img, radius, weight, opt);
-    save('fmdl_10_2.mat','fmdl');
-    save('imdl_10_2.mat','imdl');
+    save(fmdl_file,'fmdl');
+    save(imdl_file,'imdl');
     
 end % end if
     

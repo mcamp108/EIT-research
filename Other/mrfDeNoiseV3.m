@@ -87,12 +87,13 @@ nodeBeliefPrev= nodeBeliefs;
 % 5. Calculate Bethe free energy (Yedidia 2001) and terminate function if at a minimum
 if iter> 1
     betheFreeE= -Exy+ Ex+ Ixy- Hx;
-    if iter>2 && (betheFreeEPrev < betheFreeE || betheFreeEPrev/ betheFreeE < 1.05 || betheFreeEPrev== 0)
+%     if iter > 2 && (betheFreeEPrev < betheFreeE || betheFreeEPrev / betheFreeE < 1.05 || betheFreeEPrev == 0)
+    if iter > 2 && (betheFreeEPrev==0 || abs(betheFreeEPrev-betheFreeE)/betheFreeEPrev<0.05)
         nodeBeliefs= nodeBeliefPrev;
         doneIter= true;
-        betheE= [betheE; betheFreeEPrev];
     else
         betheFreeEPrev= betheFreeE;
+        betheE= [betheE; betheFreeEPrev];
     end % end if
 end % end if
 
@@ -121,6 +122,7 @@ function [dir, revdir] = messageDirection(i, j, numRows)
 % parameters: sender int i, recipient int j, and int number of rows in the image.
 % returns: direction in which message is being received by recipient 
 % 1= north, 2= east, 3= south, 4= west
+
 result= j-i;
 if result== 1
     dir= 1; % north
@@ -132,9 +134,12 @@ else
     dir= 4; %west
 end % end if
 revdir = mod(dir+2, 4); % reverse message
+
 end % end function
 
+
 function factNodes= normalize_messages(factNodes, nonNaN)
+
 for pix= nonNaN
     for dir= 1:4
         Messages= factNodes(dir, :, pix);
@@ -147,7 +152,9 @@ end % end for
 
 end % end function
 
+
 function [nodeBeliefs, Ex, Hx]= calc_nodeBeliefs(nodeBeliefs, nodePotentials, validEdges, factNodes, nonNaN)
+
 Ex= 0;
 Hx= 0;
 for pixel= nonNaN % update belief for each pixel
@@ -159,9 +166,12 @@ for pixel= nonNaN % update belief for each pixel
     Ex= Ex+ (Q* dot(nonZeroNodeBeliefs, log(nodePotentials(nonZeroNodeBeliefIndex, pixel))));
     Hx= Hx+ (Q* dot(nonZeroNodeBeliefs, log(nonZeroNodeBeliefs)));
 end % end for
+
 end % end function
 
+
 function [Exy, Ixy]= calc_edgeBeliefs(i, j, m, numEdges,  numLabels, validEdges, factNodes, nodePotentials, edgePotentials)
+
 Exy= 0;
 Ixy= 0;
 edgeBeliefs= zeros(numLabels, numLabels, numEdges); % Stores probability associated with each label permutation for each pair of pixels
@@ -185,9 +195,12 @@ for edge= 1: numEdges
     Exy= Exy+ dot( nonZeroEdgeBeliefs, log(localPotentials(nonZeroEdgeBeliefIndex)) );
     Ixy= Ixy+ dot( nonZeroEdgeBeliefs, log(nonZeroEdgeBeliefs) );
 end % end for
+
 end % end function
 
+
 function imageDenoised= get_map_estimate(image, nonNaN, nodeBeliefs)
+
 imageDenoised= image;
 for pixel= nonNaN
     label= find( nodeBeliefs(:, pixel)== max(nodeBeliefs(:, pixel)) );
@@ -196,4 +209,5 @@ for pixel= nonNaN
     end
     imageDenoised(pixel)= label; % Choose the label with the highest probability
 end % end for
+
 end % end function

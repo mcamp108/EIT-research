@@ -1,7 +1,7 @@
-function [imdl_comp, vv_prime]= compensate_bad_elec(vv, elec_impedance, imdl)
+function imdl_comp= compensate_bad_elec(eit_file, imdl)
 % -------------------------------------------------------------------------
 % Description:
-%   imdl_comp= compensate_bad_elec(vv, imdl) 
+%   imdl_comp= compensate_bad_elec(eit_file, imdl)
 %
 %   Modify reconstruction matrix of imdl to compensate for noisy or
 %   disconnected electrodes using the method from Mamatjan 2017. This
@@ -10,7 +10,10 @@ function [imdl_comp, vv_prime]= compensate_bad_elec(vv, elec_impedance, imdl)
 %   6 are removed.
 % -------------------------------------------------------------------------
 % Parameters:
-%   vv:         EIT data with or without complex component.
+%   eit_file:
+%       Target data file ending in .eit file extension.
+%   imdl:
+%       EIDORS inverse model structure
 % -------------------------------------------------------------------------   
 % Returns:
 %   imdl_comp:
@@ -28,13 +31,15 @@ function [imdl_comp, vv_prime]= compensate_bad_elec(vv, elec_impedance, imdl)
 %   27.Sep.2019
 % -------------------------------------------------------------------------
 
+[data,auxdata]= eidors_readdata(eit_file);
 imdl_comp= imdl;
 
-% Find bad electrodes
-% vk = 1e3* mean(real(vv), 2);
-% by_stim_pair= reshape(vk, 32, 32);
-ei= mean(real(abs(elec_impedance)), 2);
+% find bad electrodes
+impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
+elec_impedance= abs(auxdata.elec_impedance* impedanceFactor);
+ei= median(elec_impedance, 2);
 bad_elecs= find(ei> 400);
+
 if length(bad_elecs)> 6
     be_ci= sort(ei(bad_elecs), 'descend');
     bad_elecs= zeros(6, 1);
@@ -46,12 +51,12 @@ end % end if
 % Find measurements from bad electrodes
 kk= meas_icov_rm_elecs(imdl_comp, bad_elecs);
 ee = find(diag(kk)~=1); % bad channels of meas_sel
-ge= find(diag(kk)==1); % good channels of meas_sel
+% ge= find(diag(kk)==1); % good channels of meas_sel
 
-% remove noisy channels from data
-msel= imdl.fwd_model.meas_select;
-vv_prime= real(vv(find(msel), :));
-vv_prime= vv_prime(ge, :);
+% % remove noisy channels from data
+% msel= imdl.fwd_model.meas_select;
+% vv_prime= real(vv(find(msel), :));
+% vv_prime= vv_prime(ge, :);
 
 % do work on reconstruction matrix
 imdl_comp.solve_use_matrix.RM_orig= imdl_comp.solve_use_matrix.RM;
