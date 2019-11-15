@@ -43,13 +43,13 @@ for i= 3: size(ls, 1)
         f= file{1};
         [fmdl, imdl]= mk_weighted_restraint_model();
         
-%         % Inspect data quality
-%         inspect_eit_elec_and_data(f, imdl);
-%         keyboard;
+        % Inspect data quality
+        inspect_eit_elec_and_data(f, imdl);
+        keyboard;
         
         % Import data
         [dd,auxdata]= eidors_readdata(f);
-        dd= dd(:, 1: min(size(dd, 2), 14300));
+        dd= dd(:, min(size(dd, 2));
         FR = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
         
         % Clean data
@@ -76,7 +76,7 @@ for i= 3: size(ls, 1)
         tbv= sum(use_data, 1);
         
         % calculate images for each breath
-%         tidal_variation= zeros(32,32, length(end_ex));
+        tidal_variation= zeros(32,32, length(end_ex));
         
         b= length(end_in);
         % parameters

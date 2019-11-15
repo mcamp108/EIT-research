@@ -21,7 +21,7 @@ function [fmdl, imdl]= mk_weighted_restraint_model()
 % VERSION:
 %   1.0.0
 % -------------------------------------------------------------------------
-
+starting_dir= cd;
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\Models';
 
 if exist('weighted_restraint_fmdl.mat', 'file') == 2
@@ -65,5 +65,7 @@ else
     save('weighted_restraint_fmdl.mat','fmdl');
     save('weighted_restraint_imdl.mat','imdl');
 end % end if
+
+cd(starting_dir);
 
 end % end function

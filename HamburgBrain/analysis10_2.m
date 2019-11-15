@@ -16,6 +16,25 @@ fn= fieldnames(D);
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';
 % suffix= ' rm_high_range_gt500CI';
 suffix= ' rm_CI_over_400';
+%% IMAGE DIFFERENCES OF IMGR AT PERF PEAK AND PERF VALLEY
+cutoff= D.seq1.eit.vnt;
+use_peaks= D.seq1.eit.peaks(D.seq1.eit.peaks< cutoff);
+use_vals= D.seq1.eit.vals(D.seq1.eit.vals< cutoff);
+
+if length(use_peaks)> length(use_vals)
+    use_peaks= use_peaks(1: length(use_vals));
+else
+    use_vals= use_vals(1: length(use_peaks));
+end % end if
+
+img1= D.seq1.imgr.elem_data(:, use_peaks);
+img2= D.seq1.imgr.elem_data(:, use_vals);
+img3= mean(img1-img2, 2);
+imgr_pulsatility= D.seq1.imgr;
+imgr_pulsatility.elem_data= img3;
+figure;
+show_slices(imgr_pulsatility);
+
 %% VIDEO OF RECONSTRUCTED IMAGE AND BRAIN SEGMENTATION
 
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\10.2';

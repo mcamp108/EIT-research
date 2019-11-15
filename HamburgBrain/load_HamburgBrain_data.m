@@ -178,7 +178,7 @@ for i= 1:length(eit_files)
     D.(fn{i})= allign_eit_and_perf(D.(fn{i}));
     
     % adjust recontruction matrix for noisy electrodes
-    [imdl_comp, vv_prime]= compensate_bad_elec(D.(fn{i}).eit.data, D.(fn{i}).eit.elec_impedance, imdl);
+    [imdl_comp, vv_prime]= compensate_bad_elec(eit_files{i}, imdl);
     
     % use only good measurements
     msel= imdl.fwd_model.meas_select;
@@ -287,7 +287,15 @@ function seq= allign_eit_and_perf(seq)
     % Transfer these annotations to the EIT data
     seq.eit.peaks=  round( (seq.perf.peaks./ seq.perf.tickrate).*seq.eit.fs );
     seq.eit.vals=   round( (seq.perf.vals./ seq.perf.tickrate).*seq.eit.fs );
-
+    
+    if seq.eit.peaks(1) < 1
+        seq.eit.peaks(1)= 1;
+    end % end if
+    
+    if seq.eit.vals(1) < 1
+        seq.eit.vals(1)= 1;
+    end % end if
+    
 end % end function
 
 function imgr= get_imgr(fdata, inj, imdl)

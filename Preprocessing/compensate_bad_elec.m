@@ -1,4 +1,4 @@
-function imdl_comp= compensate_bad_elec(eit_file, imdl)
+function varargout= compensate_bad_elec(eit_file, imdl)
 % -------------------------------------------------------------------------
 % Description:
 %   imdl_comp= compensate_bad_elec(eit_file, imdl)
@@ -32,6 +32,7 @@ function imdl_comp= compensate_bad_elec(eit_file, imdl)
 % -------------------------------------------------------------------------
 
 [data,auxdata]= eidors_readdata(eit_file);
+
 imdl_comp= imdl;
 
 % find bad electrodes
@@ -51,12 +52,15 @@ end % end if
 % Find measurements from bad electrodes
 kk= meas_icov_rm_elecs(imdl_comp, bad_elecs);
 ee = find(diag(kk)~=1); % bad channels of meas_sel
-% ge= find(diag(kk)==1); % good channels of meas_sel
+
 
 % % remove noisy channels from data
-% msel= imdl.fwd_model.meas_select;
-% vv_prime= real(vv(find(msel), :));
-% vv_prime= vv_prime(ge, :);
+if nargout==2
+    ge= find(diag(kk)==1); % good channels of meas_sel
+    msel= imdl.fwd_model.meas_select;
+    vv_prime= real(data(find(msel), :));
+    varargout{2}= vv_prime(ge, :);
+end % end if
 
 % do work on reconstruction matrix
 imdl_comp.solve_use_matrix.RM_orig= imdl_comp.solve_use_matrix.RM;
@@ -74,5 +78,5 @@ end % end for
 
 imdl_comp.solve_use_matrix.X_star= X_star;
 imdl_comp.solve_use_matrix.RM= PJt* X_star;
-
+varargout{1}= imdl_comp;
 end % end function
