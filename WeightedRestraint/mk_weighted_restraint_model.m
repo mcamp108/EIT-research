@@ -3,15 +3,15 @@ function [fmdl, imdl]= mk_weighted_restraint_model()
 % -------------------------------------------------------------------------
 % DESCRIPTION:
 %   [fmdl, imdl]= mk_weighted_restraint_model()
-%
-%
 % -------------------------------------------------------------------------
 % PARAMETERS:
 % -------------------------------------------------------------------------   
 % RETURNS:
-% 
-%
-%
+%   fmdl:
+%       EIDORS forward model of human thorax with 32 electrodes arranged in
+%       square pattern
+%   imdl:
+%       EIDORS inverse model of fmdl with keep_intermediate_results= true.
 % -------------------------------------------------------------------------   
 % AUTHOR:
 %   Mark Campbell
@@ -21,6 +21,7 @@ function [fmdl, imdl]= mk_weighted_restraint_model()
 % VERSION:
 %   1.0.0
 % -------------------------------------------------------------------------
+
 starting_dir= cd;
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\Models';
 

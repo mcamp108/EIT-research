@@ -5,15 +5,18 @@ function inspect_eit_elec_and_data(eit_file, imdl)
 % -------------------------------------------------------------------------
 % Parameters:
 %   eit_file:
-%       Target data file ending in .eit file extension.
+%       Target data file ending in .eit file extension or a cell containing
+%       the outpus of eidors_readdata {data, auxdata}.
 %   imdl:
 %       EIDORS inverse model structure
 % ------------------------------------------------------------------------- 
 % Returns:
+%   Total boundary voltage plot
 %   IQ plot
 %   U-shape plot
-%   Contact impedance plot
 %   Frequency spectrum plot
+%   Contact impedance plot
+%   Average measurement for measureemnt pair plot
 % ------------------------------------------------------------------------- 
 % Author:
 %   Mark Campbell
@@ -22,7 +25,25 @@ function inspect_eit_elec_and_data(eit_file, imdl)
 %   27.Sep.2019
 % -------------------------------------------------------------------------
 
-[data,auxdata]= eidors_readdata(eit_file);
+
+if iscell(eit_file) % input is output of eidors_read_data
+    if length(eit_file)==2
+        if isstruct(eit_file{2})
+            auxdata= eit_file{2};
+            data= eit_file{1};
+        else
+            auxdata= eit_file{1};
+            data= eit_file{2};
+        end % end if
+    else
+        disp("Whoops!");
+    end % end if
+elseif strcmp(eit_file(end-3:end), '.eit')
+    [data,auxdata]= eidors_readdata(eit_file);
+else
+    disp("Unrecognized input.");
+end % end if
+
 fs = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
 msel= imdl.fwd_model.meas_select;
 
@@ -36,7 +57,7 @@ kk=meas_icov_rm_elecs(imdl, bad_elecs);
 ee = find(diag(kk)~=1);
 
 % total boundary voltage
-subplot(321);
+subplot(4,2,[1,2]);
     vv= real(data);
     xax= (1:size(vv, 2))/ fs;
     plot(xax, sum(vv(msel,:), 1));
@@ -45,7 +66,7 @@ subplot(321);
     title('Total Boundary Voltage');
 
 % U shapes 
-subplot(322);
+subplot(424);
     vk = 1e3* mean(vv, 2);
     plot(vk,'k');    % all meas
     hold on;
@@ -58,7 +79,7 @@ subplot(322);
     xlim([0,400]);
     title 'U shapes';
 % IQ plot
-subplot(323);
+subplot(423);
     % all meas
     plot(1e3* data(:, 1:100), 'k+'); 
     hold on;
@@ -72,7 +93,7 @@ subplot(323);
     title 'IQ plot';
 
 % median contact impedance
-subplot(324);
+subplot(426);
     bar(1:32, ei);
     hold on;
     eb= errorbar(1:32, ei, max(elec_impedance, [], 2)-ei, min(elec_impedance, [], 2)- ei);
@@ -83,7 +104,7 @@ subplot(324);
     title 'Median Elec Z';
 
 % Fourier Series
-subplot(325);
+subplot(425);
     ll = size(data, 2);    
     ft = fft(detrend(data.').', [], 2);
     fax = linspace(0, fs, ll+1); fax(end)=[];
@@ -94,7 +115,7 @@ subplot(325);
     title 'Spectrum (Hz)';
 
 % Average Measurement for Measurement Pair
-subplot(326);
+subplot(427);
     vk = 1e3* mean(vv, 2);
     by_stim_pair= reshape(vk, 32, 32);
     av_meas= (mean(by_stim_pair, 2));
