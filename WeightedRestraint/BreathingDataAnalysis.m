@@ -4,14 +4,19 @@ cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\data\Mali Weig
 clip= 50;
 dirs= ls;
 
-for i= 3: size(ls, 1)
+for i= 5: size(ls, 1)
     folder= dirs(i, :);
     
     while strcmp(folder(end), ' ')
         folder= folder(1:end-1);
     end % end while
     
-    cd(folder);
+    if ~strcmp(folder, 'Other')
+        cd(folder);
+    else
+        continue
+    end % end for
+    
     hdr= length(horzcat(folder, '_'))+ 1;
     files= ls;
     
@@ -132,12 +137,12 @@ for i= 3: size(ls, 1)
             else % If there is a clear boundary between lungs.
                 left_lung_area(j)= sum(lung_roi_area_projection(find(lung_boundaries)+1: end)); % number of pixels in left lung
                 right_lung_area(j)= sum(lung_roi_area_projection(1: find(lung_boundaries))); % number of pixels in right lung
-                lung_divide_idx= find(lung_boundaries)* size(lung_roi, 1) + 1;
+                lung_divide_idx= find(lung_boundaries, 1)* size(lung_roi, 1) + 1;
             end % end if
             
             % calculate lung filling and area
             is_lung= find(lung_roi);
-            left_lung_idx= is_lung(is_lung>= lung_divide_idx+32);
+            left_lung_idx= is_lung(is_lung>= lung_divide_idx);
             right_lung_idx= is_lung(is_lung< lung_divide_idx);
 
             left_lung_filling(j)= sum(lungs(left_lung_idx)); % sum of voltage difference in left lung
@@ -165,5 +170,5 @@ for i= 3: size(ls, 1)
         table_out = array2table(out, 'VariableNames', header);
         writetable(table_out, save_name);    
     end % end for
-        
+    cd ../   
 end % end for
