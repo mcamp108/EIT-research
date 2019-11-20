@@ -3,8 +3,9 @@ run 'myStartup.m';
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\data\Mali Weighted Restraint';
 clip= 50;
 dirs= ls;
-
-for i= 4: size(ls, 1)
+[fmdl, imdl]= mk_weighted_restraint_model();
+% figure('units','normalized','outerposition',[0 0 1 1]);
+for i= 3: size(ls, 1)
     folder= dirs(i, :);
     
     while strcmp(folder(end), ' ')
@@ -44,9 +45,8 @@ for i= 4: size(ls, 1)
     
     files= {sref, pref, wref, wepos, epos};
     
-    for file= files
-        f= file{1};
-        [fmdl, imdl]= mk_weighted_restraint_model();
+    for i= 1:length(files)
+        f= files{i};
         
         % Import data
         [dd,auxdata]= eidors_readdata(f);
@@ -56,29 +56,48 @@ for i= 4: size(ls, 1)
         auxdata.t_rel= auxdata.t_rel(:, 1: size(dd, 2));
         FR = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
 
-        % Inspect data quality
-        inspect_eit_elec_and_data({dd, auxdata}, imdl); sgtitle(remove_underscores(f));
-        keyboard;
+%         % Inspect data quality
+%         clf;
+%         inspect_eit_elec_and_data({dd, auxdata}, imdl, 500); sgtitle(remove_underscores(f));
+%         ax= gcf;
+%         ylim_adjust= (0.03- (ax.Children(6).YLim(2)- ax.Children(6).YLim(1)))/2;
+%         ax.Children(6).YLim(1)= ax.Children(6).YLim(1)- ylim_adjust;
+%         ax.Children(6).YLim(2)= ax.Children(6).YLim(2)+ ylim_adjust;
+%         name= char(remove_underscores(f));
+%         front= name(1:13);
+%         back= name(14:end);
+%         cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\figures\data quality';
+%         print_convert(horzcat(front, '_', num2str(i), '_', back, '.png'));
+%         cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\data\Mali Weighted Restraint';
+%         cd(folder);
+%         keyboard;
         
         % Clean data
         msel= imdl.fwd_model.meas_select;
         mm = find(msel);
-        imdl_comp= compensate_bad_elec(f, imdl);
+        if strcmp(f, '2019_08_07_P3_proneRef.eit')
+            imdl_comp= compensate_bad_elec(f, imdl, 1000);
+        else
+            imdl_comp= imdl;
+        end % end if
         use_data= real(dd(mm, :));
         
         % for lung component
-        use_data= lowpass(use_data', 5, FR)';
+        use_data= lowpass(use_data', 4, FR)';
         
         % trim filter edge artifacts
         use_data= use_data(:, clip:(size(use_data,2)-clip) );
         
         % Solve
         imgr= inv_solve(imdl_comp, mean(use_data, 2), use_data); % data 1 == referene frame, data 2== other frames in time series.
-        slices= calc_slices(imgr, [inf,inf,1]);
-        save(horzcat(f(1:end-4), '_reconstr_data.mat'), 'slices');
+        for plane= [0.85, 1, 1.15]
+            slices= calc_slices(imgr, [inf,inf, plane]);
+            save(horzcat(f(1:end-4), '_reconstr_data_zplane',num2str(plane), '.mat'), 'slices');
+        end % end for
     end % end for
     cd ../
 end % end for
+
 %         
 %         % Breath boundaries
 %         breaths= findBreaths(use_data);

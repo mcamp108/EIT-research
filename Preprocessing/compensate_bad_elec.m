@@ -1,4 +1,4 @@
-function varargout= compensate_bad_elec(eit_file, imdl)
+function varargout= compensate_bad_elec(eit_file, imdl, thresh)
 % -------------------------------------------------------------------------
 % Description:
 %   imdl_comp= compensate_bad_elec(eit_file, imdl)
@@ -11,9 +11,12 @@ function varargout= compensate_bad_elec(eit_file, imdl)
 % -------------------------------------------------------------------------
 % Parameters:
 %   eit_file:
-%       Target data file ending in .eit file extension.
+%       Target data file ending in .eit file extension or a cell containing
+%       the outpus of eidors_readdata {data, auxdata}.
 %   imdl:
 %       EIDORS inverse model structure
+%   thresh:
+%       contact impedance threshold at which to label an electrode poor.
 % -------------------------------------------------------------------------   
 % Returns:
 %   imdl_comp:
@@ -31,7 +34,27 @@ function varargout= compensate_bad_elec(eit_file, imdl)
 %   27.Sep.2019
 % -------------------------------------------------------------------------
 
-[data,auxdata]= eidors_readdata(eit_file);
+if (nargin== 2) && (~exist(thresh, 'var'))
+   thresh= 400; 
+end % end if
+
+if iscell(eit_file) % input is output of eidors_read_data
+    if length(eit_file)==2
+        if isstruct(eit_file{2})
+            auxdata= eit_file{2};
+            data= eit_file{1};
+        else
+            auxdata= eit_file{1};
+            data= eit_file{2};
+        end % end if
+    else
+        disp("Whoops!");
+    end % end if
+elseif strcmp(eit_file(end-3:end), '.eit')
+    [data,auxdata]= eidors_readdata(eit_file);
+else
+    disp("Unrecognized input.");
+end % end if
 
 imdl_comp= imdl;
 
@@ -39,7 +62,7 @@ imdl_comp= imdl;
 impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
 elec_impedance= abs(auxdata.elec_impedance* impedanceFactor);
 ei= median(elec_impedance, 2);
-bad_elecs= find(ei> 400);
+bad_elecs= find(ei> thresh);
 
 if length(bad_elecs)> 6
     be_ci= sort(ei(bad_elecs), 'descend');
