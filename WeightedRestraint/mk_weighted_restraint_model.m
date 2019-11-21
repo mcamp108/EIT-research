@@ -36,11 +36,11 @@ else
 
     % Set up the electrodes with 1:16 on bottom and 17:32 on top
     elec_pos = [16,0,0.75,1.25];
-    elec_spec = [0.1];
+    elec_spec = [0.05];
     % elec_spec = [0.5, 0, 0.1]; % Radius of circular electrodes
     fmdl = ng_mk_extruded_model(shape, elec_pos, elec_spec);
-    row1= [5:16, 1:4]; 
-    row2= [21:32, 17:20]; 
+    row1= [13:16, 1:12]; 
+    row2= [29:32, 17:28]; 
     idx= [row1;row2]';
     fmdl.electrode(idx)= fmdl.electrode(:);
 

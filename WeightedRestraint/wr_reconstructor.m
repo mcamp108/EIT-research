@@ -1,10 +1,30 @@
 run 'myStartup.m';
-% DATA
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\data\Mali Weighted Restraint';
 clip= 50;
 dirs= ls;
+
+% model
 [fmdl, imdl]= mk_weighted_restraint_model();
-% figure('units','normalized','outerposition',[0 0 1 1]);
+
+% lung roi
+lung_roi= lung_segmentation();
+mid_col= size(lung_roi, 2)/2;
+lung_divide_idx= mid_col* size(lung_roi, 1) + 1;
+is_lung= find(lung_roi);
+left_lung_idx= is_lung(is_lung>= lung_divide_idx);
+right_lung_idx= is_lung(is_lung< lung_divide_idx);
+% frame numbers for start of ten 30-second intervals
+ten_thrty_s_inc= linspace(1, round(270*47.6826),10);
+n_frame_30_s= min(diff(ten_thrty_s_inc));
+
+% parameters
+header= {   'Time_s', 'ins_to_ins',               'exp_to_exp',               'ins_to_exp',...
+                    'del_z_lung_max',           'del_z_lung_min',           'left_lung_filling',...          
+                    'right_lung_filling',       'left_lung_median_value',	'right_lung_median_value',...  
+                    'global_inhomogeneity',     'center_of_ventilation'};
+
+figure('units','normalized','outerposition',[0 0 1 1]);
+
 for i= 3: size(ls, 1)
     folder= dirs(i, :);
     
@@ -41,12 +61,12 @@ for i= 3: size(ls, 1)
                 disp("Unrecognized file name!")
             end % end if
         end % end if
-    end % end for
+    end % end for f
     
     files= {sref, pref, wref, wepos, epos};
     
-    for i= 1:length(files)
-        f= files{i};
+    for j= 1:length(files)
+        f= files{j};
         
         % Import data
         [dd,auxdata]= eidors_readdata(f);
@@ -58,14 +78,16 @@ for i= 3: size(ls, 1)
 
 %         % Inspect data quality
 %         clf;
-%         inspect_eit_elec_and_data({dd, auxdata}, imdl, 500); sgtitle(remove_underscores(f));
+%         inspect_eit_elec_and_data({dd, auxdata}, imdl, 500); 
 %         ax= gcf;
 %         ylim_adjust= (0.03- (ax.Children(6).YLim(2)- ax.Children(6).YLim(1)))/2;
 %         ax.Children(6).YLim(1)= ax.Children(6).YLim(1)- ylim_adjust;
 %         ax.Children(6).YLim(2)= ax.Children(6).YLim(2)+ ylim_adjust;
-%         name= char(remove_underscores(f));
-%         front= name(1:13);
-%         back= name(14:end);
+        name= char(remove_underscores(f));
+        suffix= ' clean breaths';
+        sgtitle(horzcat(name, suffix));
+        front= name(1:13);
+        back= name(14:end);
 %         cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\figures\data quality';
 %         print_convert(horzcat(front, '_', num2str(i), '_', back, '.png'));
 %         cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\data\Mali Weighted Restraint';
@@ -90,112 +112,120 @@ for i= 3: size(ls, 1)
         
         % Solve
         imgr= inv_solve(imdl_comp, mean(use_data, 2), use_data); % data 1 == referene frame, data 2== other frames in time series.
-        for plane= [0.85, 1, 1.15]
-            slices= calc_slices(imgr, [inf,inf, plane]);
-            save(horzcat(f(1:end-4), '_reconstr_data_zplane',num2str(plane), '.mat'), 'slices');
-        end % end for
-    end % end for
-    cd ../
-end % end for
+        slices= calc_slices(imgr, [inf,inf, 1]);
+%         for plane= [0.85, 1, 1.15]
+%             slices= calc_slices(imgr, [inf,inf, plane]);
+%             save(horzcat(f(1:end-4), '_reconstr_data_zplane',num2str(plane), '.mat'), 'slices');
+%         end % end for        
+        
+        % Breath boundaries
+        tbv= sum(use_data, 1);
+        breaths= findBreaths(tbv);
+        end_in= breaths.insIdx;
+        end_ex= breaths.expIdx;
+        
+        % apply breath selection
+        b= length(end_in)- 1;
+        tidal_volume= abs(tbv(end_ex(1:b))- tbv(end_in(1:b)));
+        ins_to_ins= (diff(end_in)./FR)';
+        exp_to_exp= (diff(end_ex)./FR)';
+        ins_to_exp= (abs((end_ex(1:b)- end_in(1:b))./FR))';
+        criteria= [ins_to_ins, exp_to_exp, ins_to_exp];
+        reject_breath= zeros(length(ins_to_ins), 3);
+        
+        for k= 1:3
+            testing= criteria(:, k);
+            qntls= quantile(testing, 5);
+            reject_breath(:,k)= (testing< qntls(1)) + (testing> qntls(end));
+        end % end for k
+        
+        % calculate total boundary voltage
+%         keep= find(sum(reject_breath, 2)==0);
+        keep= find(reject_breath(:,3)==0);
+        ins_to_ins= ins_to_ins(keep);
+        exp_to_exp= exp_to_exp(keep);
+        ins_to_exp= ins_to_exp(keep);
+        tidal_volume= tidal_volume(keep);
+        end_in= end_in(keep)';
+        end_ex= end_ex(keep)';
+        breath_start_stop= [end_in, end_ex];
+        Time= min(breath_start_stop, [], 2)/FR;
+        
+        % plot breath boundaries
+        plot(tbv, 'k');hold on;
+        for k= 1:length(keep)
+            x= sort([end_in(k), end_ex(k)]);
+            x= x(1):x(2);
+            xax= min(x):max(x);
+            plot(xax, tbv(xax), 'm');
+        end % end for k
+        ylabel('Voltage');xlabel('Frame'); legend('total boundary voltage', 'retained data')
+%         keyboard;
+        cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\figures\data quality';
+        print_convert(horzcat(front, '_', num2str(j), '_breaths_', back, '.png'));
+        cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\data\Mali Weighted Restraint';
+        cd(folder);     
+        hold off;
+        
+        del_z_lung_max= zeros(k, 1);
+        del_z_lung_min= zeros(k, 1);
+        left_lung_area= zeros(k, 1); % number of pixels for lung in breath
+        right_lung_area= zeros(k, 1);
+        left_lung_filling= zeros(k, 1); % total value of pixels for lung in breath
+        right_lung_filling= zeros(k, 1);
+        left_lung_median_value= zeros(k, 1); 
+        right_lung_median_value= zeros(k, 1);
+        global_inhomogeneity= zeros(k, 1);
+        center_of_ventilation= zeros(k, 1);
+        
+        % lung images
+        lung_imgs= slices(:,:,end_in)- slices(:,:,end_ex);
+        
+        if j==3 || j==4 % conditions wref or wepos. Show 10 images, each the average of 30 seconds of breathing
+            for m= 1:length(ten_thrty_s_inc)
+                idx= find( sum([(breath_start_stop> ten_thrty_s_inc(m)) , (breath_start_stop<= ten_thrty_s_inc(m)+ n_frame_30_s)], 2)==4 );
+                if isempty(idx)
+%                     disp("Something's up with Jack.");
+                    lung_img(:,:,m)= zeros(32,32)./0;
+                end % end if
+                lung_img(:,:,m)= mean(lung_imgs(:,:,idx), 3);
+            end % end for m
+        else % conditions sref, pref or epos. Show a single image, the average of 30 seconds of all breaths
+            lung_img= mean(lung_imgs, 3);
+        end % end if
+        
+        clf; show_slices(lung_img); colorbar; title(horzcat(name,' reconstruction(s)'));
+        print_convert(horzcat(front, '_', num2str(j), '_breaths_', back, '.png'));
+        
+        for k= 1: length(keep)
+            lungs= slices(:,:,end_in(k))- slices(:,:,end_ex(k));
+            % 1. maximum delta Z determined for lungs
+            del_z_lung_min(k)= min(lungs,[],'all');
+            del_z_lung_max(k)= max(lungs,[],'all')- del_z_lung_min(k);            
 
-%         
-%         % Breath boundaries
-%         breaths= findBreaths(use_data);
-%         end_in= breaths.insIdx;
-%         end_ex= breaths.expIdx;
-%         
-%         % calculate total boundary voltage
-%         tbv= sum(use_data, 1);
-%         
-%         % calculate images for each breath
-% %         tidal_variation= zeros(32,32, length(end_ex));
-%         
-%         b= length(end_in);
-%         % parameters
-%         header= {   'ins_to_ins',               'exp_to_exp',               'ins_to_exp',...
-%                     'del_z_lung_max',           'del_z_lung_min',           'left_lung_area',...
-%                     'right_lung_area',          'left_lung_filling',        'right_lung_filling',...
-%                     'left_lung_median_value',	'right_lung_median_value',  'global_inhomogeneity',...
-%                     'center_of_ventilation'};
-%                 
-%         tidal_volume= abs(tbv(end_ex)- tbv(end_in));
-%         ins_to_ins= diff(end_in)./FR;
-%         exp_to_exp= diff(end_ex)./FR;
-%         ins_to_exp= abs((end_ex- end_in)./FR);
-%         del_z_lung_max= zeros(b, 1);
-%         del_z_lung_min= zeros(b, 1);
-%         left_lung_area= zeros(b, 1); % number of pixels for lung in breath
-%         right_lung_area= zeros(b, 1);
-%         left_lung_filling= zeros(b, 1); % total value of pixels for lung in breath
-%         right_lung_filling= zeros(b, 1);
-%         left_lung_median_value= zeros(b, 1); 
-%         right_lung_median_value= zeros(b, 1);
-%         global_inhomogeneity= zeros(b, 1);
-%         center_of_ventilation= zeros(b, 1);
-%         
-%         for j= 1: b
-%             % Get difference data for this breath
-%             vd= use_data(:,end_in(j));
-%             vh= use_data(:,end_ex(j));
-%             imgr= inv_solve(imdl_comp, vd, vh);
-%             lungs= calc_slices(imgr, [inf,inf,1]);
-%             
-%             % 1. maximum delta Z determined for lungs
-%             del_z_lung_min(j)= min(lungs,[],'all');
-%             del_z_lung_max(j)= max(lungs,[],'all')- del_z_lung_min(j);
-%             
-%             % Determine fROI cutoff and lung segmentation
-%             thresh= 0.5;    
-%             fROI_cutoff= del_z_lung_max(j)* thresh+ del_z_lung_min(j);
-%             lung_roi= lungs> (fROI_cutoff); % lung segmentation
-%             lung_roi_area_projection= sum(lung_roi, 1); % project segmentation to 1d vector
-%             lung_val_projection= sum(lungs(lung_roi), 1); % ?
-%             lung_boundaries= diff(find(lung_roi_area_projection)) > 1; 
-%             % space in between lungs is col where sum is 0.
-%             % find(lung_boundaries) returns the index of
-%             % lung_roi_area_projection that is the right side of the left
-%             % lung in the image, left side of right lung in the participant
-%             
-%             if sum(lung_boundaries)== 0 % Image is weird, simply divide it in half.
-%                 mid_col= size(lung_roi, 2)/2;
-%                 left_lung_area(j)= sum(lung_roi(:, mid_col+1:end), 'all'); % number of pixels in left lung
-%                 right_lung_area(j)= sum(lung_roi(:, 1: mid_col), 'all'); % number of pixels in right lung
-%                 lung_divide_idx= mid_col* size(lung_roi, 1) + 1;
-%             else % If there is a clear boundary between lungs.
-%                 left_lung_area(j)= sum(lung_roi_area_projection(find(lung_boundaries)+1: end)); % number of pixels in left lung
-%                 right_lung_area(j)= sum(lung_roi_area_projection(1: find(lung_boundaries))); % number of pixels in right lung
-%                 lung_divide_idx= find(lung_boundaries, 1)* size(lung_roi, 1) + 1;
-%             end % end if
-%             
-%             % calculate lung filling and area
-%             is_lung= find(lung_roi);
-%             left_lung_idx= is_lung(is_lung>= lung_divide_idx);
-%             right_lung_idx= is_lung(is_lung< lung_divide_idx);
-% 
-%             left_lung_filling(j)= sum(lungs(left_lung_idx)); % sum of voltage difference in left lung
-%             right_lung_filling(j)= sum(lungs(right_lung_idx)); % sum of voltage difference in right lung
-%             
-%             left_lung_median_value(j)= median(lungs(left_lung_idx));
-%             right_lung_median_value(j)= median(lungs(right_lung_idx));
-%             vals= lungs([left_lung_idx; right_lung_idx]);
-%             med_lung= median(vals);
-%             
-%             % calculate global inhomogeneity index
-%             global_inhomogeneity(j)= sum(abs(vals - med_lung))/ sum(vals);
-%             
-%             % calculate coefficient of variation
-%             center_of_ventilation(j)= std(vals)/ mean(vals);
-%         end % end for
-%         
-%         out= [  [0;ins_to_ins'],                 [0;exp_to_exp'],               ins_to_exp',...
-%                 del_z_lung_max,             del_z_lung_min,           left_lung_area,...
-%                 right_lung_area,            left_lung_filling,        right_lung_filling,...
-%                 left_lung_median_value,     right_lung_median_value,  global_inhomogeneity,...
-%                 center_of_ventilation];
-%             
-%         save_name= horzcat(f(1:end-4), '_features.csv');
-%         table_out = array2table(out, 'VariableNames', header);
-%         writetable(table_out, save_name);    
-%     end % end for
-%     cd ../   
-% end % end for
+            % calculate lung filling
+            left_lung_filling(k)= sum(lungs(left_lung_idx)); % sum of voltage difference in left lung
+            right_lung_filling(k)= sum(lungs(right_lung_idx)); % sum of voltage difference in right lung
+            left_lung_median_value(k)= median(lungs(left_lung_idx));
+            right_lung_median_value(k)= median(lungs(right_lung_idx));
+            vals= lungs(is_lung);
+            med_lung= median(vals);
+            
+            % calculate global inhomogeneity index
+            global_inhomogeneity(k)= sum(abs(vals - med_lung))/ sum(vals);
+            
+            % calculate coefficient of variation
+            center_of_ventilation(k)= std(vals)/ mean(vals);
+        end % end for k
+        
+        out= [      Time, ins_to_ins,               exp_to_exp,               ins_to_exp,...
+                    del_z_lung_max,           del_z_lung_min,           left_lung_filling,...          
+                    right_lung_filling,       left_lung_median_value,	right_lung_median_value,...  
+                    global_inhomogeneity,     center_of_ventilation];
+            
+        save_name= horzcat(f(1:end-4), '_features.csv');
+        table_out = array2table(out, 'VariableNames', header);
+        writetable(table_out, save_name);    
+    end % end for j
+    cd ../   
+end % end for i
