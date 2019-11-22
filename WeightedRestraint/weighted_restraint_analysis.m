@@ -3,104 +3,110 @@ cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\data\Mali Weig
 dirs= ls;
 D= struct;
 for i= 3: size(ls, 1)
-    folder= dirs(i, :);
-    while strcmp(folder(end), ' ')
-        folder= folder(1:end-1);
-    end % end while
+    folder= strtrim(dirs(i, :));
+
     if ~strcmp(folder, 'Other')
         cd(folder);
     else
         continue
     end % end for
-    participant= folder(end-1:end);
+    
+    participants= folder(end-1:end);
     hdr= length(horzcat(folder, '_'))+ 1;
     files= ls;
     for f= 3: size(files, 1)
-        file= files(f, :);
-        while strcmp(file(end), ' ')
-            file= file(1:end-1);
-        end % end while
-        if strcmp(file(end-3:end), '.csv')
-            if strcmp(file(hdr:hdr+8), 'proneRef_')
-                D.(participant).pref= readmatrix(file);
-            elseif strcmp(file(hdr:hdr+13), 'proneRefWeight')
-                D.(participant).wref= readmatrix(file);
-            elseif strcmp(file(hdr:hdr+16), 'standingReference')
-                D.(participant).sref= readmatrix(file);
-            elseif strcmp(file(hdr:hdr+18), 'proneWeightExercise')
-                D.(participant).wepos= readmatrix(file);
-            elseif strcmp(file(hdr:hdr+20), 'proneNoWeightExercise')
-                D.(participant).epos= readmatrix(file);
+        file= strtrim(files(f, :));
+        if contains(file, '_features.csv')
+            if contains(file, 'proneRef_')
+                D.(participants).pref= readmatrix(file);
+            elseif contains(file, 'proneRefWeight')
+                D.(participants).wref= readmatrix(file);
+            elseif contains(file, 'standingReference')
+                D.(participants).sref= readmatrix(file);
+            elseif contains(file, 'proneWeightExercise')
+                D.(participants).wepos= readmatrix(file);
+            elseif contains(file, 'proneNoWeightExercise')
+                D.(participants).epos= readmatrix(file);
             else
                 disp("Unrecognized file name!")
             end % end if
         end % end if
-    end % end for
+    end % end for f
     cd ../
-end % end for
+end % end for i
 %%
-fn= fieldnames(D);
-header= {   'ins_to_ins',               'exp_to_exp',               'ins_to_exp',...
-            'del_z_lung_max',           'del_z_lung_min',           'left_lung_area',...
-            'right_lung_area',          'left_lung_filling',        'right_lung_filling',...
-            'left_lung_median_value',	'right_lung_median_value',  'global_inhomogeneity',...
-            'center_of_ventilation'};
-recordings= {'pref', 'wref', 'sref', 'wepos', 'epos'};
+participants= fieldnames(D);
+header= {   'Time_s', 'ins_to_ins',               'exp_to_exp',               'ins_to_exp',...
+                    'del_z_lung_max',           'del_z_lung_min',           'left_lung_filling',...          
+                    'right_lung_filling',       'left_lung_median_value',	'right_lung_median_value',...  
+                    'global_inhomogeneity',     'center_of_ventilation'};
+recordings= {'sref', 'pref', 'wref', 'wepos', 'epos'};
 
-
+% sort by posture
 for i= 1:length(recordings)
-    pos1= [];
-    pos2= [];
-    pos3= [];
     record= recordings{i};
-    figure(i);clf;
-    sgtitle(record);
-    for j= 1:numel(fn)
-        data= D.(fn{j}).(record);
+    D.pos1.(record)= [];
+    D.pos2.(record)= [];
+    D.pos3.(record)= [];
+    
+    for j= 1: numel(participants)
+        data= D.(participants{j}).(record);
         if j< 4
-            pos3= [pos3; data];
+            D.pos3.(record)= [D.pos3.(record); data];
         elseif j< 7
-            pos2= [pos2; data];
+            D.pos2.(record)= [D.pos2.(record); data];
         else
-            pos1= [pos1; data];
+            D.pos1.(record)= [D.pos1.(record); data];
         end % end if
-    end % end for
-    
-    pos1(isnan(pos1))=0;
-    pos2(isnan(pos2))=0;
-    pos3(isnan(pos3))=0;
-    
-    p1_mean= mean(pos1, 1);
-    p1_std= std(pos1, 1);
-    p2_mean= mean(pos2, 1);
-    p2_std= std(pos2, 1);
-    p3_mean= mean(pos3, 1);
-    p3_std= std(pos3, 1);
-    for k= 1:length(p1_mean)
-        if k==11
-            keyboard;
-        end
-        subplot(4,4,k);
-        p1_pd = makedist('Normal','mu',p1_mean(k),'sigma',p1_std(k));
-        x= sort(pos1(:,k));
-        p1_pdf= pdf(p1_pd, x);
-        plot(x, p1_pdf);
-        hold on
-        p2_pd = makedist('Normal','mu',p2_mean(k),'sigma',p2_std(k));
-        x= sort(pos2(:,k));
-        p2_pdf= pdf(p2_pd, x);
-        plot(x, p2_pdf);
-
-        p3_pd = makedist('Normal','mu',p3_mean(k),'sigma',p3_std(k));
-        x= sort(pos3(:,k));
-        p3_pdf= pdf(p3_pd, x);
-        plot(x, p3_pdf);
-        xlabel(header{k});
-%         legend('Posture 1', 'Posture 2', 'Posture 3');
-        hold off
-    end % end for
-    
-end % end for
+    end % end for j
+end % end for i
 
 %%
-
+% for each person, how does parameter change with each recording?
+part_pos= fieldnames(D);
+figure('units','normalized','outerposition',[0 0 1 1]);
+for i= 1: numel(part_pos)
+    part= part_pos{i};
+    
+    for j= 2:length(header)
+        parameter_name= header{j};
+        data_= [];
+        label= [];
+        for k= 1:length(recordings)
+            record= recordings{k};
+            data= D.(part).(record);
+            data_= [data_; data(:, j)];
+            m= repmat({record}, size(data, 1), 1);
+            label= [label; m];
+        end % end for k
+        
+        fig_title= remove_underscores(horzcat(part, ' feature- ', parameter_name));
+        boxplot(data_, label);
+        title(fig_title);
+        print_convert(horzcat(fig_title, '.png'));
+    end % end for j
+end % end for i
+%%
+for k= 1:length(recordings)
+    record= recordings{k};
+    
+    for j= 2:length(header)
+        parameter_name= header{j};
+        data_= [];
+        label= [];
+        
+        for i= 1: numel(part_pos)
+            part= part_pos{i};
+            data= D.(part).(record);
+            data_= [data_; data(:, j)];
+            m= repmat({part}, size(data, 1), 1);
+            label= [label; m];
+        end % end for k
+        
+        fig_title= remove_underscores(horzcat(record, ' feature- ', parameter_name));
+        boxplot(data_, label);
+        title(fig_title);
+        print_convert(horzcat(fig_title, '.png'));
+    end % end for j
+end % end for i
+ 

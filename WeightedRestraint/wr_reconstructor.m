@@ -112,6 +112,13 @@ for i= 3: size(ls, 1)
         
         % Solve
         imgr= inv_solve(imdl_comp, mean(use_data, 2), use_data); % data 1 == referene frame, data 2== other frames in time series.
+        if j==1
+            % compile images from all conditions into a single image
+            imgr_copy= imgr;
+            % 5 conditions, max 10 images per condition.
+            imgr_copy.elem_data= zeros(size(imgr.elem_data, 1), 50);
+            imgr_copy.show_slices.img_cols= 10;
+        end % end if
         slices= calc_slices(imgr, [inf,inf, 1]);
 %         for plane= [0.85, 1, 1.15]
 %             slices= calc_slices(imgr, [inf,inf, plane]);
@@ -179,23 +186,27 @@ for i= 3: size(ls, 1)
         center_of_ventilation= zeros(k, 1);
         
         % lung images
-        lung_imgs= slices(:,:,end_in)- slices(:,:,end_ex);
-        
-        if j==3 || j==4 % conditions wref or wepos. Show 10 images, each the average of 30 seconds of breathing
+%         lung_imgs= slices(:,:,end_in)- slices(:,:,end_ex);
+        lung_imgs= imgr.elem_data(:,end_in)- imgr.elem_data(:,end_ex);
+        j_idx= (j-1)* 10 + 1;
+        if (j<3) || (j==5) % conditions sref, pref or epos. Show a single image, the average of 30 seconds of all breaths            
+%                 lung_img= mean(lung_imgs, 3);
+            imgr_copy.elem_data(:,j_idx)= mean(lung_imgs, 2);
+        else % conditions wref or wepos. Show 10 images, each the average of 30 seconds of breathing
             for m= 1:length(ten_thrty_s_inc)
                 idx= find( sum([(breath_start_stop> ten_thrty_s_inc(m)) , (breath_start_stop<= ten_thrty_s_inc(m)+ n_frame_30_s)], 2)==4 );
                 if isempty(idx)
 %                     disp("Something's up with Jack.");
-                    lung_img(:,:,m)= zeros(32,32)./0;
+%                         lung_img(:,:,m)= zeros(32,32)./0;
+                else
+%                     lung_img(:,:,m)= mean(lung_imgs(:,:,idx), 3);
+                    imgr_copy.elem_data(:, j_idx+ m-1)= mean(lung_imgs(:,idx), 2);                        
                 end % end if
-                lung_img(:,:,m)= mean(lung_imgs(:,:,idx), 3);
-            end % end for m
-        else % conditions sref, pref or epos. Show a single image, the average of 30 seconds of all breaths
-            lung_img= mean(lung_imgs, 3);
-        end % end if
+            end % end for m                
+        end % end if j
         
-        clf; show_slices(lung_img); colorbar; title(horzcat(name,' reconstruction(s)'));
-        print_convert(horzcat(front, '_', num2str(j), '_breaths_', back, '.png'));
+%         clf; show_slices(lung_img); colorbar; title(horzcat(name,' reconstruction(s)'));
+%         print_convert(horzcat(front, '_', num2str(j), '_breaths_', back, '.png'));
         
         for k= 1: length(keep)
             lungs= slices(:,:,end_in(k))- slices(:,:,end_ex(k));
@@ -225,7 +236,10 @@ for i= 3: size(ls, 1)
             
         save_name= horzcat(f(1:end-4), '_features.csv');
         table_out = array2table(out, 'VariableNames', header);
-        writetable(table_out, save_name);    
+%         writetable(table_out, save_name);    
     end % end for j
+    show_slices(imgr_copy, [inf,inf, 1]);
+    title(horzcat(front, 'sref, pref, wref, wepos, epos'));
+    print_convert(horzcat(front, '_', 'allconditions_breaths', '.png'));
     cd ../   
 end % end for i

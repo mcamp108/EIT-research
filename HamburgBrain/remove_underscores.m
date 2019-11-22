@@ -12,4 +12,5 @@ for c= file(1: length(file))
         title_name= title_name+ c;
     end % end if
 end % end for
+title_name= char(title_name);
 end % end function
