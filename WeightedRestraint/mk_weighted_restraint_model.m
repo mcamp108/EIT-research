@@ -23,7 +23,7 @@ function [fmdl, imdl]= mk_weighted_restraint_model()
 % -------------------------------------------------------------------------
 
 starting_dir= cd;
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\WeightedRestraint\Models';
+cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\models';
 
 if exist('weighted_restraint_fmdl.mat', 'file') == 2
     mdl= load('weighted_restraint_fmdl.mat');
@@ -36,7 +36,7 @@ else
 
     % Set up the electrodes with 1:16 on bottom and 17:32 on top
     elec_pos = [16,0,0.75,1.25];
-    elec_spec = [0.05];
+    elec_spec = [0.01];
     % elec_spec = [0.5, 0, 0.1]; % Radius of circular electrodes
     fmdl = ng_mk_extruded_model(shape, elec_pos, elec_spec);
     row1= [13:16, 1:12]; 
