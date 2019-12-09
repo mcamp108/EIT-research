@@ -80,7 +80,6 @@ for i= 3: size(ls, 1)
         auxdata.t_abs= auxdata.t_abs(:, 1: size(dd, 2));
         auxdata.t_rel= auxdata.t_rel(:, 1: size(dd, 2));
         FR = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
-
         name= char(remove_underscores(f));
         suffix= ' clean breaths';        
         front= name(1:13);
@@ -98,12 +97,10 @@ for i= 3: size(ls, 1)
         
         use_data= real(dd(mm, :));
         use_data= lowpass(use_data', 1, FR)';
-        
         use_data= use_data(:, clip:(size(use_data,2)-clip) ); % trim filter edge artifacts
         
         % apply breath selection
         tbv= sum(use_data, 1);
-%         tbv= movmedian(tbv, 14);
         [end_in, end_ex, ins_to_exp, exp_to_exp]= select_breaths(tbv, FR);
         n_breaths= length(end_in);   
 %--------------------------------------------------------------------------        
@@ -168,18 +165,20 @@ for i= 3: size(ls, 1)
             
         end % end if j
         
-%         clf; show_slices(lung_img); colorbar; title(horzcat(name,' reconstruction(s)'));
-%         print_convert(horzcat(front, '_', num2str(j), '_breaths_', back, '.png'));
 %--------------------------------------------------------------------------
 %         % Statistics
-%         del_z_lung_max= zeros(n_breaths, 1);
-%         del_z_lung_min= zeros(n_breaths, 1);
-%         left_lung_filling= zeros(n_breaths, 1); % total value of pixels for lung in breath
-%         right_lung_filling= zeros(n_breaths, 1);
-%         left_lung_median_value= zeros(n_breaths, 1); 
-%         right_lung_median_value= zeros(n_breaths, 1);
+%         flow volume loops
+        % changes in tidal volume
+        end_ex_av= mean(tbv(end_ex), 1);
+        TV= tbv(end_in)- end_ex_av;
+        % changes in FRC
+        
+        % changes in breathing frequency
+        BF= 1/ exp_to_exp;
+        % changes in center of ventilation
+        
 %         global_inhomogeneity= zeros(n_breaths, 1);
-%         center_of_ventilation= zeros(n_breaths, 1);        
+%         center_of_ventilation= zeros(n_breaths, 1);    
 %         
 %         for k= 1:n_breaths
 %             lungs= slices(:,:,end_in(k))- slices(:,:,end_ex(k));
@@ -245,19 +244,15 @@ function [end_in, end_ex, ins_to_exp, exp_to_exp]= select_breaths(tbv, FR)
     exp_to_exp= (diff(end_ex, 1))';
     ins_to_exp= ((end_ex(2,:)- end_in))';
     exp_to_ins= (abs(end_ex(1,:)- end_in))';
-    boundaries= ins_to_exp+exp_to_ins;
-    
-    end_ex_vals= abs(diff(tbv(end_ex), 1))';
-    end_ex_vals= (end_ex_vals/max(end_ex_vals));   
+    boundaries= ins_to_exp+ exp_to_ins;
+    end_ex_dif= abs(diff(tbv(end_ex), 1))';
 
     qntls= quantile(boundaries, 7);
     reject_breath= (boundaries> qntls(end)) + (boundaries< qntls(1));
-    
-    qntls= quantile(end_ex_vals, 7);
-    reject_breath= reject_breath+ end_ex_vals> qntls(end);
-%     qntls= quantile(ins_to_exp, 7);
-%     reject_breath= reject_breath+ (ins_to_exp< qntls(1)) + (ins_to_exp> qntls(end));
-%     reject_breath= reject_breath+ (ins_to_exp> qntls(end));
+    qntls= quantile(end_ex_dif, 7);
+    reject_breath= reject_breath+ (end_ex_dif> qntls(6));
+    qntls= quantile(exp_to_ins, 7);
+    reject_breath= reject_breath+ (exp_to_ins> qntls(end));
     keep= find(reject_breath==0);
     
     exp_to_exp= exp_to_exp(keep)./FR;
@@ -265,23 +260,11 @@ function [end_in, end_ex, ins_to_exp, exp_to_exp]= select_breaths(tbv, FR)
     end_in= end_in(keep);
     end_ex= end_ex(:,keep);
 
-%     % plot
-%     plot(tbv, 'k');
-%     hold on;
-%         top= max(tbv); bot= min(tbv);
-%         for k= 1:length(end_in)
-%             if mod(k,2)== 1
-%                 stop_loc= top;
-%                 color= 'r';
-%             else
-%                 stop_loc= bot;
-%                 color= 'g';
-%             end % end if
-%             in= end_in(k); ex1= end_ex(1,k); ex2= end_ex(2,k);
-%             plot([in in], [tbv(in) stop_loc], color);
-%             plot([ex1 ex1], [tbv(ex1) stop_loc], color);
-%             plot([ex2 ex2], [tbv(ex2) stop_loc], color);
-%         end % end for k
+    % plot
+    plot(tbv, 'k');
+    hold on;
+    plot(end_in, tbv(end_in), 'ob');
+    plot(end_ex, tbv(end_ex), 'or');
 
 end % end function
 
