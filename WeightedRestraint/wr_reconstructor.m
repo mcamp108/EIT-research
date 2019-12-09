@@ -1,5 +1,6 @@
 run 'myStartup.m';
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint';
+figure('units','normalized','outerposition',[0 0 1 1]);
 clip= 50;
 dirs= ls;
 
@@ -106,14 +107,15 @@ for i= 3: size(ls, 1)
         sgtitle(horzcat(name, suffix));
         plot(tbv, 'k');
         hold on
-        plot(end_in, tbv(end_in), 'ob');
-        plot(end_ex, tbv(end_ex), 'or');
         for k= 1:n_breaths
             x= sort([end_in(k), end_ex(:,k)']);
             x= x(1):x(end);
             plot(x, tbv(x), 'm');
         end % end for k
-        ylabel('Voltage'); xlabel('Frame'); legend('total boundary voltage', 'retained data')
+        plot(end_in, tbv(end_in), 'ob');
+        plot(end_ex, tbv(end_ex), 'or');
+        ylabel('Voltage'); xlabel('Frame'); legend('total boundary voltage', 'retained data');
+
         hold off;
         starting_dir= cd;
         cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\data quality';
@@ -169,11 +171,16 @@ for i= 3: size(ls, 1)
 %         flow volume loops
         stats.Time{j}= (end_ex(1,:)./FR)';
         % changes in FRC
-        stats.end_ex_av{j}= mean(tbv(end_ex), 1);
+        stats.end_ex_av{j}= mean(tbv(end_ex), 1)';
         % changes in tidal volume
-        stats.TV{j}= tbv(end_in)- stats.end_ex_av{j};
+        stats.TV{j}= (tbv(end_in)- stats.end_ex_av{j})';
         % changes in breathing frequency
-        stats.BF{j}= 1/ exp_to_exp;
+        stats.BF{j}= 1./ exp_to_exp;
+        
+        stats.exp_to_ins{j}=  exp_to_ins;
+        stats.ins_to_exp{j}= ins_to_exp;
+        stats.exp_to_exp{j}= exp_to_exp;
+        
  
     end % end for j
 %--------------------------------------------------------------------------
@@ -187,8 +194,8 @@ for i= 3: size(ls, 1)
     cntr_of_vnt= calc_cntr_of_vnt(final_img);
     
     for j =1:size(final_img, 3)
-        final_img(:,cntr_of_vnt(j,1),j)= 2;
-        final_img(cntr_of_vnt(j,2),:,j)= 2; 
+        final_img((cntr_of_vnt(j,2)-4:cntr_of_vnt(j,2)+4),cntr_of_vnt(j,1),j)= 3;
+        final_img(cntr_of_vnt(j,2),:,j)= 3; 
     end % end for j
     
     boundaries= [1,2,7,12] * (32+ sep) - (median(1:sep)-1);
@@ -200,6 +207,7 @@ for i= 3: size(ls, 1)
     axis equal
     axis tight
     colormap jet
+    fg1.Colormap(3,:)= [1 1 1]*0.25;
     fg1.Colormap(2,:)= [0 0 0];
     fg1.Colormap(1,:)= [1 1 1];
     sgtitle(horzcat(front, ' sref, pref, wref, wepos, epos'));
@@ -207,10 +215,10 @@ for i= 3: size(ls, 1)
     saveas(fg1, horzcat(front, '_', '3_zplanes_all_conditions', '.svg'));
 %--------------------------------------------------------------------------
         % Export
-    header= {'Time_s', 'ins_to_ins', 'exp_to_exp', 'ins_to_exp', 'FRC', 'tidal_volume', 'breath_frequency', 'COV_x', 'COV_y'};
+    header= {'Time_s', 'exp_to_ins', 'ins_to_exp', 'exp_to_exp', 'FRC', 'tidal_volume', 'breath_frequency'};
     for p= 1:length(files)
         f= files{p};
-        out= [Time{p}, exp_to_ins{p}, ins_to_exp{p}, exp_to_exp{p}, end_ex_av{p}, TV{p}, BF{p}, cntr_of_vnt{p}(:,1), cntr_of_vnt{p}(:,2)];
+        out= [stats.Time{p}, stats.exp_to_ins{p}, stats.ins_to_exp{p}, stats.exp_to_exp{p}, stats.end_ex_av{p}, stats.TV{p}, stats.BF{p}];
         save_name= horzcat(f(1:end-4), '_features.csv');
         table_out = array2table(out, 'VariableNames', header);
     end
