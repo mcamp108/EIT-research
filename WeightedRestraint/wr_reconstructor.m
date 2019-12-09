@@ -118,7 +118,7 @@ for i= 3: size(ls, 1)
 
         hold off;
         starting_dir= cd;
-        cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\data quality';
+        cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\data quality\breath selection';
         saveas(fg1, horzcat(front, '_', num2str(j), '_breaths_', back, '.svg'));
         cd(starting_dir);     
         
@@ -135,7 +135,7 @@ for i= 3: size(ls, 1)
  
         % lung images... inspiration minus mean of flanking expirations
         lung_imgs= imgr.elem_data(:,end_in)- (imgr.elem_data(:,end_ex(1,:)) + imgr.elem_data(:,end_ex(2,:)))./2;
-        
+        cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\data quality\average breath';
         if (j<3) || (j==5) % conditions sref, pref or epos. Show a single image, the average of 30 seconds of all breaths            
             imgr_copy.elem_data(:,imgr_idx)= mean(lung_imgs, 2);
             imgr_idx= imgr_idx+ 1;
@@ -173,7 +173,7 @@ for i= 3: size(ls, 1)
         % changes in FRC
         stats.end_ex_av{j}= mean(tbv(end_ex), 1)';
         % changes in tidal volume
-        stats.TV{j}= (tbv(end_in)- stats.end_ex_av{j})';
+        stats.TV{j}= (tbv(end_in)'- stats.end_ex_av{j});
         % changes in breathing frequency
         stats.BF{j}= 1./ exp_to_exp;
         
