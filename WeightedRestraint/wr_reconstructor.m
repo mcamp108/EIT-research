@@ -120,7 +120,7 @@ for i= 3: size(ls, 1)
         starting_dir= cd;
         cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\data quality\breath selection';
         saveas(fg1, horzcat(front, '_', num2str(j), '_breaths_', back, '.svg'));
-        cd(starting_dir);     
+        cd(starting_dir);
         
 %--------------------------------------------------------------------------        
         % Image reconstruction
@@ -165,7 +165,7 @@ for i= 3: size(ls, 1)
             end % end for m  
             
         end % end if j
-        
+        cd(starting_dir);
 %--------------------------------------------------------------------------
 %         % Statistics
 %         flow volume loops
@@ -191,11 +191,15 @@ for i= 3: size(ls, 1)
     imgr_copy.calc_colours.ref_level= 0;
     imgr_copy.calc_colours.lim= clim;
     final_img= calc_colours(calc_slices(imgr_copy, levels));
-    cntr_of_vnt= calc_cntr_of_vnt(final_img);
+    cntr_of_vnt= calc_cntr_of_vnt(final_img, lung_roi);
     
     for j =1:size(final_img, 3)
-        final_img((cntr_of_vnt(j,2)-4:cntr_of_vnt(j,2)+4),cntr_of_vnt(j,1),j)= 3;
-        final_img(cntr_of_vnt(j,2),:,j)= 3; 
+        cntr_x= cntr_of_vnt(j,1);
+        cntr_y= cntr_of_vnt(j,2);
+        % COV x coordinate and line
+        final_img( (cntr_y-4 : cntr_y+4), cntr_x, j)= 3;
+        % COV y coordinate and line
+        final_img( cntr_y, :, j )= 3; 
     end % end for j
     
     boundaries= [1,2,7,12] * (32+ sep) - (median(1:sep)-1);
@@ -215,12 +219,13 @@ for i= 3: size(ls, 1)
     saveas(fg1, horzcat(front, '_', '3_zplanes_all_conditions', '.svg'));
 %--------------------------------------------------------------------------
         % Export
-    header= {'Time_s', 'exp_to_ins', 'ins_to_exp', 'exp_to_exp', 'FRC', 'tidal_volume', 'breath_frequency'};
+    header= {'Time_s', 'Ti', 'Te', 'Ttotal', 'exp_to_exp', 'FRC', 'tidal_volume', 'breath_frequency'};
     for p= 1:length(files)
         f= files{p};
-        out= [stats.Time{p}, stats.exp_to_ins{p}, stats.ins_to_exp{p}, stats.exp_to_exp{p}, stats.end_ex_av{p}, stats.TV{p}, stats.BF{p}];
+        out= [stats.Time{p}, stats.exp_to_ins{p}, stats.ins_to_exp{p}, stats.exp_to_ins{p}+stats.ins_to_exp{p}, stats.exp_to_exp{p}, stats.end_ex_av{p}, stats.TV{p}, stats.BF{p}];
         save_name= horzcat(f(1:end-4), '_features.csv');
         table_out = array2table(out, 'VariableNames', header);
+        writetable(table_out,save_name);
     end
 %--------------------------------------------------------------------------   
     cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint';
@@ -257,7 +262,6 @@ end % end function
 
 function plot_average_breath(tbv, end_in, end_ex)
 
-center_ins= true;
 n_breaths= size(end_ex, 2);
 b_lens= abs(diff(end_ex));
 b_centers= end_in- (end_ex(1,:)) + 1;
@@ -272,11 +276,7 @@ for i= 1:n_breaths
     x2= end_ex(2,i);
     y= tbv(x1:x2);
     y= y-min(y);
-    if center_ins
-        xax= b_start(i):b_len+b_start(i);
-    else
-        xax= 1:b_len+1;
-    end
+    xax= b_start(i):b_len+b_start(i);
     plot(xax, y, 'Color',[0 0 0]+0.75, 'linewidth', 2);
     av_breath(xax)= av_breath(xax)+ y;
 end % end for
@@ -290,46 +290,28 @@ hold off;
 end % end function
 
 
-function cntr_of_vnt= calc_cntr_of_vnt(img)
+function cntr_of_vnt= calc_cntr_of_vnt(img, lung_roi)
 
 % remove image components not related to respiration
-img_= img;
-img_(img_==1)= 0;
-img_(img_> 125)= 0;
-img_sums= squeeze(sum(img_, [1,2]));
+img_= img.*lung_roi;
+row_pix= sum(lung_roi, 2);
+row_pix(row_pix==0)=1; % avoid NaN in division
+col_pix= sum(lung_roi, 1);
+col_pix(col_pix==0)=1; % avoid NaN in division
+img_(img_> 130)= 0; 
+img_(img_>0)= abs(img_(img_>0)-130); % invert pixel values
 n_breaths= size(img_, 3);
 cntr_of_vnt= zeros(n_breaths, 2);
 
 for i= 1:n_breaths
     this_img= img_(:,:,i);
-    cntr_of_vnt(i,1) = round(sum(this_img.* (1:32), 'all') ./ img_sums(i));
-    cntr_of_vnt(i,2) = round(sum(this_img.* (1:32)', 'all')./ img_sums(i));
+    cntr_col= sum(this_img, 1) ./ col_pix;
+    cntr_row= sum(this_img, 2) ./ row_pix;
+    cntr_of_vnt(i,1) = round(sum(cntr_col.* (1:32), 'all') ./ sum(cntr_col));
+    cntr_of_vnt(i,2) = round(sum(cntr_row.* (1:32)', 'all') ./ sum(cntr_row));
+    if isnan(cntr_of_vnt(i,1)) || isnan(cntr_of_vnt(i,2))
+        keyboard;
+    end
 end % end for i
 
 end % end function
-
-        % changes in center of ventilation
-        
-%         global_inhomogeneity= zeros(n_breaths, 1);
-%         center_of_ventilation= zeros(n_breaths, 1);    
-%         
-%         for k= 1:n_breaths
-%             lungs= slices(:,:,end_in(k))- slices(:,:,end_ex(k));
-%             % 1. maximum delta Z determined for lungs
-%             del_z_lung_min(k)= min(lungs,[],'all');
-%             del_z_lung_max(k)= max(lungs,[],'all')- del_z_lung_min(k);            
-% 
-%             % calculate lung filling
-%             left_lung_filling(k)= sum(lungs(left_lung_idx)); % sum of voltage difference in left lung
-%             right_lung_filling(k)= sum(lungs(right_lung_idx)); % sum of voltage difference in right lung
-%             left_lung_median_value(k)= median(lungs(left_lung_idx));
-%             right_lung_median_value(k)= median(lungs(right_lung_idx));
-%             vals= lungs(is_lung);
-%             med_lung= median(vals);
-%             
-%             % calculate global inhomogeneity index
-%             global_inhomogeneity(k)= sum(abs(vals - med_lung))/ sum(vals);
-%             
-%             % calculate coefficient of variation
-%             center_of_ventilation(k)= std(vals)/ mean(vals);
-%         end % end for k    
