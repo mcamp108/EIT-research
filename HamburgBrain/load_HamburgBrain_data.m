@@ -155,7 +155,7 @@ for i= 1:length(eit_files)
     
     % load data
     [vv,aux]= eidors_readdata(eit_files{i});
-    eitfs= median(1e6/median(diff(aux.t_rel)));
+    eitfs= median(1e6/median(diff(aux.t_rel))); % framerate
     
     % assign struct fields
     D.(fn{i}).eit.data= vv;

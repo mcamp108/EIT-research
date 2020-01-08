@@ -10,6 +10,7 @@ global imgr_idx_list;
 global av_frm_s_inc; % starting frames of we_segments number of evenly spaced time increments
 global n_frame_s; % minimum number of frames in time increments
 global figure_img;
+global cmap;
 
 we_segments= 5; % number of images to produce forwreft and wepos
 sep= 7; % number of pixels between figure images
@@ -20,7 +21,14 @@ imgr_idx_list= [1 2 3 8 13];
 dirs= ls;
 
 [fmdl, imdl]= mk_weighted_restraint_model(); % model
+
+% configure colormap
 calc_colours('cmap_type', 'blue_black_red');
+cmap=colormap;
+cmap= [[1, 1, 1]; flipud(cmap(2:end, :))];
+cmap(2,:)= [0 0 0];
+cmap(3,:)= [1 1 1]*0.5;
+
 lung_roi= lung_segmentation(); % lung roi
 mid_col= size(lung_roi, 2)/2;
 lung_divide_idx= mid_col* size(lung_roi, 1) + 1;
@@ -40,13 +48,13 @@ for i= 3: size(ls, 1) % for each participant
     else
         continue
     end % end for
+    
     for j= [2,3,4,5,1] % for each condition
         f= files{j};
         name= char(remove_underscores(f));
         suffix= ' clean breaths';        
         front= name(1:13);
         back= name(14:end);
-        all_seq_av_breath.(recordings{j})= struct;
         imgr_idx= imgr_idx_list(j);
 %--------------------------------------------------------------------------        
         % Data pre-processing and breath selection
@@ -57,13 +65,15 @@ for i= 3: size(ls, 1) % for each participant
         % plot selected breath boundaries
 %         plot_breath_boundaries(name, suffix, tbv, end_in, end_ex, front, back, j);
 %--------------------------------------------------------------------------        
-        if j==2
-            glob_ref= mean(use_data, 2);
-        end % end if j
+        glob_ref= mean(use_data(:, end_ex(1,1):end_ex(2,1)), 2); % use mean of first breath as reference
+%         if j==2
+%             glob_ref= mean(use_data, 2);
+
+%         end % end if j
         % Image reconstruction
         imgr= inv_solve(imdl_comp, glob_ref, use_data); % solve
         
-        if j==2 % reset imgr_copy and imgFRC_copy
+        if j==2
             figure_img= imgr; % compile images from all conditions into a single image
             figure_img.elem_data= zeros(size(imgr.elem_data, 1), 2*we_segments+3); % 5 conditions, max we_segments images for 2 conditions, 1 image for 3 conditions.
             figure_img.show_slices.img_cols= 2*we_segments+3;
@@ -81,63 +91,59 @@ for i= 3: size(ls, 1) % for each participant
         calc_img_stats(imgFRC, j, 'FRC');
         calc_time_stats(BF, j, 'BF');
         calc_time_stats(Ti_by_Tt, j, 'FIT');
-        calc_average_breath(tbv, end_in, end_ex, imgr_idx, back);
+        calc_time_stats(tbv, j, 'av_breath');
     end % end for j
     
-%--------------------------------------------------------------------------
+% --------------------------------------------------------------------------
     % Reconstructed images figure
     levels= [inf,inf,1.25; inf,inf,1; inf,inf,0.75];
     clim= max(figure_img.elem_data(:));
     figure_img.calc_colours.ref_level= 0;
-    figure_img.calc_colours.lim= clim;
+    figure_img.calc_colours.clim= clim;
     final_img= calc_slices(figure_img, levels);
     final_img(isnan(final_img)) = 0;
-    imgTV= final_img(:,:,14:26)  .* lung_roi;
     cntr_of_vnt= calc_cntr_of_vnt(final_img, lung_roi);
+    final_img=calc_colours(calc_slices(figure_img, levels));
+    cntr_of_vnt= reshape(cntr_of_vnt,2,size(final_img, 3))';
 
     for j =1:size(final_img, 3)
         cntr_x= cntr_of_vnt(j,1);
         cntr_y= cntr_of_vnt(j,2);
         % COV x coordinate and line
-        final_img( (cntr_y-4 : cntr_y+4), cntr_x, j)= 3;
+        final_img( (cntr_y- min(4,cntr_y-1)  : min(cntr_y+4,32)), cntr_x, j)= 3;
         % COV y coordinate and line
         final_img( cntr_y, :, j )= 3; 
     end % end for j
 
-    final_img2= mk_mosaic(final_img(6:27,:,:), [sep, 3], [], 13); 
-    boundaries=zeros(1,4); boundaries(1)= 32+ median(1:sep); boundaries(2:end)= boundaries(1)+ [1,6,11] * (32+ sep);
+    final_img2= mk_mosaic(final_img(6:27,:,:), [sep, 3], [], 13);
+    final_img2(isnan(final_img2)) = 0;
+    boundaries= zeros(1,4); boundaries(1)= 32+ median(1:sep); boundaries(2:end)= boundaries(1)+ [1,6,11] * (32+ sep);
     final_img2(:, boundaries)= 2; % black
 
 %--------------------------------------------------------------------------
-    % Calculate Functional residual capacity
-    imgFRC_copy.calc_colours.ref_level= 0;
-    imgFRC_copy.calc_colours.lim= clim;
-    FRC_imgs= calc_slices(imgFRC_copy, levels(2,:));
-    FRC_imgs(isnan(FRC_imgs))= 0;
-    stats.FRC= squeeze(sum( FRC_imgs.* lung_roi, [1 2])); % STATS
-    stats.FRCsd= stats.FRCsd/stats.FRC(2);
-    stats.FRC= stats.FRC/stats.FRC(2); % normalize to unweighted prone      % STATS
-%--------------------------------------------------------------------------
-    % Calculate tidal volume
-    stats.TV= squeeze(sum(imgTV, [1 2]));
-    invert_val= stats.TV-stats.TV(2); 
-    stats.TV= stats.TV- 2*invert_val;
-    stats.TVsd= stats.TVsd./ stats.TV(2);
-    stats.TV= stats.TV./ stats.TV(2); % normalize to unweighted prone
-%--------------------------------------------------------------------------
-    % Normalize BF
-    stats.BFsd= stats.BFsd ./ stats.BF(2);
-    stats.BF= stats.BF ./ stats.BF(2); % normalize to unweighted prone
-%--------------------------------------------------------------------------
-        % Export
-    paper_figure('reconst', final_img2, i-2);
-    paper_figure('stat', stats, 1);
+    % Normalize stats to unweighted prone
     
+    % FRC (mean end ex) as a difference from prone FRC baseline, translated
+    % to relative volume by taking it as a ratio of prone TV (mean end ex -
+    % mean end ins). 
+    stats.FRCSD= stats.FRCSD/stats.FRC(2);
+    stats.FRC= (stats.FRC - stats.FRC(2)) ./ stats.TV(2); 
+    stats.TVSD= stats.TVSD./ stats.TV(2);
+    stats.TV= stats.TV./ stats.TV(2);
+    stats.BFSD= stats.BFSD./ stats.BF(2);
+    stats.BF= stats.BF./ stats.BF(2);
+%% --------------------------------------------------------------------------
+    % Make Figure
+    paper_figure('reconst', final_img2, i-2);
+    paper_figure('breath', all_seq_av_breath.figcols, i-2);
+    paper_figure('stat', stats, 1);
+% --------------------------------------------------------------------------
+    % Export    
     cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\paper';
     saveas(gcf, horzcat(front, '.svg'));
     
     cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint\features';
-    header= {'BF','BFsd','BFn', 'FRC','FRCsd','FRCn', 'TV','TVsd','TVn','Ti_by_Tt','Ti_by_Ttsd','Ti_by_Ttn'};
+    header= {'BF','BFSD','BFN', 'FRC','FRCSD','FRCN', 'TV','TVSD','TVN'};
     out=[];
     for h =1:length(header)
         out= [out, stats.(header{h})];
@@ -148,6 +154,72 @@ for i= 3: size(ls, 1) % for each participant
     
     cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint';
 end % end for i
+
+% -------------------------------------------------------------------------
+%                       S U B F U N C T I O N S
+% -------------------------------------------------------------------------
+
+function paper_figure(command, data, num)
+global cmap;
+B= 0;
+W= 0.95;
+H= 0.13; % height of each plot
+L= 0.01; % left margin of reconstruction and stats plots
+BL= 0.0043; % left margin of first breath plot
+R= 0.98;
+bpb= linspace(BL, W+0.012, 13+1);
+spc= W/13;
+shift=0.04;    
+
+if strcmp(command, 'breath')
+    mxsz= 0;
+    datamx= 0;
+    len_data= length(data);
+    data_sz= zeros(len_data, 1);
+    for i= 1:len_data
+        data_sz(i)= size(data{i}, 2);
+        mxsz= max( data_sz(i),  mxsz);
+        datamx= max( max(data{i},[],'all') ,  datamx);
+    end % end for len
+    start= floor((mxsz- data_sz)./ 2) + 1;
+    for num= 1:len_data
+        ax= axes('Position',[bpb(num) 0.003+3.5*H spc H],'Box','on');
+        s= start(num);
+        e= start(num)+data_sz(num)-1;
+        hold on;
+        for j=1:size(data{num}, 1) - 1
+            plot( (s:e), data{num}(j,:), 'Color',[0 0 0]+0.75, 'linewidth', 1 ); % grey
+        end % end for
+        plot( (s:e), data{num}(j+1,:), 'm', 'linewidth', 2 ); % magenta
+        ax.XTickLabel=[];ax.YTickLabel=[];ax.XTick=[];ax.YTick=[];
+        ax.XLim= ([1 mxsz]);
+        ax.YLim= ([0 datamx]);
+    end % end for num
+
+elseif strcmp(command, 'stat')
+    LW= 3; 
+    ax1=axes('Position',[L  B+4.75*H+shift   W   2*H],'Box','on'); 
+    plot(   data.FRC,       'linewidth', LW); hold on;
+    plot(   data.TV,        'linewidth', LW);
+    plot(   data.BF,        'linewidth', LW);
+    ax1.XLim=[0.5 13.5];    ax1.XTick=1:13;     ax1.XLabel.FontSize= 20;
+    ax1.XTickLabels={'SR 0-2 mins', 'PR 0-2 mins', 'PW 0-1 min', 'PW 1-2 mins', 'PW 2-3 mins', 'PW 3-4 mins', 'PW 4-5 mins', 'PWE 0-1 min', 'PWE 1-2 mins', 'PWE 2-3 mins', 'PWE 3-4 mins', 'PWE 4-5 mins', 'PP 0-2 mins'};
+    ax1.YAxisLocation= 'right';
+    xtickangle(30);
+    legend('Normalized Delta FRC',  'Normalized V_T', 'Normalized F_B');
+
+elseif strcmp(command, 'reconst')
+    fg1=axes('Position',[L B+H-shift R H*3]);
+    image(data);colorbar;
+    axis image
+    axis off
+    axis equal
+    axis tight
+    fg1.Colormap= cmap;
+    sgtitle(horzcat('Participant ', num2str(num)));
+end % end if
+
+end % end function
 
 % -------------------------------------------------------------------------
 function [end_in, end_ex, Ti_by_Tt, BF]= select_breaths(tbv, FR)
@@ -177,22 +249,19 @@ function [end_in, end_ex, Ti_by_Tt, BF]= select_breaths(tbv, FR)
     exp_to_exp= exp_to_exp(keep);
     
     Ti_by_Tt= Ti ./ (Ti + Te);
-    BF= FR./ exp_to_exp;
+    BF= 60./ (exp_to_exp./ FR); % instantaneous breaths per minute
 
 end % end function
 
 % -------------------------------------------------------------------------
-function calc_average_breath(tbv, end_in, end_ex, n)
+function all_seq_av_breath= calc_average_breath(tbv, end_in, end_ex)
 
-global all_seq_av_breath;
-seq_breaths=struct;
 n_breaths= size(end_ex, 2);
-b_lens= abs(diff(end_ex));
-b_centers= end_in- (end_ex(1,:)) + 1;
+b_lens= abs(diff(end_ex)); % lengths of breaths
+b_centers= end_in- (end_ex(1,:)) + 1; % index relative to 1 of where inspiration peak occurs
 b_start= repmat(max(b_centers), 1, n_breaths)+ 1- b_centers;
-av_breath= zeros(1, max(b_start+b_lens));
-paper_figure('breath', [], n);
-hold on;
+all_seq_av_breath= zeros(n_breaths+1, max(b_start+b_lens));
+
 for i= 1:n_breaths
     b_len= b_lens(i);
     x1= end_ex(1,i);
@@ -200,83 +269,41 @@ for i= 1:n_breaths
     y= tbv(x1:x2);
     y= y-min(y);
     xax= b_start(i):b_len+b_start(i);
-    seq_breaths(i)= [xax, y];
-    av_breath(xax)= av_breath(xax)+ y;
-%     plot(xax, y, 'Color',[0 0 0]+ 0.75, 'linewidth', 1);
+    all_seq_av_breath(i,xax)= y;
 end % end for
 
-all_seq_av_breath.(n).av_breath= av_breath./ n_breaths; 
-% plot(av_breath, 'm', 'linewidth', 2);
-% ylim([0 0.022]);
-% hold off;
+av_breath= mean(all_seq_av_breath, 1);
+all_seq_av_breath(i+1,:)= av_breath;
 
 end % end function
 
 % -------------------------------------------------------------------------
 function cntr_of_vnt= calc_cntr_of_vnt(img, lung_roi)
-
+% img is a 4D array. Output will be 2 x 13 x 3
 % remove image components not related to respiration
-img_= img.*lung_roi;
+img_= -(img.*lung_roi); % invert pixel values
 row_pix= sum(lung_roi, 2);
 row_pix(row_pix==0)=1; % avoid NaN in division
 col_pix= sum(lung_roi, 1);
 col_pix(col_pix==0)=1; % avoid NaN in division
-img_(img_> 130)= 0; 
-img_(img_>0)= abs(img_(img_>0)-130); % invert pixel values
-n_breaths= size(img_, 3);
-cntr_of_vnt= zeros(n_breaths, 2);
+% 2 coordinates per image, images/row, number of rows
+n_imgs= size(img_, 3);
+n_rows= size(img_, 4);
+cntr_of_vnt= zeros(2, n_imgs, n_rows); 
 
-for i= 1:n_breaths
-    this_img= img_(:,:,i);
-    cntr_col= sum(this_img, 1) ./ col_pix;
-    cntr_row= sum(this_img, 2) ./ row_pix;
-    cntr_of_vnt(i,1) = round(sum(cntr_col.* (1:32), 'all') ./ sum(cntr_col));
-    cntr_of_vnt(i,2) = round(sum(cntr_row.* (1:32)', 'all') ./ sum(cntr_row));
-    if isnan(cntr_of_vnt(i,1)) || isnan(cntr_of_vnt(i,2))
-        keyboard;
-    end
-end % end for i
-
-end % end function
-
-% -------------------------------------------------------------------------
-function paper_figure(command, data, num)
-B= 0;
-W= 0.95;
-H= 0.13; % height of each plot
-L= 0.01; % left margin of reconstruction and stats plots
-BL= 0.0043; % left margin of first breath plot
-R= 0.98;
-bpb= linspace(BL, W+0.012, 13+1);
-spc= W/13;
-
-if strcmp(command, 'breath')
-    ax= axes('Position',[bpb(num) 0.003+4.5*H spc H],'Box','on');%axis off
-    ax.XTickLabel=[];ax.YTickLabel=[];ax.XTick=[];ax.YTick=[];
-    axis tight
-elseif strcmp(command, 'stat')
-    LW= 3; shift=0.04;    
-    ax1=axes('Position',[L  B+5.75*H+shift   W   H],'Box','on'); 
-    plot(   data.FRC,       'linewidth', LW); hold on;
-    plot(   data.TV,        'linewidth', LW);
-    plot(   data.BF,        'linewidth', LW);
-    ax1.XLim=[0.5 13.5];    ax1.XTick=1:13;     ax1.XLabel.FontSize= 20;
-    ax1.XTickLabels={'SR 0-2 mins', 'PR 0-2 mins', 'PW 0-1 min', 'PW 1-2 mins', 'PW 2-3 mins', 'PW 3-4 mins', 'PW 4-5 mins', 'PWE 0-1 min', 'PWE 1-2 mins', 'PWE 2-3 mins', 'PWE 3-4 mins', 'PWE 4-5 mins', 'PP 0-2 mins'};
-    xtickangle(30);
-    legend('Normalized Delta FRC',  'Normalized V_T', 'Normalized F_B');
-elseif strcmp(command, 'reconst')
-    fg1=axes('Position',[L B+2*H R H*3]);
-    image(data);colorbar;
-    axis image
-    axis off
-    axis equal
-    axis tight
-    fg1.Colormap(3,:)= [1 1 1]*0.5;
-    fg1.Colormap(2,:)= [0 0 0];
-    fg1.Colormap(1,:)= [1 1 1];
-    sgtitle(horzcat('Participant ', num2str(num)));
-end % end if
-
+for h=1:n_rows
+    for i= 1:n_imgs
+        this_img= img_(:,:,i,h);
+        cntr_col= sum(this_img, 1) ./ col_pix; % take as weighted average
+        cntr_row= sum(this_img, 2) ./ row_pix; % same
+        cntr_of_vnt(1,i,h) = round(sum(cntr_col.* (1:32), 'all') ./ sum(cntr_col));     % X coor
+        cntr_of_vnt(2,i,h) = round(sum(cntr_row.* (1:32)', 'all') ./ sum(cntr_row));    % Y coor
+        if isnan(cntr_of_vnt(1,i,h)) || isnan(cntr_of_vnt(2,i,h))
+            keyboard;
+        end % end if
+    end % end for i
+end % end for h
+cntr_of_vnt=abs(cntr_of_vnt);
 end % end function
 
 % -------------------------------------------------------------------------
@@ -340,7 +367,7 @@ cd(starting_dir);
 
 end % end function
 
-
+% -------------------------------------------------------------------------
 function [use_data, imdl_comp,FR]= wr_pp(f, imdl)
     clip= 50;    
     [dd,auxdata]= eidors_readdata(f);
@@ -365,38 +392,53 @@ function [use_data, imdl_comp,FR]= wr_pp(f, imdl)
     use_data= use_data(:, clip:(size(use_data,2)-clip) ); % trim filter edge artifacts
 end % end function
 
-
+% -------------------------------------------------------------------------
 function calc_time_stats(data, j, param)
 global stats;
+global end_in;
 global end_ex;
 global imgr_idx_list;
 global av_frm_s_inc;
 global n_frame_s;
-global end_ex;
+global all_seq_av_breath;
 
-param_list= {'BF', 'FIT'};
+param_list= {'BF', 'FIT', 'av_breath'};
 if ~contains(param_list, param)
-    disp('Unrecognized statistical parameter. Accepted parameters are: BF, FIT');
+    disp('Unrecognized statistical parameter. Accepted parameters are: BF, FIT, av_breath');
     return
 end % end if
 
-paramSD= horzcat(param, 'SD');
-paramN= horzcat(param, 'N');
+if strcmp(param, 'av_breath')
+    do_breaths=true;
+else
+    do_breaths=false;
+    paramSD= horzcat(param, 'SD');
+    paramN= horzcat(param, 'N');
+end
+
 stat_idx= imgr_idx_list(j);
 
 if j<3 || j==5
-    stats.(param)(stat_idx,1)=  mean(data);                                % STATS
-    stats.(paramSD)(stat_idx,1)=  std(data);
-    stats.(paramN)(stat_idx,1)=  length(data);
+    if do_breaths
+        all_seq_av_breath.figcols{stat_idx}= calc_average_breath(data, end_in, end_ex);
+    else
+        stats.(param)(stat_idx,1)=  mean(data);
+        stats.(paramSD)(stat_idx,1)=  std(data);
+        stats.(paramN)(stat_idx,1)=  length(data);
+    end
 elseif j==3 || j==4
     for m= 1:length(av_frm_s_inc)
         begins_after= end_ex(1,:) > av_frm_s_inc(m);
         ends_before_at= end_ex(2,:) <= (av_frm_s_inc(m)+ n_frame_s);
         img_idx= find((begins_after + ends_before_at)==2);
         if ~isempty(img_idx)
-            stats.(param)(stat_idx,1)=  mean(data(img_idx));                                % STATS
-            stats.(paramSD)(stat_idx,1)=  std(data(img_idx));
-            stats.(paramN)(stat_idx,1)=  length(data(img_idx));
+            if do_breaths
+                all_seq_av_breath.figcols{stat_idx}= calc_average_breath(data, end_in(img_idx), end_ex(:,img_idx));
+            else
+                stats.(param)(stat_idx,1)=  mean(data(img_idx));
+                stats.(paramSD)(stat_idx,1)=  std(data(img_idx));
+                stats.(paramN)(stat_idx,1)=  length(data(img_idx));
+            end
         end % end if
         stat_idx= stat_idx + 1;
     end % end for m
@@ -406,7 +448,7 @@ end % end if
 
 end
 
-
+% -------------------------------------------------------------------------
 function calc_img_stats(img, j, param)
 global stats;
 global end_ex;
@@ -440,6 +482,7 @@ if j<3 || j==5
         stats.(paramSD)(stat_idx,1)= std(img_sums); 
         stats.(paramN)(stat_idx,1)= length(img_sums);
     end % end if
+    
 elseif j==3 || j==4
     for m= 1:length(av_frm_s_inc)
         begins_after= end_ex(1,:) > av_frm_s_inc(m);
@@ -449,7 +492,7 @@ elseif j==3 || j==4
             if strcmp(param, 'fig')
                 figure_img.elem_data(:,stat_idx)= mean(img.elem_data(:,img_idx), 2);
             else
-                stats.(param)(stat_idx,1)= mean(img_sums(img_idx) , 3);
+                stats.(param)(stat_idx,1)= mean(img_sums(img_idx));
                 stats.(paramSD)(stat_idx,1)= std(img_sums(img_idx)); 
                 stats.(paramN)(stat_idx,1)= length(img_sums(img_idx));
             end % end if
