@@ -1,7 +1,6 @@
 run 'myStartup.m';
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint';
 figure('units','normalized','outerposition',[0 0 1 1]);clf;
-global glob_ref;
 global stats;
 global end_ex;
 global end_in;
@@ -21,13 +20,26 @@ imgr_idx_list= [1 2 3 8 13];
 dirs= ls;
 
 [fmdl, imdl]= mk_weighted_restraint_model(); % model
-
+%%
 % configure colormap
 calc_colours('cmap_type', 'blue_black_red');
-cmap=colormap;
+colormap(calc_colours('colourmap'));
+cmap=colormap*2;
+cmap(cmap>1)=1;
+black= find(sum(cmap==[0,0,0],2)==3);
+
+white_grad= linspace(0,1,black-1)';
+cmap(black:end,1)=white_grad;
+cmap(black:end,2)=white_grad;
+
+white_grad= linspace(0,1,black)';
+white_grad=flipud(white_grad);
+cmap(1:black,2)=white_grad;
+cmap(1:black,3)=white_grad;
+
 cmap= [[1, 1, 1]; flipud(cmap(2:end, :))];
-cmap(2,:)= [0 0 0];
-cmap(3,:)= [1 1 1]*0.5;
+% cmap(3,:)= [1,1,1]*0.75;
+%%
 
 lung_roi= lung_segmentation(); % lung roi
 mid_col= size(lung_roi, 2)/2;
@@ -36,6 +48,7 @@ is_lung= find(lung_roi);
 left_lung_idx= is_lung(is_lung>= lung_divide_idx);
 right_lung_idx= is_lung(is_lung< lung_divide_idx);
 recordings= {'sref', 'pref', 'wref', 'wepos', 'epos'};
+bsln= 2;
 
 for i= 3: size(ls, 1) % for each participant
     stats=struct;
@@ -49,7 +62,7 @@ for i= 3: size(ls, 1) % for each participant
         continue
     end % end for
     
-    for j= [2,3,4,5,1] % for each condition
+    for j= [2,1,3,4,5] % for each condition
         f= files{j};
         name= char(remove_underscores(f));
         suffix= ' clean breaths';        
@@ -102,6 +115,7 @@ for i= 3: size(ls, 1) % for each participant
     figure_img.calc_colours.clim= clim;
     final_img= calc_slices(figure_img, levels);
     final_img(isnan(final_img)) = 0;
+    
     cntr_of_vnt= calc_cntr_of_vnt(final_img, lung_roi);
     final_img=calc_colours(calc_slices(figure_img, levels));
     cntr_of_vnt= reshape(cntr_of_vnt,2,size(final_img, 3))';
@@ -114,24 +128,36 @@ for i= 3: size(ls, 1) % for each participant
         % COV y coordinate and line
         final_img( cntr_y, :, j )= 3; 
     end % end for j
-
+    
     final_img2= mk_mosaic(final_img(6:27,:,:), [sep, 3], [], 13);
     final_img2(isnan(final_img2)) = 0;
     boundaries= zeros(1,4); boundaries(1)= 32+ median(1:sep); boundaries(2:end)= boundaries(1)+ [1,6,11] * (32+ sep);
-    final_img2(:, boundaries)= 2; % black
+    final_img2(:, boundaries)= black; % black
 
 %--------------------------------------------------------------------------
     % Normalize stats to unweighted prone
     
-    % FRC (mean end ex) as a difference from prone FRC baseline, translated
-    % to relative volume by taking it as a ratio of prone TV (mean end ex -
-    % mean end ins). 
-    stats.FRCSD= stats.FRCSD/stats.FRC(2);
-    stats.FRC= (stats.FRC - stats.FRC(2)) ./ stats.TV(2); 
-    stats.TVSD= stats.TVSD./ stats.TV(2);
-    stats.TV= stats.TV./ stats.TV(2);
-    stats.BFSD= stats.BFSD./ stats.BF(2);
-    stats.BF= stats.BF./ stats.BF(2);
+    % FRC (mean end ex) as a difference from standing FRC baseline,
+    % translated to relative volume by taking it as a ratio of prone TV
+    % (mean end ex - mean end ins).
+    
+    stats.FRCTABS= stats.FRCT;
+    stats.FRCMABS= stats.FRCM;
+    stats.FRCBABS= stats.FRCB;
+    
+    stats.TVABS= stats.TV;
+    stats.BFABS= stats.BF;
+%     stats.FRCSD= stats.FRCSD/stats.FRC(bsln);
+    
+    stats.FRCT= (stats.FRCT - stats.FRCT(bsln)) ./ stats.TV(bsln);
+    stats.FRCM= (stats.FRCM - stats.FRCM(bsln)) ./ stats.TV(bsln);
+    stats.FRCB= (stats.FRCB - stats.FRCB(bsln)) ./ stats.TV(bsln);
+%     stats.TVSD= stats.TVSD./ stats.TV(bsln);
+    
+    stats.TV= stats.TV./ stats.TV(bsln);
+%     stats.BFSD= stats.BFSD./ stats.BF(bsln);
+    
+    stats.BF= stats.BF./ stats.BF(bsln);
 %% --------------------------------------------------------------------------
     % Make Figure
     paper_figure('reconst', final_img2, i-2);
@@ -140,15 +166,15 @@ for i= 3: size(ls, 1) % for each participant
 % --------------------------------------------------------------------------
     % Export    
     cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\paper';
-    saveas(gcf, horzcat(front, '.svg'));
+    saveas(gcf, horzcat(front, '_baseline_', num2str(bsln), '.svg'));
     
     cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint\features';
-    header= {'BF','BFSD','BFN', 'FRC','FRCSD','FRCN', 'TV','TVSD','TVN'};
+    header=fieldnames(stats);
     out=[];
     for h =1:length(header)
         out= [out, stats.(header{h})];
     end
-    save_name= horzcat('P',num2str(i-2), '_features.csv');
+    save_name= horzcat('P',num2str(i-2), '_baseline_', num2str(bsln), '_features.csv');
     table_out = array2table(out, 'VariableNames', header);
     writetable(table_out, save_name);
     
@@ -176,20 +202,25 @@ if strcmp(command, 'breath')
     datamx= 0;
     len_data= length(data);
     data_sz= zeros(len_data, 1);
+    
     for i= 1:len_data
         data_sz(i)= size(data{i}, 2);
         mxsz= max( data_sz(i),  mxsz);
         datamx= max( max(data{i},[],'all') ,  datamx);
     end % end for len
+    
     start= floor((mxsz- data_sz)./ 2) + 1;
+    
     for num= 1:len_data
         ax= axes('Position',[bpb(num) 0.003+3.5*H spc H],'Box','on');
         s= start(num);
         e= start(num)+data_sz(num)-1;
         hold on;
+        
         for j=1:size(data{num}, 1) - 1
             plot( (s:e), data{num}(j,:), 'Color',[0 0 0]+0.75, 'linewidth', 1 ); % grey
         end % end for
+        
         plot( (s:e), data{num}(j+1,:), 'm', 'linewidth', 2 ); % magenta
         ax.XTickLabel=[];ax.YTickLabel=[];ax.XTick=[];ax.YTick=[];
         ax.XLim= ([1 mxsz]);
@@ -199,14 +230,18 @@ if strcmp(command, 'breath')
 elseif strcmp(command, 'stat')
     LW= 3; 
     ax1=axes('Position',[L  B+4.75*H+shift   W   2*H],'Box','on'); 
-    plot(   data.FRC,       'linewidth', LW); hold on;
+    plot(   data.FRCT,      'linewidth', LW); hold on;
+    plot(   data.FRCM,      'linewidth', LW);
+    plot(   data.FRCB,      'linewidth', LW);
     plot(   data.TV,        'linewidth', LW);
     plot(   data.BF,        'linewidth', LW);
-    ax1.XLim=[0.5 13.5];    ax1.XTick=1:13;     ax1.XLabel.FontSize= 20;
-    ax1.XTickLabels={'SR 0-2 mins', 'PR 0-2 mins', 'PW 0-1 min', 'PW 1-2 mins', 'PW 2-3 mins', 'PW 3-4 mins', 'PW 4-5 mins', 'PWE 0-1 min', 'PWE 1-2 mins', 'PWE 2-3 mins', 'PWE 3-4 mins', 'PWE 4-5 mins', 'PP 0-2 mins'};
+    ax1.XLim=[0.5 13.5];    ax1.XTick=1:13;
+    xlbls={'U', 'R', 'W_1', 'W_2', 'W_3', 'W_4', 'W_5', 'X_1', 'X_2', 'X_3', 'X_4', 'X_5', 'P'};
+    set(gca,'XTickLabel', xlbls, 'fontsize', 20);
+    yrule = ax1.YAxis;
+    yrule.FontSize = 10;
     ax1.YAxisLocation= 'right';
-    xtickangle(30);
-    legend('Normalized Delta FRC',  'Normalized V_T', 'Normalized F_B');
+    ax1.YLim = [-0.75 2.75];
 
 elseif strcmp(command, 'reconst')
     fg1=axes('Position',[L B+H-shift R H*3]);
@@ -216,7 +251,7 @@ elseif strcmp(command, 'reconst')
     axis equal
     axis tight
     fg1.Colormap= cmap;
-    sgtitle(horzcat('Participant ', num2str(num)));
+%     sgtitle(horzcat('Participant ', num2str(num)));
 end % end if
 
 end % end function
@@ -282,10 +317,10 @@ function cntr_of_vnt= calc_cntr_of_vnt(img, lung_roi)
 % img is a 4D array. Output will be 2 x 13 x 3
 % remove image components not related to respiration
 img_= -(img.*lung_roi); % invert pixel values
-row_pix= sum(lung_roi, 2);
-row_pix(row_pix==0)=1; % avoid NaN in division
-col_pix= sum(lung_roi, 1);
-col_pix(col_pix==0)=1; % avoid NaN in division
+% row_pix= sum(lung_roi, 2);
+% row_pix(row_pix==0)=1; % avoid NaN in division
+% col_pix= sum(lung_roi, 1);
+% col_pix(col_pix==0)=1; % avoid NaN in division
 % 2 coordinates per image, images/row, number of rows
 n_imgs= size(img_, 3);
 n_rows= size(img_, 4);
@@ -294,16 +329,25 @@ cntr_of_vnt= zeros(2, n_imgs, n_rows);
 for h=1:n_rows
     for i= 1:n_imgs
         this_img= img_(:,:,i,h);
-        cntr_col= sum(this_img, 1) ./ col_pix; % take as weighted average
-        cntr_row= sum(this_img, 2) ./ row_pix; % same
-        cntr_of_vnt(1,i,h) = round(sum(cntr_col.* (1:32), 'all') ./ sum(cntr_col));     % X coor
-        cntr_of_vnt(2,i,h) = round(sum(cntr_row.* (1:32)', 'all') ./ sum(cntr_row));    % Y coor
+        this_img= (this_img./(sum(this_img,'all'))) *100;
+        
+        col_sums= sum(this_img, 1);
+        c= cumsum(col_sums);
+        cn= find(c <=50,1,'last');
+        k= (50- sum(col_sums(1:cn))) / cn;
+        cntr_of_vnt(1,i,h)= round( ((cn+k+0.5) / (32+1)) *32); % X coor
+        
+        row_sums= sum(this_img, 2);
+        r= cumsum(row_sums);
+        rn= find(r <=50,1,'last');
+        k= (50- sum(row_sums(1:rn))) / rn;
+        cntr_of_vnt(2,i,h)= round( ((rn+k+0.5) / (32+1)) *32); % Y coor
+        
         if isnan(cntr_of_vnt(1,i,h)) || isnan(cntr_of_vnt(2,i,h))
             keyboard;
         end % end if
     end % end for i
 end % end for h
-cntr_of_vnt=abs(cntr_of_vnt);
 end % end function
 
 % -------------------------------------------------------------------------
@@ -339,7 +383,7 @@ for f= 3: size(files, 1)
 end % end for f
 
 files= {sref, pref, wref, wepos, epos};
-cd ../.
+% cd ../.
 end % end function
 
 % -------------------------------------------------------------------------
@@ -450,28 +494,49 @@ end
 
 % -------------------------------------------------------------------------
 function calc_img_stats(img, j, param)
-global stats;
-global end_ex;
-global imgr_idx_list;
-global av_frm_s_inc;
-global n_frame_s;
-global figure_img;
+
 param_list= {'FRC', 'TV', 'fig'};
 if ~contains(param_list, param)
     disp('Unrecognized statistical parameter. Accepted parameters are: FRC, TV, fig');
     return
 end % end if
 
-if strcmp(param, 'FRC') || strcmp(param, 'TV')
-    img_slices= calc_slices(img, [inf inf 1]);
+if strcmp(param, 'FRC')
+    param_list={'FRCT', 'FRCM', 'FRCB'};
+    levels= [inf,inf,1.25; inf,inf,1; inf,inf,0.75];
+elseif strcmp(param, 'TV')
+    param_list= {param};
+    levels= [inf,inf,1];
+else
+    do_img_stat_calc(param, img, [], j);
+    return;
+end % end if
+
+for i=1:length(param_list)
+    param=param_list{i};
+    img_slices= calc_slices(img, levels(i,:));
     img_slices(isnan(img_slices))= 0;
     img_slices= img_slices .* lung_segmentation();
     img_slices= -img_slices;
     img_sums= squeeze(sum(img_slices, [1 2]));
+    do_img_stat_calc(param, img, img_sums, j);
+end
+
+end % end function
+
+function do_img_stat_calc(param, img, img_sums, j)
+
+global stats;
+global end_ex;
+global imgr_idx_list;
+global av_frm_s_inc;
+global n_frame_s;
+global figure_img;
+
+if ~strcmp(param, 'fig')
     paramSD= horzcat(param, 'SD');
     paramN= horzcat(param, 'N');
 end % end if
-
 stat_idx= imgr_idx_list(j);
 
 if j<3 || j==5
@@ -503,4 +568,4 @@ else
     disp("Unrecognized experimental phase.")
 end % end if
 
-end % end function
+end

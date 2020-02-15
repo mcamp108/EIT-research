@@ -18,10 +18,11 @@ switch pig
     case "9.2"
         fmdl_file= 'fmdl_9_2.mat';
         imdl_file= 'imdl_9_2.mat';
-        volFilename1= '9-2_with_scalp_msh';
+        volFilename1= '9-2_scalp_msh';
         name= '9-2_scalp';
-        volFilename2= '9-2_no_scalp_msh';
+        volFilename2= '9-2_noscalp_msh';
         name2= '9-2_noscalp';
+        elec_z_plane= 93; % average of reference dot z planes from elec_loc_refs
     
     case "10.2"
         fmdl_file= 'fmdl_10_2.mat';
@@ -63,8 +64,8 @@ else
     stim_pattern= [];
     z_contact= 0.01;
     radius= 0.2; % - requested weighting matrix  (recommend 0.2 for 16 electrodes)
-    weight= []; % - weighting matrix (weighting of noise vs signal). Can be empty options.noise_figure is specified
-    opt.noise_figure = 1.0;
+    weight= 1; % - weighting matrix (weighting of noise vs signal). Can be empty options.noise_figure is specified
+    opt.noise_figure = [];
     opt.imgsz= imgsize;
     opt.keep_intermediate_results= true;
     
@@ -98,7 +99,7 @@ else
     img.elem_data([fmdl.mat_idx{4}]) = 0.0001;  %   4: air          0.0001
 
     % Set stim patterns
-    [img.fwd_model.stimulation, img.fwd_model.meas_select] = mk_stim_patterns(32,1,[0,5],[0,5],{'no_meas_current_next2'},1);
+    [img.fwd_model.stimulation, img.fwd_model.meas_select] = mk_stim_patterns(32,1,[0,5],[0,5],{'no_meas_current_next2'},1); % try next3
     img.fwd_model.normalize_measurements = 0;
     imdl = mk_GREIT_model(img, radius, weight, opt);
     save(fmdl_file,'fmdl');

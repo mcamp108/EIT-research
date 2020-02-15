@@ -1,32 +1,41 @@
 % load data
-D= load_files();
+bsln= 2;
+[D, header]= load_files(bsln);
+D= get_position_data(D, header);
 % fg1= figure('units','normalized','outerposition',[0 0 1 1]);
-% header= {'BF','BFsd','BFn', 'FRC','FRCsd','FRCn', 'TV','TVsd','TVn','Ti_by_Tt','Ti_by_Ttsd','Ti_by_Ttn'};
-header= {'Ti_by_Tt','BF','FRC', 'TV'};
 recordings= {'sref', 'pref', 'wref', 'wepos', 'epos'};
 participants= fieldnames(D);
+%%
+results_figs(D);
+%%
+figure;hold on;
+plot(D.all.TV.data);plot(D.pos2.TV.data);plot(D.pos3.TV.data);plot(D.P7.TV.data);
+plot(D.all.TV.data)
+plot(D.all.BF.data)
 
-for i=1:length(header)
-    param=header{i};
-    D.pos1.(param).data= mean([ D.P1(:,i), D.P2(:,i), D.P3(:,i)], 2);
-    D.pos1.(param).sd= std([    D.P1(:,i), D.P2(:,i), D.P3(:,i)], [],2);
-    D.pos2.(param).data= mean([ D.P4(:,i), D.P5(:,i), D.P6(:,i)], 2);
-    D.pos2.(param).sd= std([    D.P4(:,i), D.P5(:,i), D.P6(:,i)], [],2);
-    D.all.(param).data= mean([  D.P1(:,i), D.P2(:,i), D.P3(:,i), D.P4(:,i), D.P5(:,i), D.P6(:,i)], 2);
-    D.all.(param).sd= std([     D.P1(:,i), D.P2(:,i), D.P3(:,i), D.P4(:,i), D.P5(:,i), D.P6(:,i)], [],2);
+fn=fieldnames(D.pos3);
+for i=1:length(fn)
+    disp (fn{i});
+    disp(D.pos2.(fn{i}).data);disp(D.pos2.(fn{i}).sd);
 end
 
 %% 1. for PW position, is there ate least one statistically significant
 % decrease in FRC relative to PR after the addition of weight?
-pos= 'pos1';
-param= 'TV';
+pos= 'p1';
+param= 'TVABS';
 n=3;
-sd= D.(pos).(param).sd;
-mu0=ones(13,1);
+v = repmat(2*n-2,13,1);
+sd0= repmat(D.(pos).(param).sd(2), 13, 1);
+mu0= repmat(D.(pos).(param).data(2), 13,1); % test different than prone rest.
+sdbar= D.(pos).(param).sd;
 mubar= D.(pos).(param).data;
 
-z= (mubar - mu0) ./ (sd ./ sqrt(n));
-disp(tcdf(z,n));
+tval= (mubar - mu0) ./ sqrt((sd0.^2 + sdbar.^2)./n);
+
+tdist2T = @(t,v) (1-betainc(v./(v+t.^2),v./2,0.5));    % 2-tailed t-distribution
+tprob = 1- tdist2T(tval,v);
+disp(tprob);
+
 %% 2. Is this decrease in FRC accompanied by decrease in TV?
 pos= 'pos2';
 param= 'TV';
@@ -39,16 +48,47 @@ z= (mubar - mu0) ./ (sd ./ sqrt(n));
 disp(tcdf(z,n));
 
 %% 3. Do they compensate by increasing BF?
-pos= 'pos2';
-param= 'BF';
-n=3;
+pos= 'p1';
+param= 'TVABS';
+n=D.(pos).(param).n;
 sd= D.(pos).(param).sd;
-mu0=ones(13,1);
+mu0=repmat(D.(pos).(param).data(2),13,1);
 mubar= D.(pos).(param).data;
 
 z= (mubar - mu0) ./ (sd ./ sqrt(n));
 disp(1-tcdf(z,n));
 
+%%
+par2= {'p1','p2','p3','p4','p5','p6','p7'};
+param= 'FRCABS';
+allprob=zeros(13,7);
+alpha=0.05;
+txt= cell(13,7);
+for i=1:length(par2)
+    pos= par2{i};
+    
+    x1= D.(pos).(param).data;
+    s1= D.(pos).(param).sd;
+    n1= D.(pos).(param).n;
+
+    x2= repmat(D.(pos).(param).data(2),13,1);
+    s2= repmat(D.(pos).(param).sd(2),13,1);
+    n2= repmat(D.(pos).(param).n(2),13,1);
+
+    for j=1:13
+        if s1(j)~=0
+            allprob(j,i)= welch_t(x1(j), s1(j), n1(j), x2(j), s2(j), n2(j));
+        else
+            allprob(j,i)=1;
+        end % end if
+        txt{j,i}= horzcat(num2str(round(x1(j),2)),'(', num2str(round(s1(j),2)),')');
+        if allprob(j,i)<alpha
+            txt{j,i}=horzcat(txt{j,i},'*');
+        end % end if
+    end % end for j
+    
+end % end for i
+disp(txt);
 %% does adding weight decrease FRC
 for i=1:7
     x1= D.(participants{i})(2,4);
@@ -95,18 +135,6 @@ table_out = array2table(results_tbl, 'VariableNames', var_names);
 save_name= horzcat('pooled_results.csv');
 writetable(table_out,save_name);
 %%
-% % normalize values to pref
-% for p=1:length(participants)
-%     norm_to= mean(D.(participants{p}).pref(:,2:end), 1);
-%     for q=1:length(recordings)
-%         record=recordings{q};
-%         D.(participants{p}).(record)(:,2:end)= D.(participants{p}).(record)(:,2:end) ./ norm_to;
-%     end % end for q
-% end % end for p
-
-
-
-%%
 % for each person, how does parameter change with each recording?
 part_pos= fieldnames(D);
 for i= 1: numel(part_pos)
@@ -130,65 +158,75 @@ for i= 1: numel(part_pos)
         saveas(gcf, horzcat(fig_title, '.svg'));
     end % end for j
 end % end for i
-%%
-for k= 1:length(recordings)
-    record= recordings{k};
-    
-    for j= 2:length(header)
-        parameter_name= header{j};
-        data_= [];
-        label= [];
-        
-        for i= 1: numel(part_pos)
-            part= part_pos{i};
-            data= D.(part).(record);
-            data_= [data_; data(:, j)];
-            m= repmat({part}, size(data, 1), 1);
-            label= [label; m];
-        end % end for k
-        
-        fig_title= remove_underscores(horzcat(record, ' feature - ', parameter_name));
-        boxplot(data_, label);
-        title(fig_title);
-        saveas(fg1, horzcat(fig_title, '.svg'));
-    end % end for j
-end % end for i
- %%
-% header= {'Time_s', 'Ti', 'Te', 'Ttotal', 'exp_to_exp', 'FRC', 'tidal_volume', 'breath_frequency'};
-% recordings= {'sref', 'pref', 'wref', 'wepos', 'epos'};
-select=(6:8);
-% cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\feature_comparison';
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\feature_comparison\ventilation plots';
-for i=1:length(participants)
-    plot_parameters(D.(participants{i}), header, select);
-    sgtitle(participants{i});
-    saveas(gcf,horzcat(participants{i}, ' vent_plots.svg'));
-end % end for i
- 
 
- function D= load_files()
+
  
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint\features';
+ function [D, header]= load_files(bsln)
+ 
+cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint\features\', num2str(bsln)));
 files= ls;
 D= struct;
+have_header=false;
 for i= 3: size(files, 1)
     f=files(i,:);
     file= strtrim(f);
 %     tok= regexp(file, 'P._', 'match');
-    tok= regexp(file, 'features (', 'match');
+    tok= regexp(file, 'features', 'match');
     if length(tok)>0 && ~isempty(tok{1})
 %         part_name=tok{1}(1:end-1);
-        part_name=horzcat('P',f(end-5));
+        part_name=f(1:2);
     else
         continue
     end % end if
     if contains(file, '.csv')
+        if ~have_header
+            fid = fopen(file, 'r');
+            header = textscan(fid, '%s', 1); 
+            header=header{1};
+            header = textscan(header{1}, '%s', 'Delimiter', ',');
+            fclose(fid);
+            header=header{1};
+        end % end if
         D.(part_name)= readmatrix(file);
     else
         disp("Unrecognized file name!")
     end % end if
 end % end for i
 
+end % end function
+
+
+function D= get_position_data(D, header)
+
+    for i=1:length(header)
+        param=header{i};
+        D.pos3.(param).data= mean([ D.P1(:,i), D.P2(:,i), D.P3(:,i)], 2);
+        D.pos3.(param).sd= std([    D.P1(:,i), D.P2(:,i), D.P3(:,i)], [],2);
+        
+        D.pos2.(param).data= mean([ D.P4(:,i), D.P5(:,i), D.P6(:,i)], 2);
+        D.pos2.(param).sd= std([    D.P4(:,i), D.P5(:,i), D.P6(:,i)], [],2);
+        
+        D.pos1.(param).data=        D.P7(:,i);
+        D.pos1.(param).sd= std(     D.P7(:,i), [], 2);
+        
+        D.all.(param).data= mean([  D.P1(:,i), D.P2(:,i), D.P3(:,i), D.P4(:,i), D.P5(:,i), D.P6(:,i), D.P7(:,i)], 2);
+        D.all.(param).sd= std([     D.P1(:,i), D.P2(:,i), D.P3(:,i), D.P4(:,i), D.P5(:,i), D.P6(:,i), D.P7(:,i)], [],2);
+    end % end for
+par= {'P1','P2','P3','P4','P5','P6','P7'};
+par2= {'p1','p2','p3','p4','p5','p6','p7'};
+for i= 1:length(par)
+    D.(par2{i}).BFABS.data=D.(par{i})(:,1);
+    D.(par2{i}).BFABS.sd= D.(par{i})(:,2);
+    D.(par2{i}).BFABS.n= D.(par{i})(:,3);
+    
+    D.(par2{i}).FRCABS.data= D.(par{i})(:,5);
+    D.(par2{i}).FRCABS.sd= D.(par{i})(:,6);
+    D.(par2{i}).FRCABS.n= D.(par{i})(:,7);
+    
+    D.(par2{i}).TVABS.data= D.(par{i})(:,9);
+    D.(par2{i}).TVABS.sd= D.(par{i})(:,10);
+    D.(par2{i}).TVABS.n= D.(par{i})(:,11);
+end
 end % end function
 
 
@@ -245,11 +283,38 @@ end % end for i
 
 end % end function
 
-function p= welch_t(x1, s1, n1, x2, s2, n2)
+function tprob= welch_t(x1, s1, n1, x2, s2, n2)
 
-t= (x1 - x2) / sqrt( s1^2 / n1 + s2^2 / n2 );
+tval= (x1 - x2) / sqrt( s1^2 / n1 + s2^2 / n2 );
 v= (s1^2 / n1 + s2^2 / n2)^2 / ( s1^4/ (n1^2 * n1-1) + s2^4/ (n2^2 * n2-1) );
-p = 1-tcdf(t,v);
+
+tdist2T = @(t,v) (1-betainc(v./(v+t.^2),v./2,0.5));    % 2-tailed t-distribution
+tprob = 1- tdist2T(tval,v);
 
 end % end function
 
+function results_figs(D)
+cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\paper';
+pp={'all','pos1','pos2','pos3'};
+ss={'BF','TV','FRC'};
+titles={'Normalized Breathing Frequency', 'Normalized Tidal Volume', 'Functional Residual Capacity Change from PR as a Percentage of Mean PR Tidal Volume'};
+ylabels={'Normalized Breathing Frequency (breaths/min)', 'Normalized Tidal Volume (ml/breath)', 'Delta Functional Residual Capacity (% change)'};
+for h= 1:length(ss)
+    fig=figure('units','normalized','outerposition',[0 0 1 1]);clf; hold on;
+    fig.PaperOrientation='landscape';
+    ax1=fig.Children;
+    for i=1:length(pp)
+        errorbar(1:length(D.(pp{i}).(ss{h}).data), D.(pp{i}).(ss{h}).data, -D.(pp{i}).(ss{h}).sd, D.(pp{i}).(ss{h}).sd, 'linewidth', 4,'CapSize',12);
+    end % end for i
+    legend('all','position 1', 'position 2','position 3');
+    title(titles{h}, 'fontsize', 20);
+    ax1.XLim=[0.5 13.5];    
+    ax1.XTick=1:13;     
+    ax1.XLabel.FontSize= 60;
+    ax1.YLabel.FontSize= 60;
+    ax1.XTickLabels={'SU 0-2 mins', 'PR 0-2 mins', 'PW 0-1 min', 'PW 1-2 mins', 'PW 2-3 mins', 'PW 3-4 mins', 'PW 4-5 mins', 'PWE 0-1 min', 'PWE 1-2 mins', 'PWE 2-3 mins', 'PWE 3-4 mins', 'PWE 4-5 mins', 'PP 0-2 mins'};
+    xtickangle(30);
+    ylabel(ylabels{h});
+    saveas(gcf, horzcat('paper_',ss{h}, '.svg'));
+end % end for h
+end % end function

@@ -27,11 +27,23 @@ function inspect_eit_elec_and_data(eit_file, imdl, thresh)
 %   27.Sep.2019
 % -------------------------------------------------------------------------
 
-if (nargin== 2) && (~exist(thresh, 'var'))
+msel= imdl.fwd_model.meas_select;
+
+if nargin== 2
    thresh= 400; 
 end % end if
 
-if iscell(eit_file) % input is output of eidors_read_data
+if isstruct(eit_file) && strcmp(thresh, 'hamburg')
+    data= eit_file.data;
+    elec_impedance= eit_file.elec_impedance;
+    fs= eit_file.fs;
+    thresh=500;
+elseif strcmp(eit_file(end-3:end), '.eit')
+    [data,auxdata]= eidors_readdata(eit_file);
+    fs = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
+    impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
+    elec_impedance= auxdata.elec_impedance* impedanceFactor;
+elseif iscell(eit_file) % input is output of eidors_read_data
     if length(eit_file)==2
         if isstruct(eit_file{2})
             auxdata= eit_file{2};
@@ -40,24 +52,23 @@ if iscell(eit_file) % input is output of eidors_read_data
             auxdata= eit_file{1};
             data= eit_file{2};
         end % end if
+        fs = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
+        impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
+        elec_impedance= auxdata.elec_impedance* impedanceFactor;
     else
         disp("Whoops!");
     end % end if
-elseif strcmp(eit_file(end-3:end), '.eit')
-    [data,auxdata]= eidors_readdata(eit_file);
 else
     disp("Unrecognized input.");
 end % end if
 
-fs = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
-msel= imdl.fwd_model.meas_select;
+n_samples= size(data, 2);
+data_samp= round(1:(n_samples/100):n_samples);
+elec_impedance= abs(elec_impedance);
 
-% find bad electrodes
-impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
-elec_impedance= abs(auxdata.elec_impedance* impedanceFactor);
+bad= abs(imag(data(msel,:))) > 5e-4;
 ei= median(elec_impedance, 2);
 bad_elecs= find(ei> thresh);
-
 kk=meas_icov_rm_elecs(imdl, bad_elecs);
 ee = find(diag(kk)~=1);
 
@@ -86,15 +97,16 @@ subplot(426);
 % IQ plot
 subplot(425);
     % all meas
-    plot(1e3* data(:, 1:100), 'k+'); 
+    plot(1e3* data(:, data_samp), 'k+');
     hold on;
     % used meas
-    plot(1e3* data(msel, 1:100), 'b+');
-    mm = find(msel);
+    plot(1e3* data(msel, data_samp), 'b+');
+    plot(1e3*data_(bad), 'r+');
     ee = mm(ee);
-    plot(1e3*data(ee,1:100), 'r+');
+    plot(1e3*data(ee,data_samp), 'r+');
     hold off; 
-    box off
+    box off;
+    axis equal;
     title 'IQ plot';
 
 % median contact impedance
@@ -124,17 +136,5 @@ subplot(427);
     xlim([0, fs/2]);
     title 'Spectrum (Hz)';
 
-% Average Measurement for Measurement Pair
-% subplot(427);
-%     vk = 1e3* mean(vv, 2);
-%     by_stim_pair= reshape(vk, 32, 32);
-%     av_meas= (mean(by_stim_pair, 2));
-%     plot(av_meas, 'b');
-%     hold on;
-%     scatter(bad_elecs, av_meas(bad_elecs), 'r', 'filled');
-%     hold off;
-%     xlim([1 32]);
-%     title("Average Measurement for Measurement Pair");
-%     legend('meas', 'bad elecs');
-    
 end % end function
+

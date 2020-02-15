@@ -31,39 +31,13 @@ vv_size= size(vv);
 if min(vv_size)> 1
    vv= sum(vv, 1); 
 end % end if
+
 vv= detrend(vv);
 vv= vv- mean(vv); % zero data
 ins_idx= peakfinder(vv, 0.001, [], 1);
 exp_idx= peakfinder(vv, 0.001, [], -1);
-% for i= 1: length(vv)
-%     if inspir(i)== 1
-%         if vv(i)> segMax
-%             segMax= vv(i);
-%             maxIdx= i;
-%         end % end if
-%     elseif inspir(i)== 0
-%         if segMax> 0
-%             ins_idx= [ins_idx, maxIdx];
-%             segMax= 0;
-%         end % end if
-%     end % end if
-% end % end for
 
-% for i= 1: length(expir)
-%     if expir(i)== 1
-%         if vv(i)< segMin
-%             segMin= vv(i);
-%             minIdx= i;
-%         end % end if
-%     elseif expir(i)== 0
-%         if segMin< segMinRes
-%             exp_idx= [exp_idx, minIdx];
-%             segMin= segMinRes;
-%         end % end if
-%     end % end if
-% end % end for
-
-% if landmark is first point may may be false positive
+% if landmark is first point may be false positive
 if ins_idx(1)== 1 || exp_idx(1)== 1
     ins_idx= ins_idx(2:end);
     exp_idx= exp_idx(2:end);
