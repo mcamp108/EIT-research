@@ -28,26 +28,22 @@ function inspect_eit_elec_and_data(eit_file, imdl, thresh)
 % -------------------------------------------------------------------------
 
 msel= imdl.fwd_model.meas_select;
+mm = find(msel);
 
 if nargin== 2
-   thresh= 400; 
+   thresh= 0.25; 
 end % end if
 
 if isstruct(eit_file) && strcmp(thresh, 'hamburg')
     data= eit_file.data;
     elec_impedance= eit_file.elec_impedance;
     fs= eit_file.fs;
-    thresh=500;
-elseif strcmp(eit_file(end-3:end), '.eit')
-    [data,auxdata]= eidors_readdata(eit_file);
-    fs = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
-    impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
-    elec_impedance= auxdata.elec_impedance* impedanceFactor;
+    thresh = 0.25;
 elseif iscell(eit_file) % input is output of eidors_read_data
     if length(eit_file)==2
         if isstruct(eit_file{2})
-            auxdata= eit_file{2};
             data= eit_file{1};
+            auxdata= eit_file{2};
         else
             auxdata= eit_file{1};
             data= eit_file{2};
@@ -58,19 +54,28 @@ elseif iscell(eit_file) % input is output of eidors_read_data
     else
         disp("Whoops!");
     end % end if
+elseif strcmp(eit_file(end-3:end), '.eit')
+    [data,auxdata]= eidors_readdata(eit_file);
+    fs = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
+    impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
+    elec_impedance= auxdata.elec_impedance* impedanceFactor;
 else
-    disp("Unrecognized input.");
+    data = eit_file;
 end % end if
 
 n_samples= size(data, 2);
 data_samp= round(1:(n_samples/100):n_samples);
 elec_impedance= abs(elec_impedance);
 
-bad= abs(imag(data(msel,:))) > 5e-4;
-ei= median(elec_impedance, 2);
-bad_elecs= find(ei> thresh);
-kk=meas_icov_rm_elecs(imdl, bad_elecs);
-ee = find(diag(kk)~=1);
+[wElecs, scores] = worst_n_elecs(data, imdl, 32);
+badElecIdx = scores > thresh;
+if length(badElecIdx) >= 1
+    badElecs = wElecs(badElecIdx);
+    kk = meas_icov_rm_elecs(imdl, badElecs);
+    ee = find(diag(kk)~=1);
+end % end if
+
+ei = mean(elec_impedance, 2);
 
 % total boundary voltage
 subplot(4,2,1:4);
@@ -79,16 +84,16 @@ subplot(4,2,1:4);
     plot(xax, sum(vv(msel,:), 1));
     ylabel('Voltage (V)')
     xlabel('Time (s)');
-    title('Total Boundary Voltage');
+    title('Total Boundary Voltage (Raw)');
 
 % U shapes 
 subplot(426);
-    vk = 1e3* mean(vv, 2);
+    vk = 1e3 * mean(vv, 2);
     plot(vk,'k');    % all meas
     hold on;
     vk(~msel,:) = NaN;
     plot(vk,'b');   % selected meas
-    vn = NaN*vk; vn(ee,:) = vk(ee,:);
+    vn = NaN * vk; vn(ee,:) = vk(ee,:);
     plot(vn,'ro');
     hold off;
     box off; 
@@ -98,13 +103,13 @@ subplot(426);
 % IQ plot
 subplot(425);
     % all meas
-    plot(1e3* data(:, data_samp), 'k+');
+    plot(1e3 * data(:, data_samp), 'k+');
     hold on;
     % used meas
-    plot(1e3* data(msel, data_samp), 'b+');
-    plot(1e3*data_(bad), 'r+');
+    plot(1e3 * data(msel, data_samp), 'b+');
+    plot(1e3 * data(badElecs), 'r+');
     ee = mm(ee);
-    plot(1e3*data(ee,data_samp), 'r+');
+    plot(1e3 * data(ee,data_samp), 'r+');
     hold off; 
     box off;
     axis equal;
@@ -114,7 +119,7 @@ subplot(425);
 subplot(428);
     b= bar(ei,'FaceColor','flat');
     b.CData(:,:)= repmat([0 0 1], 32, 1);
-    be= find(ei>=thresh);
+    be= badElecs;
     for e= 1:length(be)
         b.CData(be(e), :)= [1 0 0];
     end
@@ -135,7 +140,7 @@ subplot(427);
     ylim([1e-4, 1]);
     box off; 
     xlim([0, fs/2]);
-    title 'Spectrum (Hz)';
+    title 'Fourier Spectrum (Hz)';
 
 end % end function
 

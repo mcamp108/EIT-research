@@ -1,6 +1,6 @@
 run 'myStartup.m';
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint';
-figure('units','normalized','outerposition',[0 0 1 1]);clf;
+figure('units','normalized','outerposition',[0 0 1 1]); clf;
 global stats;
 global end_ex;
 global end_in;
@@ -13,33 +13,15 @@ global cmap;
 
 we_segments= 5; % number of images to produce forwreft and wepos
 sep= 7; % number of pixels between figure images
-av_frm_s_inc= linspace(1, round(270*47.6826), we_segments); % starting frames of we_segments number of evenly spaced time increments
+timeSeriesLength = 270; % shortest length of time series under investigation. This will set the time per segment.
+av_frm_s_inc= linspace(1, round(timeSeriesLength*47.6826), we_segments); % starting frames of we_segments number of evenly spaced time increments
 n_frame_s= min(diff(av_frm_s_inc)); % minimum number of frames in time increments
-imgr_idx_list= [1 2 3 8 13];
-
+imgr_idx_list= [1 2 3 3+we_segments (3+we_segments*2)];
 dirs= ls;
-
+% get model
 [fmdl, imdl]= mk_weighted_restraint_model(); % model
-%%
 % configure colormap
-calc_colours('cmap_type', 'blue_black_red');
-colormap(calc_colours('colourmap'));
-cmap=colormap*2;
-cmap(cmap>1)=1;
-black= find(sum(cmap==[0,0,0],2)==3);
-
-white_grad= linspace(0,1,black-1)';
-cmap(black:end,1)=white_grad;
-cmap(black:end,2)=white_grad;
-
-white_grad= linspace(0,1,black)';
-white_grad=flipud(white_grad);
-cmap(1:black,2)=white_grad;
-cmap(1:black,3)=white_grad;
-
-cmap= [[1, 1, 1]; flipud(cmap(2:end, :))];
-% cmap(3,:)= [1,1,1]*0.75;
-%%
+cmap = config_cmap();
 
 lung_roi= lung_segmentation(); % lung roi
 mid_col= size(lung_roi, 2)/2;
@@ -47,8 +29,8 @@ lung_divide_idx= mid_col* size(lung_roi, 1) + 1;
 is_lung= find(lung_roi);
 left_lung_idx= is_lung(is_lung>= lung_divide_idx);
 right_lung_idx= is_lung(is_lung< lung_divide_idx);
-recordings= {'sref', 'pref', 'wref', 'wepos', 'epos'};
-bsln= 2;
+recordings= {'sref', 'pref', 'wref', 'wepos', 'epos'}; % change these with your own abbreviations for trials you have.
+bsln = 2; % prone unweighted default is recording #2. This is used as the reference for all recordings.
 
 for i= 3: size(ls, 1) % for each participant
     stats=struct;
@@ -56,8 +38,10 @@ for i= 3: size(ls, 1) % for each participant
     clf;
     folder= dirs(i, :);
     
-    if contains(folder, '2019_')
+    if contains(folder, '2019_') % change this to a prefix that distinguishes your data folder from other folders. Each participant will have their own folder.
         files= load_wr_data(folder);
+        [D, imdl_comp] = wr_pp(files, imdl, timeSeriesLength);
+        dataFn = fieldnames(D);
     else
         continue
     end % end for
@@ -66,33 +50,31 @@ for i= 3: size(ls, 1) % for each participant
         f= files{j};
         name= char(remove_underscores(f));
         suffix= ' clean breaths';        
-        front= name(1:13);
-        back= name(14:end);
+        front= name(1:13); % indices of date and participant number
+        back= name(14:end); % indices of experimental phase in file name
         imgr_idx= imgr_idx_list(j);
 %--------------------------------------------------------------------------        
         % Data pre-processing and breath selection
-        [use_data, imdl_comp,FR]= wr_pp(f, imdl);
-        tbv= sum(use_data, 1);
+        use_data = D.(dataFn{j}).useData;
+        FR = D.(dataFn{j}).fs;
+        tbv= sum(use_data, 1); % total boundary voltage
         [end_in, end_ex, Ti_by_Tt, BF]= select_breaths(tbv, FR);  
 %--------------------------------------------------------------------------        
         % plot selected breath boundaries
-%         plot_breath_boundaries(name, suffix, tbv, end_in, end_ex, front, back, j);
+        plot_breath_boundaries(name, suffix, tbv, end_in, end_ex, front, back, j);
+        keyboard; % confirm landmark happiness
 %--------------------------------------------------------------------------        
-        glob_ref= mean(use_data(:, end_ex(1,1):end_ex(2,1)), 2); % use mean of first breath as reference
-%         if j==2
-%             glob_ref= mean(use_data, 2);
-
-%         end % end if j
         % Image reconstruction
+        glob_ref= mean(use_data(:, end_ex(1,1):end_ex(2,1)), 2); % use mean of first breath as reference
         imgr= inv_solve(imdl_comp, glob_ref, use_data); % solve
         
         if j==2
-            figure_img= imgr; % compile images from all conditions into a single image
-            figure_img.elem_data= zeros(size(imgr.elem_data, 1), 2*we_segments+3); % 5 conditions, max we_segments images for 2 conditions, 1 image for 3 conditions.
-            figure_img.show_slices.img_cols= 2*we_segments+3;
-            figure_img.show_slices.sep= sep;
-            imgFRC= figure_img;
-            imgTV= figure_img;
+            figure_img = imgr; % compile images from all conditions into a single image
+            figure_img.elem_data = zeros(size(imgr.elem_data, 1), 2*we_segments+3); % 5 conditions, max we_segments images for 2 conditions, 1 image for 3 conditions.
+            figure_img.show_slices.img_cols = 2*we_segments+3;
+            figure_img.show_slices.sep = sep;
+            imgFRC = figure_img;
+            imgTV = figure_img;
         end % end if
 
         % lung images... inspiration minus mean of flanking expirations        
@@ -412,28 +394,42 @@ cd(starting_dir);
 end % end function
 
 % -------------------------------------------------------------------------
-function [use_data, imdl_comp,FR]= wr_pp(f, imdl)
-    clip= 50;    
-    [dd,auxdata]= eidors_readdata(f);
-    dd= dd(:, 1: min(size(dd, 2), 14300));
-    auxdata.elec_impedance= auxdata.elec_impedance(:, 1: size(dd, 2));
-    auxdata.t_abs= auxdata.t_abs(:, 1: size(dd, 2));
-    auxdata.t_rel= auxdata.t_rel(:, 1: size(dd, 2));
-    FR = 1e6./median(diff(auxdata.t_rel)); %framerate is median dif of time points/ 1000000 (convert to s)
+function [D, imdl_comp]= wr_pp(files, imdl, timeSeriesLength)
 
-    % Clean data
-    msel= imdl.fwd_model.meas_select;
-    mm = find(msel);
+% Weighted restraint pre-processing
+clip= 50;
+D = struct;
+RMTHRESHOLD = 0.25;
+msel= imdl.fwd_model.meas_select;
+mm = find(msel);
 
-    if strcmp(f, '2019_08_07_P3_proneRef.eit')
-        imdl_comp= compensate_bad_elec(f, imdl, 1000);
-    else
-        imdl_comp= imdl;
-    end % end if
+for file = 1:length(files)
+    f = files{file};
+    field = horzcat('seq', num2str(file));
+    [ dd, D.(field).aux ] = eidors_readdata(f);
+    
+    inspect_eit_elec_and_data({dd, D.(field).aux} , imdl, RMTHRESHOLD);
+    sgtitle(remove_underscores(f));
+%     keyboard;
+    clf();
+    
+    D.(field).aux.elec_impedance = D.(field).aux.elec_impedance(:, 1: size(dd, 2));
+    t_rel = D.(field).aux.t_rel(:, 1: size(dd, 2));
+    D.(field).fs = 1e6 ./ median( diff(t_rel) ); %framerate is median dif of time points/ 1000000 (convert to s)
+    dd = dd( :, 1: min(size(dd, 2), round(D.(field).fs * timeSeriesLength)) ); % ensure all time series are timeSeriesLength or less
+    D.(field).data = dd;
+    useData = real(dd(mm, :));
+    useData = lowpass(useData', 1, D.(field).fs)'; % 1 Hz lowpass
+    useData = useData(:, clip:(size(useData,2)-clip) ); % trim filter edge artifacts
+    D.(field).useData = useData;
+end % end for
 
-    use_data= real(dd(mm, :));
-    use_data= lowpass(use_data', 1, FR)';
-    use_data= use_data(:, clip:(size(use_data,2)-clip) ); % trim filter edge artifacts
+% find worst N electrodes
+[rmElecs, scores] = worst_n_elecs(D, imdl, 6);
+rmElecs = rmElecs(scores >= RMTHRESHOLD); % change this
+imdl_comp= comp_RM_bad_elec(imdl, rmElecs); % remove measurements from noisy electrodes by adjusting imdl
+fprintf('electrodes removed with score threshold %s: %s \n', num2str(RMTHRESHOLD), num2str(rmElecs'));
+
 end % end function
 
 % -------------------------------------------------------------------------
@@ -569,3 +565,25 @@ else
 end % end if
 
 end
+
+
+function cmap = config_cmap()
+global cmap;
+calc_colours('cmap_type', 'blue_black_red');
+colormap(calc_colours('colourmap'));
+cmap=colormap*2;
+cmap(cmap>1)=1;
+black= find(sum(cmap==[0,0,0],2)==3);
+
+white_grad= linspace(0,1,black-1)';
+cmap(black:end,1)=white_grad;
+cmap(black:end,2)=white_grad;
+
+white_grad= linspace(0,1,black)';
+white_grad=flipud(white_grad);
+cmap(1:black,2)=white_grad;
+cmap(1:black,3)=white_grad;
+
+cmap= [[1, 1, 1]; flipud(cmap(2:end, :))];
+
+end % end function
