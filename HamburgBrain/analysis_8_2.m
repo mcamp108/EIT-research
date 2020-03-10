@@ -1,5 +1,6 @@
 % -------------------------------------------------------------------------
-% Description: This script is used for analyzing and visualizing swine stroke data.
+% Description: This script is used for analyzing and visualizing swine
+% stroke data.
 % -------------------------------------------------------------------------
 % Author:
 %   Mark Campbell
@@ -7,22 +8,25 @@
 %   markacampbell@cmail.carleton.ca
 % -------------------------------------------------------------------------
 
-% global cmap;
-
 run 'myStartup.m';
-maxsz= 0.2; maxh= 2; imgsize= [64 64]; pig= "9.2";
+maxsz= 0.2; maxh= 2; imgsize= [64 64]; 
+% pigs= ["8.2","9.2","10.2","11.2","12.2"];
+pig= "12.2";
 [fmdl, imdl]= mk_pighead_fmdl(maxsz, maxh, imgsize, pig);
 % Load data
-D= load_HamburgBrain_data(pig);
+ref = 'self';
+% ref = 'baseline';
+D= load_HamburgBrain_data(pig, ref);
 fn= fieldnames(D);
 cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
-suffix= ' 20200215';
+suffix= date;
 
 % configure colormap
 % cmap = confg_cmap();
 
-%% 1. SHOW EIT AND PERFUSION DATA WITH PERFUSION ANNOTATIONS
+% 1. SHOW EIT AND PERFUSION DATA WITH PERFUSION ANNOTATIONS
 cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+%%
 cd seqData;
 for i= 1:numel(fn)
     plot_seq_data(D.(fn{i}));
@@ -30,28 +34,165 @@ for i= 1:numel(fn)
 end % end for
 close all
 cd ../
+%% 2. Injection Images Figure
+cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper');
+nFrames = 15;
+switch pig
+    case "8.2";     ts = [0,0,0,0];             te = [10,10,10,10]; % use seq2 as ref
+    case "9.2";     ts = [10,10,10,10];         te = [25,25,25,25];
+    case "10.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+    case "11.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+    case "12.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+end % end switch
+
+bigFig();
+show_inj_fig(D, ts, te, nFrames);
+saveas( gcf, sprintf('%s injection figure.svg', char(D.(fn{1}).pig)) );
+
+%% 3. Total change over cardiac cycle
+cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper');
+switch pig
+    case "8.2";     opt.period = [2,2,1];        
+        temp = D.seq1.eit.apn; D.seq1.eit.apn = 1868; 
+        temp2 = D.seq2.eit.apn; D.seq2.eit.apn = 1068;
+        sel = [2,3,4];
+    case "9.2";     opt.period = [0,1,1,1];
+        sel = [1,2,3];
+    case "10.2";    opt.period = [1,1,1,1,1,1];
+        sel = [1,3,5];
+    case "11.2";    opt.period = [1,2,0,2,1,1];
+        sel = [1,3,6];
+        temp = D.seq3.eit.apn; D.seq3.eit.apn = 843;
+    case "12.2";    opt.period = [2,0,0,0,2,0];
+        temp = D.seq3.eit.apn; D.seq3.eit.apn = 939; % 1223; 
+        sel = [2,3,5];
+end % end switch
+
+bigFig();
+hold on;
+name = horzcat(char(pig), ' ',ref,' reference. Total change over average cardiac cycle');
+sgtitle( name );
+% sel = 1:length(fn);
+delta_heatmap(D, sel, opt);
+colorbar();
+% title(horzcat(num2str(sel), ' - ',D.(fn{sel}).name));
+colormap jet;
+fig = gcf;
+fig.Colormap(1,:) = [1 1 1] * 0.9;
+saveas( gcf, horzcat(char(pig),' TCOCC period ',num2str(opt.period),' sequences ',num2str(sel), '.svg') );
+switch pig
+    case "8.2";     D.seq.eit.apn = temp; D.seq2.eit.apn = temp2;
+    case "11.2";    D.seq3.eit.apn = temp;
+    case "12.2";    D.seq3.eit.apn = temp;
+end % end switch
+
+
+
+%% 4. Compare average CC for all sequences with adjusted clim
+cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper');
+opt.sidelen = 5;
+switch pig
+    case "8.2";     opt.period = [2,2,2,1];
+    case "9.2";     opt.period = [0,1,1,1];
+    case "10.2";    opt.period = [1,1,1,1,1,1];
+    case "11.2";    opt.period = [1,2,0,2,1,1];
+    case "12.2";    opt.period = [2,0,0,0,2,0];
+end % end switch
+switch pig
+    case "8.2"
+        temp = D.seq1.eit.apn; D.seq1.eit.apn = 1868; 
+        temp2 = D.seq2.eit.apn; D.seq2.eit.apn = 1068;
+        sel = [2,3,4];
+        TITLE = '8.2 Ensemble Average of Pulsatile Signal. baseline (top), after embolism (middle), 30 minutes after embolism (bottom)';
+    case "9.2"
+        sel = [1,2,3];
+        TITLE = '9.2 Ensemble Average of Pulsatile Signal. baseline (top), baseline 2 (middle), after embolism (bottom)';
+    case "10.2"
+        opt.select = 1;
+        sel = [1,5];
+%         TITLE = '10.2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 6 hours after stroke induction (bottom)';
+        TITLE = '10.2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), 6 hours after stroke induction (bottom)';
+    case "11.2"
+        temp = D.seq3.eit.apn; D.seq3.eit.apn = 843;
+        sel = [1,3,6];
+        TITLE = '11.2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 4 hours after stroke induction (bottom)';
+    case "12.2"
+        temp = D.seq3.eit.apn; D.seq3.eit.apn = 939; % 1223; 
+        sel = [2,3,5];
+        TITLE = '12.2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 3.5 hours after stroke induction (bottom)';
+end % end switch
+
+saveName = horzcat(char(pig), ' ensemble. seq', num2str(sel), ' ', ref, '.svg');
+opt.align = 2;
+bigFig();
+compare_pre_inj_imgs(D, sel, opt);
+
+title(TITLE); colorbar();
+saveas( gcf, saveName );
+
+switch pig
+    case "8.2";     D.seq.eit.apn = temp; D.seq2.eit.apn = temp2;
+    case "11.2";    D.seq3.eit.apn = temp;
+    case "12.2";    D.seq3.eit.apn = temp;
+end % end switch
+
+
+
+
 
 %% 2. Ensemble average perfusion images
+cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+opt.av = 'mean';
+opt.align = 2;
+% opt.sidelen
 for i = 1:numel(fn)
-    show_pre_inj_img(D.(fn{i}));
-end
-
-%% 3. Compare average CC for all sequences with adjusted clim
-compare_pre_inj_imgs(D, [2,4,6]);
+    bigFig();
+    show_pre_inj_img(D.(fn{i}), opt);
+end % end for
 
 
-
-
-
-
-
-
-
-
+%% 3.5
+bigFig();
+compare_post_vnt_imgs(D, [5], opt);
+%% 4. Compare images after bolus injection
+cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+show_inj_imgs(D.seq1, opt);
+%% 5. Show mean cycle from pre and post injection time periods
+cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+opt.av = 'mean';
+for i = 1:numel(fn)
+    bigFig();
+    compare_pre_post_inj(D.(fn{i}), opt);
+    saveas( gcf, horzcat(D.(fn{i}).name, '_PrePostInj_', suffix, '.svg') );
+end % end for
+%% 6. Visualize different timeframes after injection
+cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+ts = 1;
+te = 10;
+bigFig();
+for i = 1:numel(fn)
+    show_inj(D.(fn{i}),ts,te);
+    title( horzcat(num2str(i), '_',D.(fn{i}).name, '1-10 seconds Post-Injection. 1 row = 1 second') );
+%     saveas( gcf, horzcat(num2str(i), '_',D.(fn{i}).name,'1-10secondsPostInj.svg') );
+end % end for
+%% 8. Injection Images Exploration
+switch pig
+    case "8.2";     ts = [0,0,0,0];         te = [10,10,10,10];
+    case "9.2";     ts = [10,10,10,10];         te = [25,25,25,25];
+    case "10.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+    case "11.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+    case "12.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+end % end switch
+for i=1:length(fn)
+    bigFig();
+    show_inj(D.(fn{i}), ts(i), te(i));
+    colorbar();
+    title( sprintf('%i - %s %i - %i seconds Post-Injection. 1 row = 1 second', i, D.(fn{i}).name, ts(i), te(i)) );
+end % end for
 %% VIDEO OF RECONSTRUCTED IMAGE AND BRAIN SEGMENTATION
 
 cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
-for i= 4:numel(fn)
+for i= [1,3,5]
     start= D.(fn{i}).eit.inj;
     stop= D.(fn{i}).eit.inj+ 1000;
     mk_vid(D.(fn{i}), start, stop, suffix);
@@ -160,193 +301,127 @@ end % end for
 cd ../
 
 %%
-% noise analysis
 
-% % cross-reference noisy to stim pattern
-% % write function that based on measurements removed, return stimulating and
-% % measuring pairs involved in that measurement
-% 
-% vv= real(D.seq1.eit.fdata);
-% % remove noisy measurement pairs
-% meas_std= std(vv,{},2);
-% lim= mean(meas_std)+ std(meas_std); % remove measurements more than 1 sd of mean
-% noisy= std(vv,{},2) > lim;
-% vv(noisy,:)= 0;
-% noisy= reshape(noisy, 32, 32);
-% bad_meas= struct;
-% meas_pattern= imdl.fwd_model.stimulation.meas_pattern;
-% for i= 1:size(noisy, 2) % for each measurement combination
-%     was_noisy= noisy(:, i);
-%     % the stimulating electrodes for this measurement column were
-%     bad_meas(i).stim_elec= find(imdl.fwd_model.stimulation(i).stim_pattern);
-%     % the noisy electrodes for these stimulating electrodes were
-%     meas_select= reshape(imdl.fwd_model.meas_select, 32, 32); % 32 x 32 logical mtx
-%     this_meas_sel= meas_select(:, i)* 1;
-%     meas_pattern= imdl.fwd_model.stimulation(i).meas_pattern; % 32 x 32 sparse mtx
-%     search_rows= find(was_noisy);
-%     % drop dim from 32 to 29 while preserving idx
-%     for r= search_rows
-%         if this_meas_sel(r)~= 0
-%             this_meas_sel(r)= 2;
-%         end % end if
-%     end % end for
-%     new_search_rows= find(this_meas_sel(this_meas_sel>0) == 2);
-%     meas_elecs= [];
-%     if ~isempty(new_search_rows)
-%         for row= new_search_rows'
-%             if row > 29
-%                 keyboard;
-%             else
-%                 look_in= meas_pattern(row, :);    
-%                 meas_elecs= [meas_elecs; find(look_in)];
-%             end % end if
-%         end % end for
-%     end % end if
-%     bad_meas(i).meas_elecs= meas_elecs;
-% end % end for
-% 
-% figure; imagesc(meas_select); axis 'equal'
-% figure; imagesc(meas_pattern); axis 'equal'
-% %%
-% % Stuff to show Andy
-% 
-% % show raw data
-% dd= real(D.seq1.eit.data);
-% 
-% inspect_eit_elec_and_data(D.seq1, imdl);
-% 
-% for be=1:32; kk=meas_icov_rm_elecs(imdl, be); ee = find(diag(kk)~=1); plot(dd(ee,'k')'); title(sprintf('bad=%d',be)); pause; end
-% 
-% % load data
-% dd= real(D.seq1.eit.data);
-% % plot each electrode and look for worst ones.
-% for be=1:32; kk=meas_icov_rm_elecs(imdl, be); ee = find(diag(kk)~=1); plot(dd(ee,:)','k'); title(sprintf('bad=%d',be)); pause; end
-% plot(sum(dd(notee,:)))
-% % look at weird ones, find which channel they belong to
-% channel= find( abs( df(:,2205) - 0.0012848096189744)<1e-10 );
-% % find which ellec this belongs to
-% for be=1:32; kk=meas_icov_rm_elecs(imdl, be); disp(full([be, kk(channel,channel)])); end
-% % plot with this electrode removed
-% kk=meas_icov_rm_elecs(imdl, [2,3,7,9, 13, 14, 19, 20, 22, 24, 28, 29, 30]); ee = find(diag(kk)~=1);plot(1:4638,dd','k', 1:4638,dd(ee,:)','r')
-% notee=1:544; notee(ee)=[];
-% 
-% ddm= dd- mean(dd, 2);
-% vv= real(D.seq1.eit.data)';
-% vvdt= detrend(vv);
-% xmax= max(ddm(:));
-% xmin= min(ddm(:));
-% for i= 1:1024; plot(ddm(i,:)), ylim([xmin xmax]); title(i);pause(1);end
-% rsqaured= zeros(1024, 1);
-% for i= 1:1024; mdl = fitlm(1:size(ddm, 2),ddm(i,:)); rsqaured(i)=mdl.Rsquared.Adjusted;end
-% xax= 1: size(D.seq1.eit.elec_impedance, 2);
-% xax1= 1:size(dd, 2);
-% plot(xax1, ddm');
-% for i= 1:32; plot(xax, real(D.seq2.eit.elec_impedance(i,:))'); title(i); pause(); end
-% for i= 1:32; plot(xax, hilbert(real(D.seq2.eit.elec_impedance(i,:))')); title(i); pause(); end
-% 
-% d= abs(D.seq2.eit.elec_impedance');
-% dm= movmean(d, 5);
-% ddt= detrend(dm);
-% drng= range(ddt);
-% plot(xax, ddt);
-% bar(drng);
+function compare_pre_post_inj(seq, opt)
 
-% ======================================================================= %
-
-function cmap = confg_cmap()
-
-calc_colours('cmap_type', 'blue_black_red');
-colormap(calc_colours('colourmap'));
-cmap=colormap*2;
-cmap(cmap>1)=1;
-black= find(sum(cmap==[0,0,0],2)==3);
-
-white_grad= linspace(0,1,black-1)';
-cmap(black:end,1)=white_grad;
-cmap(black:end,2)=white_grad;
-
-white_grad= linspace(0,1,black)';
-white_grad=flipud(white_grad);
-cmap(1:black,2)=white_grad;
-cmap(1:black,3)=white_grad;
-
-end % end funcion
-
-% ======================================================================= %
-
-function show_pre_inj_img(seq)
+    ax1 = subplot(2,1,1);
+        show_pre_inj_img(seq, opt);
+    ax2 = subplot(2,1,2);
+        show_inj_imgs(seq, opt);
     
-    allignSyst = false;
-    allignDiast1 = false;
-    allignDiast2 = true;
+    for i = [ax1, ax2]
+        i.Position(1) = 0.05;
+        i.Position(3) = 0.9;
+    end % end for
+    
+    ax2.Position(2) = 0.35;
+    
+end % end function
+
+% ======================================================================= %
+
+function temp = adjust_for_poi(seq, start, stop)
+
+    shift = start - 1;
+    useLndmrk = ( (seq.eit.vals(1,:) >= start) + (seq.eit.vals(2,:) <= stop) ) == 2;
+    temp = seq;
+    temp.imgr.elem_data = seq.imgr.elem_data(:, start:stop);
+    temp.eit.peaks = seq.eit.peaks( useLndmrk ) - shift;
+    temp.eit.vals = seq.eit.vals( :, useLndmrk ) - shift ;
+
+end
+
+% ======================================================================= %
+
+function show_inj_imgs(seq, opt)
+    SECONDS = 15;
+    if nargin == 1
+        opt = struct;
+    end % end if
+    
+    opt.show = true;
+    
+    fs = round(seq.eit.fs);
+    % take 2 seconds after inj to be sure synchronization flush has been
+    % excluded.
+    start = seq.eit.inj + 2 * fs;
+    % take first 10 seconds after inj
+    if isfield(opt, 'frames')
+        start = start + frames - 1;
+    else
+        stop = start + SECONDS * fs - 1;
+    end % end if
+    
+    temp = adjust_for_poi(seq, start, stop);
+    get_mean_cc(temp, opt);
+    title(horzcat(seq.name, " Post-injection conductivity from individual and ensemble-averaged (bottom) Cardiac Cycles"));
+    
+end % end function
+
+% ======================================================================= %
+
+function show_pre_inj_img(seq, opt)
+    
     if seq.eit.apn < 1
         start = 1;
     else
-        start = seq.eit.apn;
+%         start = seq.eit.apn;
+        start = 1;
     end % end if
+    
     stop = seq.eit.inj;
-    use_lndmrk_idx = find( (seq.eit.peaks < stop) + (seq.eit.peaks >= start) == 2);
-    use_syst = seq.eit.peaks(use_lndmrk_idx);
-    use_diast = seq.eit.vals(:, use_lndmrk_idx);
-    nCycles = length(use_syst);
-    
-    % set up matrix to view each CC as one row in show_sliecs.
-    ccLen = diff(use_diast) + 1;
-    z_diast1 =  seq.imgr.elem_data(:, use_diast(2,:));
-    z_diast2 =  seq.imgr.elem_data(:, use_diast(1,:));
-    z_diast = (z_diast1 + z_diast2) ./ 2;
-    ls = use_syst - use_diast(1,:);
-    rs = use_diast(2,:) - use_syst;
-    if allignSyst
-        lpad = abs( ls - max(ls) );
-    elseif allignDiast1
-        lpad = zeros(nCycles, 1);
-    elseif allignDiast2
-        lpad = abs(ccLen - max(ccLen));
-    end % end if
-    longestCC = max(lpad + ccLen);
-    z_frames = zeros( size(seq.imgr.elem_data, 1), longestCC * nCycles);
-    meanCycle = z_frames(:, 1:longestCC);
-    nContributed = zeros(1,longestCC);
-    
-    % create full image set for each CC that is the difference between each
-    % frame and the mean diastole for that CC.
-    for i = 1:nCycles
-        startIdx = (i - 1) * longestCC + 1 + lpad(i);
-        endIdx = startIdx + ccLen(i) - 1;
-        imgs = seq.imgr.elem_data( :, use_diast(1,i): use_diast(2,i) ) - z_diast(:,i);
-        z_frames(:, startIdx:endIdx) = imgs;
-        mcIdxS = 1 + lpad(i);
-        mcIdxE = lpad(i) + ccLen(i);
-        meanCycle(:, mcIdxS: mcIdxE) = meanCycle(:, mcIdxS: mcIdxE ) + imgs;
-        nContributed( mcIdxS: mcIdxE) = nContributed( mcIdxS: mcIdxE) + 1;
-    end % end for
-    meanCycle = meanCycle  / nContributed;
-    z_frames = [z_frames, meanCycle];
-    puls_img = seq.imgr;
-    puls_img.elem_data = z_frames;
-    puls_img.calc_colours.clim = max(meanCycle, [], 'all');
-    puls_img.show_slices.img_cols = longestCC;
-    figure;
-    show_slices(puls_img);
-    title(horzcat(seq.name, " Conductivity from individual and ensemble-averaged (bottom) Cardiac Cycles"));
+    temp = adjust_for_poi(seq, start, stop);
+    opt.show = true;
+    get_mean_cc( temp, opt );
+    title(horzcat(seq.name, " Pre-injection conductivity from individual and ensemble-averaged (bottom) Cardiac Cycles"));
 
 end % end function
 
-function meanCycle = get_mean_cc(seq)
+% ======================================================================= %
 
-    allignSyst = false;
-    allignDiast1 = false;
-    allignDiast2 = true;
-    if seq.eit.apn < 1
-        start = 1;
-    else
-        start = seq.eit.apn;
+function meanCycle = get_mean_cc(seq, opt)
+    
+    if nargin == 1
+       opt.align = 1;
+       opt.av = 'all';
     end % end if
-    stop = seq.eit.inj;
-    use_lndmrk_idx = find( (seq.eit.peaks < stop) + (seq.eit.peaks >= start) == 2);
-    use_syst = seq.eit.peaks(use_lndmrk_idx);
-    use_diast = seq.eit.vals(:, use_lndmrk_idx);
+    
+    if isfield(opt, 'align')
+        align = opt.align;
+    else
+        align = 2;
+    end % end if
+    
+    if isfield(opt, 'av')
+        av = opt.av;
+    else
+        av = 'all';
+    end % end if
+    
+    if ~isfield(opt, 'show')
+        opt.show = false;
+    end % end if
+    
+    if isfield(opt, 'sidelen')
+        SIDELEN = opt.sidelen;
+    else
+        SIDELEN = inf;
+    end % end if
+    
+    alignDiast1 = false;
+    alignSyst = false;
+    alignDiast2 = false;
+    
+    if align == 1
+        alignDiast1 = true;
+    elseif align == 2
+        alignSyst = true;
+    elseif align == 3
+        alignDiast2 = true;
+    end
+
+    use_syst = seq.eit.peaks;
+    use_diast = seq.eit.vals;
     nCycles = length(use_syst);
     
     % set up matrix to view each CC as one row in show_sliecs.
@@ -354,52 +429,78 @@ function meanCycle = get_mean_cc(seq)
     z_diast1 =  seq.imgr.elem_data(:, use_diast(2,:));
     z_diast2 =  seq.imgr.elem_data(:, use_diast(1,:));
     z_diast = (z_diast1 + z_diast2) ./ 2;
-    ls = use_syst - use_diast(1,:);
-    rs = use_diast(2,:) - use_syst;
-    if allignSyst
-        lpad = abs( ls - max(ls) );
-    elseif allignDiast1
-        lpad = zeros(nCycles, 1);
-    elseif allignDiast2
-        lpad = abs(ccLen - max(ccLen));
-    end % end if
-    longestCC = max(lpad + ccLen);
-    z_frames = zeros( size(seq.imgr.elem_data, 1), longestCC * nCycles);
-    meanCycle = z_frames(:, 1:longestCC);
-    nContributed = zeros(1,longestCC);
+    ls = use_syst - use_diast(1,:); % how many frames from left side systole occurs
     
+    if alignSyst % show 5 frames before and 5 frames after systole
+        lpad = abs( ls - max(ls) );
+        systFrm = lpad(1) + ls(1);
+    elseif alignDiast1
+        lpad = zeros(nCycles, 1);
+    elseif alignDiast2
+        lpad = abs( ccLen - max(ccLen) );
+    end % end if
+    
+    longestCC = max(lpad + ccLen);
+    SIDELEN1 = max(1, systFrm - SIDELEN);
+    SIDELEN2 = min(systFrm + SIDELEN, longestCC);
+    showRng = SIDELEN1 : SIDELEN2;
+    
+    z_frames = zeros( size(seq.imgr.elem_data, 1), longestCC, nCycles);
+    meanCycle = z_frames(:, 1:longestCC);
+    nContributed = zeros(1, longestCC);
     % create full image set for each CC that is the difference between each
     % frame and the mean diastole for that CC.
     for i = 1:nCycles
-        startIdx = (i - 1) * longestCC + 1 + lpad(i);
+        startIdx = lpad(i) + 1;
         endIdx = startIdx + ccLen(i) - 1;
         imgs = seq.imgr.elem_data( :, use_diast(1,i): use_diast(2,i) ) - z_diast(:,i);
-        z_frames(:, startIdx:endIdx) = imgs;
-        mcIdxS = 1 + lpad(i);
-        mcIdxE = lpad(i) + ccLen(i);
-        meanCycle(:, mcIdxS: mcIdxE) = meanCycle(:, mcIdxS: mcIdxE ) + imgs;
-        nContributed( mcIdxS: mcIdxE) = nContributed( mcIdxS: mcIdxE) + 1;
+        z_frames(:, startIdx:endIdx , i) = imgs;
+        meanCycle(:, startIdx: endIdx) = meanCycle(:, startIdx: endIdx ) + imgs;
+        nContributed( startIdx: endIdx) = nContributed( startIdx: endIdx) + 1;
     end % end for
     
-    meanCycle = meanCycle ./ nContributed;
+    longestCC = length(showRng);
+    meanCycle = meanCycle(:, showRng) ./ nContributed(showRng);
+    z_frames = z_frames(:, showRng, :);
+    z_frames = reshape( z_frames, size(z_frames,1), longestCC * nCycles );
     meanCycle( isnan(meanCycle) ) = 0;
-
+    
+    if opt.show
+        if strcmp(opt.av, 'all')
+            z_frames = [z_frames, meanCycle];
+        elseif strcmp(opt.av, 'mean')
+            z_frames = meanCycle;
+        end % end if
+        puls_img = seq.imgr;
+        puls_img.elem_data = z_frames;
+        puls_img.calc_colours.clim = max(meanCycle, [], 'all');
+        puls_img.show_slices.img_cols = longestCC;
+        show_slices(puls_img);
+    end % end if
 end % end function
 
 % ======================================================================= %
 
-function compare_pre_inj_imgs(D, sel)
+function compare_post_vnt_imgs(D, sel, opt)
 
     fn = fieldnames(D);
+    
     if nargin == 1
         sel = 1:length(fn);
+    elseif isempty(sel)
+        sel = 1:length(fn);
     end % end if
+    
     MC = struct;
     maxCcLen = 0;
     CcLens = zeros(1, length(sel));
     for j = 1:length(sel)
         i = sel(j);
-        MC.(fn{i}) = get_mean_cc( D.(fn{i}) );
+        seq = D.(fn{i});
+        start = seq.eit.vnt;        
+        stop = size(seq.imgr.elem_data, 2);
+        temp = adjust_for_poi(seq, start, stop);
+        MC.(fn{i}) = get_mean_cc( temp, opt );
         CcLens(j) = size(MC.(fn{i}), 2);
         maxCcLen = max( maxCcLen, CcLens(j) );
     end % end for
@@ -425,30 +526,223 @@ function compare_pre_inj_imgs(D, sel)
     
 end % end function
 
-function plot_av_cc(data, syst, diast)
+% ======================================================================= %
+
+function [start,stop] = define_period(seq, period)
+    injOpt = [];
+    if length(period) > 1
+        injOpt = period(2:end);
+        period = period(1);
+    end % end if
+
+    switch period
+        case 0 % start to inj
+            start = 1;
+            stop = max(1, seq.eit.apn);
+        case 1 % start to inj
+            start = 1;
+            stop = seq.eit.inj;
+        case 2 % apn to inj
+            if seq.eit.apn <= 0
+                start = 1;
+            else
+                start = seq.eit.apn;
+            end % end if
+            stop = seq.eit.inj;
+        case 3 % inj + 10 seconds
+            if length(injOpt) == 1
+                startExtend = 0;
+                stopExtend = injOpt(1);
+            else
+                startExtend = injOpt(1);
+                stopExtend = injOpt(2);
+            end % end if
+            start = seq.eit.inj + round( seq.eit.fs * startExtend );
+            stop = seq.eit.inj + round( seq.eit.fs * stopExtend );
+
+        case 4 % inj to vnt
+            start = seq.eit.inj;
+            stop = seq.eit.vnt;
+        case 5 % vnt to end
+            start = seq.eit.vnt;
+            stop = size(seq.imgr.elem_data, 2);
+
+    end % end switch
+end % end function
+
+% ======================================================================= %
+
+function delta_heatmap(D, sel, opt)
+
+    fn = fieldnames(D);
     
-    if size(data, 1) > 1
-        data = mean( real(data), 1 );
+    if nargin == 1
+        sel = 1:length(fn);
+        opt = struct;
+        opt.period = ones(length(fn),1);
+    elseif isempty(sel)
+        sel = 1:length(fn);
     end % end if
     
-    ls = syst - diast(1,:);
-    rs = diast(2,:) - syst;
-    lpad = abs( ls - max(ls) );
-    rpad = abs( rs - max(rs) );
-    tlt_len = max(ls) + max(rs) + 1;
-    cc_data = zeros( length(syst), (tlt_len) );
+    opt.sidelen = inf;
+    heatmapFrames = zeros( size(D.seq1.imgr.elem_data,1), length(sel) );
     
-    hold on;
-    for i = 1:length(syst)
-        dd = data( diast(1,i): diast(2,i) );
-        dd = dd - min(dd);
-        cc_data(i, :) = [zeros(1,lpad(i)), dd, zeros(1, rpad(i))];
+    for j = 1:length(sel)
+        i = sel(j);
+        seq = D.(fn{i});
+        [start,stop] = define_period(seq, opt.period(j));
+        temp = adjust_for_poi(seq, start, stop);
+        meanCC = get_mean_cc( temp, opt );
+        heatmapFrames(:,j) = max(meanCC, [], 2) - min(meanCC, [], 2);
     end % end for
-
-    plot(cc_data', 'Color', [0 0 0] + 0.75);
-    plot(mean(cc_data, 1), 'k', 'linewidth', 4);
+    
+    clim = max(heatmapFrames, [], 'all'); % adjust clim
+    temp = D.(fn{1}).imgr;
+    temp.calc_colours.clim = clim;
+    temp.elem_data = heatmapFrames;
+    temp.show_slices.img_cols = 3;
+    img = show_slices(temp);
+    assert(min(img(img~=1)) >= 128, "Min error");
+    img = img - 127;
+    img(img < 0) = 0;
+    image(img*2);
 
 end % end function
 
 % ======================================================================= %
+
+function compare_pre_inj_imgs(D, sel, opt)
+
+    fn = fieldnames(D);
+    period = opt.period;
+    if nargin == 1
+        sel = 1:length(fn);
+    elseif isempty(sel)
+        sel = 1:length(fn);
+    end % end if
+    
+    MC = struct;
+    maxCcLen = 0;
+    CcLens = zeros(1, length(sel));
+    for j = 1:length(sel)
+        i = sel(j);
+        seq = D.(fn{i});
+        [start,stop] = define_period(seq, period(j));        
+        temp = adjust_for_poi(seq, start, stop);
+        MC.(fn{i}) = get_mean_cc( temp, opt );
+        CcLens(j) = size(MC.(fn{i}), 2);
+        maxCcLen = max( maxCcLen, CcLens(j) );
+    end % end for
+    
+    fn = fieldnames(MC);
+    nElems = size(MC.(fn{j}), 1);
+    addFrames = abs(CcLens - maxCcLen);
+    outImg = D.(fn{j}).imgr;
+    outImg.elem_data = [];
+    outImg.show_slices.img_cols = maxCcLen;
+    
+    for i = 1:length(sel)
+        if addFrames(i) > 0
+            paddedAvCc = [ zeros(nElems, addFrames(i)), MC.(fn{i}) ];
+        else
+            paddedAvCc = MC.(fn{i});
+        end % end if
+        outImg.elem_data = [outImg.elem_data, paddedAvCc];
+    end % end for
+    
+    outImg.calc_colours.clim = max(outImg.elem_data, [], 'all');
+    show_slices(outImg);
+    
+end % end function
+
+% ======================================================================= %
+
+function cmap = confg_cmap()
+
+    calc_colours('cmap_type', 'blue_black_red');
+    colormap(calc_colours('colourmap'));
+    cmap=colormap*2;
+    cmap(cmap>1)=1;
+    black= find(sum(cmap==[0,0,0],2)==3);
+
+    white_grad= linspace(0,1,black-1)';
+    cmap(black:end,1)=white_grad;
+    cmap(black:end,2)=white_grad;
+
+    white_grad= linspace(0,1,black)';
+    white_grad=flipud(white_grad);
+    cmap(1:black,2)=white_grad;
+    cmap(1:black,3)=white_grad;
+
+end % end funcion
+
+% ======================================================================= %
+
+function bigFig()
+    figure('units','normalized','outerposition',[0 0 1 1]);
+end % end function
+
+% ======================================================================= %
+
+function show_inj(seq, ts, te)
+    [start,stop] = define_period(seq, [3, ts, te]);
+    temp = seq.imgr;
+    temp.elem_data = seq.imgr.elem_data(:, start:stop);
+    temp.calc_colours.clim = max(temp.elem_data, [] ,'all');
+    temp.show_slices.img_cols = round(seq.eit.fs);
+    show_slices(temp);
+end % end function
+
+% ======================================================================= %
+
+function show_inj_fig(D, ts, te, nFrames)
+    
+    fn = fieldnames(D);
+    switch D.seq1.pig
+        case "8.2"; ts = ts(1:3); te = te(1:3); fn = {'seq1','seq3','seq4'};
+    end
+    
+    assert( length(fn) == length(ts), 'There must be one time slice pair per sequence!');
+    assert( length(fn) == length(te), 'There must be one time slice pair per sequence!');
+    temp = D.seq1.imgr;
+    injFrames = zeros( size(temp.elem_data, 1), nFrames, length(fn) );
+
+    for i=1:length(fn)
+        seq = D.(fn{i});
+        [start,stop] = define_period(seq, [3, ts(i), te(i)]);
+        injFrameIdx = round( linspace(start, stop, nFrames+1) );
+        injFrameIdx = injFrameIdx(1:nFrames); % each frame is the start of a second this way.
+        injFrames(:,:,i) = seq.imgr.elem_data(:, injFrameIdx);
+    end % end for
+
+    temp.elem_data = reshape(injFrames, size(temp.elem_data, 1), nFrames * i);
+    temp.show_slices.img_cols = nFrames;
+    temp.calc_colours.clim = max(temp.elem_data, [] ,'all');
+    show_slices(temp);
+
+    colorbar();
+    title( sprintf('Subject %s - Reconstructed images from %i - %i seconds after saline bolus injection', char(D.(fn{i}).pig), ts(i), te(i)-1) );
+    ax = gca;
+    ax.Visible = 'on';
+    % Y labels
+    seqYTicksRef = linspace(ax.YLim(1), ax.YLim(2), i*2+1);
+    ax.YTick = seqYTicksRef(2:2:length(seqYTicksRef));
+    for j = 1:length(ax.YTick)
+        ax.YTickLabel{j} = sprintf('Sequence %i', j);
+    end % end for
+    % X labels
+    seqXTicksRef = linspace(ax.XLim(1), ax.XLim(2), nFrames*2+1);
+    ax.XTick = seqXTicksRef(2:2:length(seqXTicksRef));
+    for j = 1:length(ax.XTick)
+        ax.XTickLabel{j} = sprintf('%is', ts(1)+j-1);
+    end % end for
+    ax.TickLength = [0,0];
+    ax.FontSize = 15;
+
+end % end function
+
+% ======================================================================= %
+
+
+
 

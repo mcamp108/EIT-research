@@ -33,21 +33,23 @@ switch pig
         name2= '10-2_noscalp';
         elec_z_plane= 116; % average of reference dot z planes from elec_loc_refs
     
-    case "11.2"
-        fmdl_file= 'fmdl_11_2.mat';
-        imdl_file= 'imdl_11_2.mat';
-        volFilename1= '11-2_with_scalp_msh';
-        name= '11-2_scalp';
-        volFilename2= '11-2_no_scalp_msh';
-        name2= '11-2_noscalp';
+    case "11.2"  % use 9.2 for now.
+        fmdl_file= 'fmdl_9_2.mat';
+        imdl_file= 'imdl_9_2.mat';
+        volFilename1= '9-2_scalp_msh';
+        name= '9-2_scalp';
+        volFilename2= '9-2_noscalp_msh';
+        name2= '9-2_noscalp';
+        elec_z_plane= 93; % average of reference dot z planes from elec_loc_refs
     
-    case "12.2"
-        fmdl_file= 'fmdl_12_2.mat';
-        imdl_file= 'imdl_12_2.mat';
-        volFilename1= '12-2_with_scalp_msh';
-        name= '12-2_scalp';
-        volFilename2= '12-2_no_scalp_msh';
-        name2= '12-2_noscalp';
+    case "12.2" % use 9.2 for now.
+        fmdl_file= 'fmdl_9_2.mat';
+        imdl_file= 'imdl_9_2.mat';
+        volFilename1= '9-2_scalp_msh';
+        name= '9-2_scalp';
+        volFilename2= '9-2_noscalp_msh';
+        name2= '9-2_noscalp';
+        elec_z_plane= 93; % average of reference dot z planes from elec_loc_refs
 end % end switch
 
 if exist(fmdl_file, 'file') == 2

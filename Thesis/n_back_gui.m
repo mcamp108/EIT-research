@@ -193,7 +193,7 @@ else
     STEM_controller(handles.Markbot_mk_1, "start capture");
     tic;
     for i= 1:handles.deck_length
-        handles.mainscreen.FontSize= 400;
+        handles.mainscreen.FontSize= 200;
         if Stop== false
             handles.stimulus_num= i;
             guidata(hObject, handles);

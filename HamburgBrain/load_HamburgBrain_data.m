@@ -1,4 +1,4 @@
-function D= load_HamburgBrain_data(pig)
+function D= load_HamburgBrain_data(pig, ref)
 % -------------------------------------------------------------------------
 % DESCRIPTION:
 %
@@ -144,26 +144,38 @@ end % end if
 D = hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj, e_vnt, p_apn, p_inj, p_vnt, pig);
 
 % find worst 6 electrodes
-rm_elecs= worst_n_elecs(D, imdl, 6);
-
+[rmElecs, scores] = worst_n_elecs(D, imdl, 6);
+rmElecs = rmElecs(scores >= 0.25);
+fprintf('electrodes removed: %s \n', num2str(rmElecs'));
 % remove measurements from noisy electrodes by adjusting imdl
 % reconstruction matrix
-imdl_comp= comp_RM_bad_elec(imdl, rm_elecs);
+imdl_comp= comp_RM_bad_elec(imdl, rmElecs);
 
 % filter eit data
 fn= fieldnames(D);
-lowpass_cutoff= 4;
+lowpass_cutoff = 4;
 clim= -inf;
 
 for i=1:length(fn)
+%     dd = D.(fn{i}).eit.data;
+%     absZ = sqrt( real(dd).^2 + imag(dd).^2 );
+%     D.(fn{i}).eit.fdata = lowpass_iir(absZ', lowpass_cutoff, D.(fn{i}).eit.fs)';
     D.(fn{i}).eit.fdata = lowpass_iir(D.(fn{i}).eit.data', lowpass_cutoff, D.(fn{i}).eit.fs)';
 end % end for
 
-glbl_ref = get_glbl_ref(D, pig);
+if strcmp(ref, 'baseline')
+    use_ref = get_glbl_ref(D, pig);
+elseif ~strcmp(ref, 'self')
+    disp('unrecognized reference command. Using baseline as reference.');
+    use_ref = get_glbl_ref(D, pig);
+end % end if
 
 for i=1:length(fn)
     % calculate reconstructed images
-    D.(fn{i}).imgr = get_imgr( D.(fn{i}).eit.fdata, glbl_ref, imdl_comp );
+    if strcmp(ref, 'self')
+        use_ref = mean( D.(fn{i}).eit.fdata( :, max(D.(fn{i}).eit.apn, 1) : D.(fn{i}).eit.inj ), 2 );
+    end % end if
+    D.(fn{i}).imgr = get_imgr( D.(fn{i}).eit.fdata, use_ref, imdl_comp );
     clim = max( clim, max( D.(fn{i}).imgr.elem_data(:) ) );
 end % end for
 
@@ -179,33 +191,33 @@ end % end function
 function D= hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj, e_vnt, p_apn, p_inj, p_vnt, pig)
 
     % Field names
-    fn= {'seq1', 'seq2', 'seq3', 'seq4', 'seq5', 'seq6'};
-    n_files= length(eit_files);
-    for i= 1:n_files
+    fn = {'seq1', 'seq2', 'seq3', 'seq4', 'seq5', 'seq6'};
+    n_files = length(eit_files);
+    for i = 1:n_files
         % load data
-        [vv,aux]= eidors_readdata(eit_files{i});
-        eitfs= median(1e6/median(diff(aux.t_rel))); % framerate
+        [vv,aux] = eidors_readdata(eit_files{i});
+        eitfs = median(1e6/median(diff(aux.t_rel))); % framerate
 
         % assign struct fields
         D.(fn{i}).eit.data= vv;
         impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
         D.(fn{i}).eit.elec_impedance= impedanceFactor* aux.elec_impedance;
-        D.(fn{i}).name= char(remove_underscores(eit_files{i}));
-        D.(fn{i}).pig= pig;
-        D.(fn{i}).eit.fs= eitfs;
-        D.(fn{i}).eit.sync1= sync1(i);
-        D.(fn{i}).eit.sync2= sync2(i);
-        D.(fn{i}).eit.apn= D.(fn{i}).eit.sync1 + round(e_apn(i)* eitfs);
-        D.(fn{i}).eit.inj= D.(fn{i}).eit.sync1 + round(e_inj(i)* eitfs);
-        D.(fn{i}).eit.vnt= D.(fn{i}).eit.sync1 + round(e_vnt(i)* eitfs);
-        D.(fn{i}).perf= load( perf_files{i} );
-        D.(fn{i}).perf.apn= p_apn(i);
-        D.(fn{i}).perf.inj= p_inj(i);
-        D.(fn{i}).perf.vnt= p_vnt(i);
+        D.(fn{i}).name = horzcat( num2str(i), '-', char(remove_underscores(eit_files{i})) );
+        D.(fn{i}).pig = pig;
+        D.(fn{i}).eit.fs = eitfs;
+        D.(fn{i}).eit.sync1 = sync1(i);
+        D.(fn{i}).eit.sync2 = sync2(i);
+        D.(fn{i}).eit.apn = D.(fn{i}).eit.sync1 + round(e_apn(i)* eitfs);
+        D.(fn{i}).eit.inj = D.(fn{i}).eit.sync1 + round(e_inj(i)* eitfs);
+        D.(fn{i}).eit.vnt = D.(fn{i}).eit.sync1 + round(e_vnt(i)* eitfs);
+        D.(fn{i}).perf = load( perf_files{i} );
+        D.(fn{i}).perf.apn = p_apn(i);
+        D.(fn{i}).perf.inj = p_inj(i);
+        D.(fn{i}).perf.vnt = p_vnt(i);
 
         % allign eit and perfusion sequences, trim syncronization spikes
-        D.(fn{i})= allign_eit_and_perf(D.(fn{i}));
-        D.(fn{i})= find_perf_landmarks(D.(fn{i}));
+        D.(fn{i}) = allign_eit_and_perf(D.(fn{i}));
+        D.(fn{i}) = find_perf_landmarks(D.(fn{i}));
     end % end for
 
 end % end function
@@ -216,7 +228,16 @@ function seq= allign_eit_and_perf(seq)
     % Find optimal alignment between eit and perfusion data
     % Annotate peaks and troughs of perfusion signal and transfer annotations
     % to EIT data
-    
+    trim = 0;
+    switch seq.name
+        case '4-EIT nach Perfusionsminderun 2 9.2'; trim = 15;
+        case '3-EIT nach Embolisation 1 9.2'; trim = 6;
+        case '2-EIT 9.2 Nativ 2'; trim = 5;
+        case '6-EIT nach 6h Perfusionsminderung 10.02 ZVK Sequ6'; trim = 6;
+        case '6-EIT 4h nach Stroke ZVk Sequ6'; trim = 2;
+        case '2-EIT 12.2 NATIV ZVK Sequ 2'; trim = 5;
+%         case
+    end % end switch
     estart = seq.eit.sync1 + seq.eit.fs; % desired starting frame is 1 s after first sync
     eend = seq.eit.sync2 - seq.eit.fs; % desired end frame is 1 s before last sync
     
@@ -250,6 +271,8 @@ function seq= allign_eit_and_perf(seq)
         pcut= pstart+ abs(round( shift*  seq.perf.tickrate));
     end % end if
     eend = round(eend);
+    ecut = round( ecut + trim * seq.eit.fs );
+    pcut = round( pcut + trim * seq.perf.tickrate);
 
     seq.eit.data=   seq.eit.data(:, ecut+1: eend);
 
@@ -259,7 +282,7 @@ function seq= allign_eit_and_perf(seq)
     seq.eit.inj =   seq.eit.inj- ecut;
     seq.eit.vnt =   seq.eit.vnt- ecut;
 
-    seq.perf.data = movmean( seq.perf.data(:, pcut + 1: pend + pcut), 5);
+    seq.perf.data = movmean( seq.perf.data(:, pcut + 1: pend + pcut), 15);
     seq.perf.apn =  seq.perf.apn - pcut;
     seq.perf.inj =  seq.perf.inj - pcut;
     seq.perf.vnt =  seq.perf.vnt - pcut;
@@ -286,19 +309,19 @@ function [w_elecs, scores] = worst_n_elecs(D, imdl, n)
     elec_scores= zeros(32, n_files);
 
     for i= 1:n_files
-        elec_scores(:,i)= find_bad_elecs(D.(fn{i}).eit.data, imdl);
+        elec_scores(:,i)= find_bad_elecs( D.(fn{i}).eit.data, imdl );
     end % end for
 
-    elec_scores= sum(elec_scores,2);
-    [hi_lo_scores, elecs]= sort(elec_scores,'descend');
-    w_elecs= elecs(hi_lo_scores > 0);
+    elec_scores= mean(elec_scores, 2);
+    [hi_lo_scores, elecs]= sort(elec_scores, 'descend');
+    w_elecs = elecs(hi_lo_scores > 0);
 
     if length(w_elecs) > n
-        w_elecs= w_elecs(1:n);
+        w_elecs = w_elecs(1:n);
     end % end if
 
     if nargout == 2
-        scores = hi_lo_scores;
+        scores = hi_lo_scores(1:n);
     end % end if
 
 end % end function
@@ -308,14 +331,20 @@ end % end function
 function seq= find_perf_landmarks(seq)
     
     FS = seq.perf.tickrate;
-    FS10 = FS/10;
     
     % Find peaks and valleys in perfusion Signal
     perf_data = seq.perf.data;
     perf_data = perf_data- mean(perf_data); % zero data
+    if seq.pig == "11.2"
+%         perf_data = movmean(perf_data, 10);
+    end % end if
     
-    v_search = peakfinder(perf_data, 8, [], -1);
-
+    if strcmp(seq.name, '4-EIT nach Perfusionsminderun 2 9.2')
+        v_search = peakfinder(perf_data, 5.5, [], -1);
+    else
+        v_search = peakfinder(perf_data, 8, [], -1);
+    end % end if
+    
     if v_search(1) == 1
         v_search = v_search(2:end);
     end % end if
@@ -327,8 +356,21 @@ function seq= find_perf_landmarks(seq)
     
     v_idx = zeros(1, length(v_search));
     v_idx(1) = v_search(1);
+    
+    if strcmp(seq.name, '4-EIT nach Perfusionsminderun 2 9.2')
+        takeIdx = v_search >= 130;
+        v_search = v_search(takeIdx == 1);
+        v_search = v_search(diff(v_search) > 30);
+    end % end if
+    
     j = 1;
     alpha = 5;
+    if seq.pig == "9.2"
+        BETA = 10;
+        THETA = 60;
+    else
+        BETA = 20;
+    end % end if
     
     % Avoid adding higher false valleys
     for i = 2: length(v_search)
@@ -339,7 +381,7 @@ function seq= find_perf_landmarks(seq)
         % too large and the timing is within acceptable bounds of a cardiac
         % cycle, accept it.
 
-        elseif ( j > 3 ) && ( abs( perf_data(v_idx(j)) - perf_data(v_search(i)) ) < 20 ) && ( v_search(i) - v_idx(j) >= min(diff(v_idx(v_idx~=0))) - alpha )
+        elseif ( j > 3 ) && ( abs( perf_data(v_idx(j)) - perf_data(v_search(i)) ) < BETA ) && ( v_search(i) - v_idx(j) >= min(diff(v_idx(v_idx~=0))) - alpha )
             j = j + 1;
             v_idx(j) = v_search(i);
         end % end if
@@ -348,9 +390,9 @@ function seq= find_perf_landmarks(seq)
     v_idx = v_idx(v_idx ~= 0);
     
     % Remove valleys within the synchronization flush
-    invalids = [seq.perf.apn - FS10, seq.perf.apn + FS + FS10;...
-                seq.perf.inj - FS10, seq.perf.inj + FS + FS10;...
-                seq.perf.vnt - FS10, seq.perf.vnt + FS + FS10];
+    invalids = [seq.perf.apn - FS, seq.perf.apn + FS;...
+                seq.perf.inj - FS, seq.perf.inj + FS;...
+                seq.perf.vnt - FS, seq.perf.vnt + FS];
     for i = 1:size(invalids, 1)
         rm = find( (v_idx > invalids(i,1)) + (v_idx < invalids(i,2)) == 2 );
         if ~isempty(rm)
@@ -376,8 +418,19 @@ function seq= find_perf_landmarks(seq)
     for i = 1:length(v_idx) - 1
         % exclude peaks that would be within perfusion flushes
         if valdif (i) < maxdif
-            dd = perf_data(v_idx(i): v_idx(i+1));
-            idx = find(dd == max(dd), 1) + v_idx(i) - 1;
+            if strcmp(seq.name, '4-EIT nach Perfusionsminderun 2 9.2')
+                dd = perf_data(v_idx(i)+ THETA: v_idx(i+1) );
+                idx = find(dd == max(dd), 1) + v_idx(i)+THETA - 1;
+                if length(idx) > 1
+                    idx = idx(2);
+                elseif isempty(idx)
+                    dd = perf_data(v_idx(i): v_idx(i+1) );
+                    idx = find(dd == max(dd), 1) + v_idx(i) - 1;
+                end % end if
+            else
+                dd = perf_data(v_idx(i): v_idx(i+1));
+                idx = find(dd == max(dd), 1) + v_idx(i) - 1;
+            end % end if
             seq.perf.vals(:,i) = [v_idx(i), v_idx(i+1)];
             seq.perf.peaks(i) = idx;
         end
@@ -396,7 +449,8 @@ function seq= find_perf_landmarks(seq)
     if seq.eit.vals(1) < 1
         seq.eit.vals(1)= 1;
     end % end if
-
+% % testing
+% figure; plot(perf_data); hold on; plot(seq.perf.peaks, perf_data(seq.perf.peaks), 'o');
 end % end function
 
 % ======================================================================= %
@@ -408,13 +462,13 @@ function glbl_ref = get_glbl_ref(D, pig)
         case '8.2'
             glbl_ref = mean( D.seq1.eit.fdata( :, D.seq1.eit.apn: D.seq1.eit.inj ), 2 );
         case '9.2'
-%             glbl_ref = mean( D.seq1.eit.fdata( :, D.seq1.eit.apn: D.seq1.eit.inj ), 2 );
+            glbl_ref = mean( D.seq2.eit.fdata( :, D.seq1.eit.apn: D.seq1.eit.inj ), 2 );
         case '10.2'
             glbl_ref = mean( D.seq1.eit.fdata( :, D.seq1.eit.apn: D.seq1.eit.inj ), 2 );
         case '11.2'
-%             glbl_ref = mean( D.seq1.eit.fdata( :, D.seq1.eit.apn: D.seq1.eit.inj ), 2 );
+            glbl_ref = mean( D.seq2.eit.fdata( :, D.seq2.eit.apn: D.seq2.eit.inj ), 2 );
         case '12.2'
-%             glbl_ref = mean( D.seq1.eit.fdata( :, D.seq1.eit.apn: D.seq1.eit.inj ), 2 );
+            glbl_ref = mean( D.seq1.eit.fdata( :, D.seq2.eit.apn: D.seq1.eit.inj ), 2 );
     end % end switch
         
 end % end function

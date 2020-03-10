@@ -13,34 +13,47 @@ figure('units','normalized','outerposition',[0 0 1 1]);
 if nargin == 1 || ~isfield(opt, 'pv')
     opt.pv = 3;
 end % end if
-plot_pv(seq, opt.pv);
-plot_perf_data(seq);
-firstplot= get(gca);
-plot_sum_data(seq);
-xlim(firstplot.XLim);
 
+subplot(3, 1, 1);
+    plot_perf_data(seq);
+    plot_pv(seq, opt.pv);
+
+firstplot= get(gca);
+
+subplot(3, 1, 2);
+%     hold on
+    plot_sum_Z(seq);
+    xlim(firstplot.XLim);
+subplot(3, 1, 3);
+%     hold on
+    plot_sum_V(seq);
+    xlim(firstplot.XLim);
+    
 end % end function
 
+
+
 function plot_perf_data(seq)
+
     fs= seq.perf.tickrate;
     x= seq.perf.data;
     xax = (1: length(x))/fs;
-    subplot(2,1,1);
-    hold on
     plot(xax, x);
     xlabel("Time (s)");
     ylabel("Arterial Pressure (mmHg)");
     title("Arterial Blood Pressure: "+ seq.name);
-    hold off
+    
 end % end function
 
-function plot_sum_data(seq)
+
+
+function plot_sum_Z(seq)
+
     fs= seq.eit.fs;
     dat= sum(seq.imgr.elem_data, 1);
     xax = (1: size(dat, 2))/fs;
     tsMin= min(dat);
     tsMax= max(dat);
-    subplot(2,1,2);
     plot(xax, dat);
     if isfield(seq.eit, 'apn')
         apn= seq.eit.apn/ fs;
@@ -50,9 +63,9 @@ function plot_sum_data(seq)
         plot([apn, apn], [tsMin, tsMax]); 
         plot([inj, inj], [tsMin, tsMax]); 
         plot([vnt, vnt], [tsMin, tsMax]); 
-        legend('Total Boundary Voltage', 'Start of Apnoea' , 'Bolus Injection', 'End of Apnoea');
+        legend('Global Signal (Delta Z)', 'Start of Apnoea' , 'Bolus Injection', 'End of Apnoea');
     else
-        legend('Total Boundary Voltage');
+        legend('Global Signal (Delta Z)');
     end % end if
     
     xlabel("Time (s)");
@@ -62,9 +75,11 @@ function plot_sum_data(seq)
     
 end % end function
 
+
+
 function plot_pv(seq, pOpt)
-subplot(2, 1, 1)
-hold on
+
+hold on;
 if pOpt== 1 || 3
     for i= 1:length(seq.perf.peaks)
         loc= seq.perf.peaks(i);
@@ -83,6 +98,36 @@ end % end if
 if pOpt< 1 || pOpt> 3
     disp("Uncrecognized pv option");
 end % end if
-hold off
+hold off;
+
+end % end function
+
+
+
+function plot_sum_V(seq)
+   
+    fs= seq.eit.fs;
+    dat= sum(real(seq.eit.fdata), 1);
+    xax = (1: size(dat, 2))/fs;
+    tsMin= min(dat);
+    tsMax= max(dat);
+    plot(xax, dat);
+    if isfield(seq.eit, 'apn')
+        apn= seq.eit.apn/ fs;
+        inj= seq.eit.inj/ fs;
+        vnt= seq.eit.vnt/ fs;
+        hold on;
+        plot([apn, apn], [tsMin, tsMax]); 
+        plot([inj, inj], [tsMin, tsMax]); 
+        plot([vnt, vnt], [tsMin, tsMax]); 
+        legend('Total Boundary Voltage', 'Start of Apnoea' , 'Bolus Injection', 'End of Apnoea');
+    else
+        legend('Total Boundary Voltage');
+    end % end if
+    
+    xlabel("Time (s)");
+    ylabel("Voltage (mV)");
+    title("Total Boundary Voltage: "+ seq.name);
+    hold off;
 
 end % end function
