@@ -56,6 +56,7 @@ function D= load_HamburgBrain_data(pig, ref)
 
 maxsz= 0.2; maxh= 2; imgsize= [64 64];
 [~, imdl]= mk_pighead_fmdl(maxsz, maxh, imgsize, pig);
+ELECSCORETHRESH = 0.25;
 
 % 8.2
 if pig== "8.2"
@@ -141,15 +142,22 @@ elseif pig== "12.2"
 
 end % end if
 
-D = hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj, e_vnt, p_apn, p_inj, p_vnt, pig);
+D = hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj, e_vnt, p_apn, p_inj, p_vnt, pig, imdl);
 
 % find worst 6 electrodes
-[rmElecs, scores] = worst_n_elecs(D, imdl, 6);
-rmElecs = rmElecs(scores >= 0.25);
-fprintf('electrodes removed: %s \n', num2str(rmElecs'));
+[rmElecs, scores, mmScores, ~] = worst_n_elecs(D, imdl, 6);
+rmMeas = mmScores >= ELECSCORETHRESH;
+fprintf('measurements removed: %s \n', num2str(sum(rmMeas)));
+imdl_comp= comp_RM_bad_elec(imdl, mmScores, 'meas');
+
+% [rmElecs, scores, mmScores, ~] = worst_n_elecs(D, imdl, 6);
+% rmElecs = rmElecs(scores >= ELECSCORETHRESH);
+% fprintf('electrodes removed: %s \n', num2str(rmElecs'));
+% imdl_comp= comp_RM_bad_elec(imdl, rmElecs);
+
 % remove measurements from noisy electrodes by adjusting imdl
 % reconstruction matrix
-imdl_comp= comp_RM_bad_elec(imdl, rmElecs);
+
 
 % filter eit data
 fn= fieldnames(D);
@@ -181,14 +189,14 @@ end % end for
 
 % Set colour limits
 for i=1:length(fn)
-    D.(fn{i}).imgr.calc_colours.lim = clim;
+    D.(fn{i}).imgr.calc_colours.clim = clim;
 end % end for
         
 end % end function
 
 % ======================================================================= %
 
-function D= hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj, e_vnt, p_apn, p_inj, p_vnt, pig)
+function D= hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj, e_vnt, p_apn, p_inj, p_vnt, pig, imdl)
 
     % Field names
     fn = {'seq1', 'seq2', 'seq3', 'seq4', 'seq5', 'seq6'};
@@ -218,6 +226,11 @@ function D= hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj,
         % allign eit and perfusion sequences, trim syncronization spikes
         D.(fn{i}) = allign_eit_and_perf(D.(fn{i}));
         D.(fn{i}) = find_perf_landmarks(D.(fn{i}));
+        
+%         inspect_eit_elec_and_data({D.(fn{i}).eit.data, aux}, imdl, 0.25);
+%         cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+%         sgtitle(horzcat(char(pig), ' - ', D.(fn{i}).name));
+%         saveas( gcf, sprintf('%s data quality.svg', fn{i}) );
     end % end for
 
 end % end function
@@ -301,30 +314,30 @@ end % end function
 
 % ======================================================================= %
 
-function [w_elecs, scores] = worst_n_elecs(D, imdl, n)
-
-    % find worst n electrodes across all sequences
-    fn= fieldnames(D);
-    n_files=length(fn);
-    elec_scores= zeros(32, n_files);
-
-    for i= 1:n_files
-        elec_scores(:,i)= find_bad_elecs( D.(fn{i}).eit.data, imdl );
-    end % end for
-
-    elec_scores= mean(elec_scores, 2);
-    [hi_lo_scores, elecs]= sort(elec_scores, 'descend');
-    w_elecs = elecs(hi_lo_scores > 0);
-
-    if length(w_elecs) > n
-        w_elecs = w_elecs(1:n);
-    end % end if
-
-    if nargout == 2
-        scores = hi_lo_scores(1:n);
-    end % end if
-
-end % end function
+% function [w_elecs, scores] = worst_n_elecs(D, imdl, n)
+% 
+%     % find worst n electrodes across all sequences
+%     fn= fieldnames(D);
+%     n_files=length(fn);
+%     elec_scores= zeros(32, n_files);
+% 
+%     for i= 1:n_files
+%         elec_scores(:,i)= find_bad_elecs( D.(fn{i}).eit.data, imdl );
+%     end % end for
+% 
+%     elec_scores= mean(elec_scores, 2);
+%     [hi_lo_scores, elecs]= sort(elec_scores, 'descend');
+%     w_elecs = elecs(hi_lo_scores > 0);
+% 
+%     if length(w_elecs) > n
+%         w_elecs = w_elecs(1:n);
+%     end % end if
+% 
+%     if nargout == 2
+%         scores = hi_lo_scores(1:n);
+%     end % end if
+% 
+% end % end function
 
 % ======================================================================= %
 
@@ -335,9 +348,6 @@ function seq= find_perf_landmarks(seq)
     % Find peaks and valleys in perfusion Signal
     perf_data = seq.perf.data;
     perf_data = perf_data- mean(perf_data); % zero data
-    if seq.pig == "11.2"
-%         perf_data = movmean(perf_data, 10);
-    end % end if
     
     if strcmp(seq.name, '4-EIT nach Perfusionsminderun 2 9.2')
         v_search = peakfinder(perf_data, 5.5, [], -1);

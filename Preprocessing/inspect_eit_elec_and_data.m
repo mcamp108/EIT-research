@@ -67,18 +67,20 @@ n_samples= size(data, 2);
 data_samp= round(1:(n_samples/100):n_samples);
 elec_impedance= abs(elec_impedance);
 
-[wElecs, scores] = worst_n_elecs(data, imdl, 32);
+[wElecs, scores, mmScores, ~] = worst_n_elecs(data, imdl, 32);
+% add plot bad measurements
+badMeas = mmScores > thresh;
 badElecIdx = scores > thresh;
 if length(badElecIdx) >= 1
     badElecs = wElecs(badElecIdx);
-    kk = meas_icov_rm_elecs(imdl, badElecs);
-    ee = find(diag(kk)~=1);
+%     kk = meas_icov_rm_elecs(imdl, badElecs);
+%     ee = find(diag(kk)~=1);
 end % end if
-
+ee = badMeas;
 ei = mean(elec_impedance, 2);
 
 % total boundary voltage
-subplot(4,2,1:4);
+subplot(4,2,1:2);
     vv= detrend(real(data));
     xax= (1:size(vv, 2))/ fs;
     plot(xax, sum(vv(msel,:), 1));
@@ -87,7 +89,7 @@ subplot(4,2,1:4);
     title('Total Boundary Voltage (Raw)');
 
 % U shapes 
-subplot(426);
+subplot(424);
     vk = 1e3 * mean(vv, 2);
     plot(vk,'k');    % all meas
     hold on;
@@ -101,13 +103,12 @@ subplot(426);
     title 'U shapes';
 
 % IQ plot
-subplot(425);
+subplot(4,2,[3,5,7]);
     % all meas
     plot(1e3 * data(:, data_samp), 'k+');
     hold on;
     % used meas
     plot(1e3 * data(msel, data_samp), 'b+');
-    plot(1e3 * data(badElecs), 'r+');
     ee = mm(ee);
     plot(1e3 * data(ee,data_samp), 'r+');
     hold off; 
@@ -116,7 +117,7 @@ subplot(425);
     title 'IQ plot';
 
 % median contact impedance
-subplot(428);
+subplot(426);
     b= bar(ei,'FaceColor','flat');
     b.CData(:,:)= repmat([0 0 1], 32, 1);
     be= badElecs;
@@ -132,7 +133,7 @@ subplot(428);
     title 'Median Elec Z';
 
 % Fourier Series
-subplot(427);
+subplot(428);
     ll = size(data, 2);    
     ft = fft(detrend(data.').', [], 2);
     fax = linspace(0, fs, ll+1); fax(end)=[];

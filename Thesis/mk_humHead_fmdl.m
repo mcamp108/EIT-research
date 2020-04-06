@@ -37,19 +37,19 @@ else
     [mdl1, mat_indices]= gmsh_mk_fwd_model(volFilename1, centres, name1, stim_pattern, z_contact);
     ctr = mean(mdl1.nodes(mdl1.boundary,:));
     mdl1.nodes= mdl1.nodes- ctr; % center the model
-    T= [-1 -1 1];
+    T = [-1 -1 1];
     mdl1.nodes= mdl1.nodes .* T; %flip x and y so that PAL to PAR is +x and inion to nasion is +y 
-    mdl1.Nz=  ([80  0   24]- ctr) .* T;
-    mdl1.Iz=  ([80  195 0 ]- ctr) .* T;
-    mdl1.PAR= ([8   105 9 ]- ctr) .* T;
-    mdl1.PAL= ([153 105 9 ]- ctr) .* T;
-    elecPos= getElecPos(mdl1, elTheta, elPhi); % find electrode positions
+    mdl1.Nz =  ([80  0   24]- ctr) .* T;
+    mdl1.Iz =  ([80  195 0 ]- ctr) .* T;
+    mdl1.PAR = ([8   105 9 ]- ctr) .* T;
+    mdl1.PAL = ([153 105 9 ]- ctr) .* T;
+    elecPos = getElecPos(mdl1, elTheta, elPhi); % find electrode positions
     mdl1WithElec= place_elec_on_surf(mdl1, elecPos, [e_rad, e_height, maxsz], [], maxh);
     
     % Second model has all layers but scalp
-    [mdl2, mat_indices2]= gmsh_mk_fwd_model(volFilename2, name2, [], stim_pattern, z_contact);
-    mdl2.nodes= mdl2.nodes- ctr; % center the model
-    mdl2.nodes= mdl2.nodes .* T; %flip x and y so that PAL to PAR is +x and inion to nasion is +y
+    [mdl2, mat_indices2] = gmsh_mk_fwd_model(volFilename2, name2, [], stim_pattern, z_contact);
+    mdl2.nodes = mdl2.nodes- ctr; % center the model
+    mdl2.nodes = mdl2.nodes .* T; %flip x and y so that PAL to PAR is +x and inion to nasion is +y
     
     % Merge meshes into one model
     fmdl= merge_meshes(mdl1WithElec, mdl2);

@@ -1,7 +1,7 @@
-function [wElecs, scores] = worst_n_elecs(D, imdl, n)
+function [wElecs, scores, mmScores, stimScores] = worst_n_elecs(D, imdl, n)
 % -------------------------------------------------------------------------
 % DESCRIPTION:
-%   [w_elecs, scores] = worst_n_elecs(D, imdl, n)
+%   [wElecs, scores, mmScores, stimScores] = worst_n_elecs(D, imdl, n)
 %
 % Finds the noisiest n electrodes across all data files in D based on
 % number of clipped measurements occuring while that electrode was
@@ -32,16 +32,42 @@ function [wElecs, scores] = worst_n_elecs(D, imdl, n)
 % -------------------------------------------------------------------------
 
 % find worst n electrodes across all sequences
+data = {};
 if isstruct(D)
     fn = fieldnames(D);
     n_files = length(fn);
-    elec_scores= zeros(32, n_files);
     for i= 1:n_files
-        elec_scores(:,i)= elec_clip_scores( D.(fn{i}).data, imdl );
-    end % end for
-    elec_scores= mean(elec_scores, 2);
+       data(i) = D.(fn{i}).data;
+    end % end for i
+elseif iscell(D)
+    n_files = length(D);
+    data = D;
 else
-    elec_scores = elec_clip_scores( D, imdl );
+    n_files = 1;
+    data = D;
+end % end if
+
+elec_scores = zeros(32, n_files);
+mmScores = zeros( length(find(imdl.fwd_model.meas_select)), n_files );
+stimScores = zeros(32, n_files);
+
+for i= 1:n_files
+    if n_files == 1
+        [elecScores, mmScores(:,i), stimScores(:,i)] = elec_clip_scores(data, imdl);
+    else
+        [elecScores, mmScores(:,i), stimScores(:,i)] = elec_clip_scores(data{i}, imdl);
+    end % end if
+    elec_scores(:,i) = resolve_scores(elecScores, imdl);
+%         plot(elecScores); hold on; 
+%         plot(stimScores(:,i));
+%         plot(elec_scores(:,i));
+%         keyboard;
+end % end for
+
+if n_files > 1
+    elec_scores= mean(elec_scores, 2);
+    mmScores= mean(mmScores, 2);
+    stimScores= mean(stimScores, 2);
 end % end if
 
 [hi_lo_scores, elecs]= sort(elec_scores, 'descend');
@@ -51,30 +77,71 @@ if length(wElecs) > n
     wElecs = wElecs(1:n);
 end % end if
 
-if nargout == 2
+if nargout > 1
     scores = hi_lo_scores(1:n);
 end % end if
 
 end % end function
 
+
+function resolved = resolve_scores(elecScores, imdl)
+% If one electrode is fauly, its partners will appear faulty as well. This
+% function will detect if one electrode is making its parterns look bad,
+% and resolve its partner's scores
+resolved = elecScores;
+nElec = size(imdl.fwd_model.electrode, 2);
+stimPairs = zeros(nElec, 2);
+for i = 1:nElec
+    stimPairs(i, 1) = find(imdl.fwd_model.stimulation(i).stim_pattern == -1);
+    stimPairs(i, 2) = find(imdl.fwd_model.stimulation(i).stim_pattern == 1);    
+end % end for
+
+for i = 1:nElec
+    [r,c] = find(stimPairs == i);
+    partners = unique( stimPairs(r,c) );
+    partners = partners(partners ~= i);
+    for j = 1:length(partners)
+        p = partners(j);
+        [r,c] = find(stimPairs == p);
+        jPartners = unique( stimPairs(r,c) );
+        jPartners = jPartners(jPartners ~= p);
+        jPartner = jPartners(jPartners ~= i);
+        if elecScores(i) >= ( elecScores(p) + elecScores(jPartner) )
+            resolved(p) = elecScores(jPartner);
+        end % end if
+    end % end for
+end % end for
+
+end % end function
+
+
 % ======================================================================= %
 
-function clip_scores= elec_clip_scores(data, imdl)
+function [clip_scores, mmScores, stimScores] = elec_clip_scores(data, imdl)
+% clip_scores:
+%     give electrodes a score based on proportion of clipped measurements
+%     occuring while that electrode was measuring. Score ranges from 0 to
+%     1.
+% mmScores:
+%     For each selected measurement, score is given based on portion of total
+%     measurements that were clipped (scores range from 0 to 1).
 
-    % find electrodes responsible for each selected measurement
     msel = imdl.fwd_model.meas_select;
     nElec = size(imdl.fwd_model.electrode, 2);
     mm = find(msel);
     elecUsed = zeros(length(mm),2);
     count = 1;
-    nMeasWithElec = zeros(32, 1);
-
+    nMeasWithElec = zeros(nElec, 1);
+    stimPairs = zeros(nElec, 2);
+    
     for i = 1:nElec
         [r,c] = find(imdl.fwd_model.stimulation(i).meas_pattern);
+        stimPairs(i, 1) = find(imdl.fwd_model.stimulation(i).stim_pattern == -1);
+        stimPairs(i, 2) = find(imdl.fwd_model.stimulation(i).stim_pattern == 1);
         for j = 1:max(r)
            elecUsed(count,:) = c(r == j)';
            count = count+ 1;
-        end
+        end % end for
     end % end for
 
     for i = 1:nElec
@@ -84,13 +151,21 @@ function clip_scores= elec_clip_scores(data, imdl)
     data_= data(mm,:);
     clipped = find_clipped_agresive(data_);
     tltClipped = sum(clipped, 2);
+    mmScores = sum(clipped, 2) ./ size(data_, 2); % output
+    measPerPair = length(mm) / nElec;
 
-    % give electrodes a score based on number of clipped measurements occuring
-    % while that electrode was measuring. Divided by total number of frames in
-    % data. A score of > 1 is considered bad.
     score = 1;
-    clip_scores = zeros(32,1);
-
+    clip_scores = zeros(nElec,1);
+    stimScores = zeros(nElec,1); % number of clipped measurements when this electrode is measuring
+    
+    for i = 1:nElec
+        stop  = i * measPerPair;
+        start = stop - measPerPair + 1;
+        idx = stimPairs(i, :);
+        stimScores( idx ) = stimScores( idx ) + sum( tltClipped(start:stop) );
+    end % end for
+    stimScores = stimScores ./ (measPerPair * size(data, 2));
+    
     while score > 0
         score = max(tltClipped);
         worst = find(tltClipped == score);
@@ -141,3 +216,6 @@ clipDist = maxDist * (stoppingIter * DELTA);
 clipped = distFromC >= clipDist;
 
 end % end function
+
+
+

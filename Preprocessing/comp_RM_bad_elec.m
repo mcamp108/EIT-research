@@ -1,4 +1,4 @@
-function imdl_comp= comp_RM_bad_elec(imdl, rm_elecs)
+function imdl_comp= comp_RM_bad_elec(imdl, rm_elecs, type)
 % -------------------------------------------------------------------------
 % Description:
 %   imdl_comp= comp_RM_bad_elec(imdl, rm_elecs)
@@ -13,7 +13,9 @@ function imdl_comp= comp_RM_bad_elec(imdl, rm_elecs)
 %   imdl:
 %       EIDORS inverse model structure with keep intermediate results.
 %   rm_elecs:
-%       Electrodes to zero out from the reconstruction matrix.
+%       Electrodes to zero out from the reconstruction matrix. Can also be
+%       logical matrix of measurements to zero (rather than zeroing all
+%       meas from elec, just zero that bad ones).
 % -------------------------------------------------------------------------   
 % Returns:
 %   imdl_comp:
@@ -27,12 +29,19 @@ function imdl_comp= comp_RM_bad_elec(imdl, rm_elecs)
 %   markacampbell@cmail.carleton.ca
 %   27.Sep.2019
 % -------------------------------------------------------------------------
+if nargin == 2
+    type = 'elec';
+end
 
 imdl_comp = imdl;
 
 % Find measurements from bad electrodes
-kk = meas_icov_rm_elecs(imdl_comp, rm_elecs);
-ee = find(diag(kk)~=1); % bad channels of meas_sel
+if strcmp(type, 'meas')
+    ee = find(rm_elecs);
+else
+    kk = meas_icov_rm_elecs(imdl_comp, rm_elecs);
+    ee = find(diag(kk)~=1); % bad channels of meas_sel
+end % end if
 
 % do work on reconstruction matrix
 imdl_comp.solve_use_matrix.RM_orig = imdl_comp.solve_use_matrix.RM;

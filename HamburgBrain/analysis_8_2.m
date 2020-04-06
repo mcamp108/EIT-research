@@ -9,6 +9,7 @@
 % -------------------------------------------------------------------------
 
 run 'myStartup.m';
+% bigFig();
 maxsz= 0.2; maxh= 2; imgsize= [64 64]; 
 % pigs= ["8.2","9.2","10.2","11.2","12.2"];
 pig= "12.2";
@@ -42,12 +43,13 @@ switch pig
     case "9.2";     ts = [10,10,10,10];         te = [25,25,25,25];
     case "10.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
     case "11.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
-    case "12.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+%     case "12.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+    case "12.2";    ts = [1,1,1,1,1,1];   te = [25,25,25,25,25,25];
 end % end switch
 
 bigFig();
 show_inj_fig(D, ts, te, nFrames);
-saveas( gcf, sprintf('%s injection figure.svg', char(D.(fn{1}).pig)) );
+saveas( gcf, sprintf('z %s injection figure simple.svg', char(D.(fn{1}).pig)) );
 
 %% 3. Total change over cardiac cycle
 cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper');
@@ -79,7 +81,7 @@ colorbar();
 colormap jet;
 fig = gcf;
 fig.Colormap(1,:) = [1 1 1] * 0.9;
-saveas( gcf, horzcat(char(pig),' TCOCC period ',num2str(opt.period),' sequences ',num2str(sel), '.svg') );
+saveas( gcf, horzcat('z ', char(pig),' TCOCC period ',num2str(opt.period),' sequences ',num2str(sel), ' simple.svg') );
 switch pig
     case "8.2";     D.seq.eit.apn = temp; D.seq2.eit.apn = temp2;
     case "11.2";    D.seq3.eit.apn = temp;
@@ -122,7 +124,7 @@ switch pig
         TITLE = '12.2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 3.5 hours after stroke induction (bottom)';
 end % end switch
 
-saveName = horzcat(char(pig), ' ensemble. seq', num2str(sel), ' ', ref, '.svg');
+saveName = horzcat('z simple ', char(pig), ' ensemble. seq', num2str(sel), ' ', ref, '.svg');
 opt.align = 2;
 bigFig();
 compare_pre_inj_imgs(D, sel, opt);
@@ -301,6 +303,35 @@ end % end for
 cd ../
 
 %%
+
+
+function simulate_ischemic_zone(pig)
+
+img = mk_image(fmdl, 0.41); % Background conductivity is scalp
+img.elem_data([fmdl.mat_idx{1}]) = 0.41;    %   1: scalp        0.41
+img.elem_data([fmdl.mat_idx{2}]) = 0.016;   %   2: skull        0.016
+img.elem_data([fmdl.mat_idx{3}]) = 0.47;    %   3: grey matter  0.47
+img.elem_data([fmdl.mat_idx{4}]) = 0.0001;  %   4: air          0.0001
+img.fwd_solve.get_all_meas = 1;
+img.fwd_model.stimulation = imdl.fwd_model.stimulation;
+img.fwd_model.normalize_measurements = 0;
+vh = fwd_solve(img);
+
+figure();
+img2 = img;
+img2.elem_data([fmdl.mat_idx{1}]) = 0.41;    %   1: scalp        0.41
+img2.elem_data([fmdl.mat_idx{2}]) = 0.016;   %   2: skull        0.016
+img2.elem_data([fmdl.mat_idx{3}]) = 0.47;    %   3: grey matter  0.47
+img2.elem_data([fmdl.mat_idx{4}]) = 0.1;  %   4: air          0.0001
+vi = fwd_solve(img2);
+imgr = inv_solve(imdl, vh, vi);
+show_fem(imgr);
+
+nodes = fmdl.elems(fmdl.mat_idx{1}, :);
+coors = fmdl.nodes(nodes,:);
+end % end function
+
+
 
 function compare_pre_post_inj(seq, opt)
 

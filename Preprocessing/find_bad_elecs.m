@@ -25,13 +25,20 @@ function scores= find_bad_elecs(data, imdl)
 %   1.0.0
 % -------------------------------------------------------------------------
 
-scores= elec_clip_scores(data, imdl);
+scores = elec_clip_scores(data, imdl);
 
 end % end function
 
-function clip_scores= elec_clip_scores(data, imdl)
 
-% find electrodes responsible for each selected measurement
+function [clip_scores, mmScores] = elec_clip_scores(data, imdl)
+% clip_scores:
+%     give electrodes a score based on proportion of clipped measurements
+%     occuring while that electrode was measuring. Score ranges from 0 to
+%     1.
+% mmScores:
+%     For each selected measurement, score is given based on portion of total
+%     measurements that were clipped (scores range from 0 to 1).
+
 msel = imdl.fwd_model.meas_select;
 nElec = size(imdl.fwd_model.electrode, 2);
 mm = find(msel);
@@ -54,10 +61,8 @@ end % end for
 data_= data(mm,:);
 clipped = find_clipped_agresive(data_);
 tltClipped = sum(clipped, 2);
+mmScores = sum(clipped, 2) ./ size(data_, 2);
 
-% give electrodes a score based on number of clipped measurements occuring
-% while that electrode was measuring. Divided by total number of frames in
-% data. A score of > 1 is considered bad.
 score = 1;
 clip_scores = zeros(32,1);
 

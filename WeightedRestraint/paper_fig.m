@@ -11,10 +11,12 @@ global n_frame_s; % minimum number of frames in time increments
 global figure_img;
 global cmap;
 
-we_segments= 5; % number of images to produce forwreft and wepos
+we_segments= 5; % number of images to produce for wref and wepos
 sep= 7; % number of pixels between figure images
-timeSeriesLength = 270; % shortest length of time series under investigation. This will set the time per segment.
-av_frm_s_inc= linspace(1, round(timeSeriesLength*47.6826), we_segments); % starting frames of we_segments number of evenly spaced time increments
+timeSeriesLength = 300; % shortest length of time series under investigation. This will set the time per segment.
+av_frm_s_inc= linspace(1, round(timeSeriesLength*47.6826), we_segments+1); % starting frames of we_segments number of evenly spaced time increments
+% av_frm_s_inc= linspace(1, round(timeSeriesLength*47.6826), we_segments); % starting frames of we_segments number of evenly spaced time increments
+av_frm_s_inc = av_frm_s_inc(1:we_segments);
 n_frame_s= min(diff(av_frm_s_inc)); % minimum number of frames in time increments
 imgr_idx_list= [1 2 3 3+we_segments (3+we_segments*2)];
 dirs= ls;
@@ -57,12 +59,19 @@ for i= 3: size(ls, 1) % for each participant
         % Data pre-processing and breath selection
         use_data = D.(dataFn{j}).useData;
         FR = D.(dataFn{j}).fs;
-        tbv= sum(use_data, 1); % total boundary voltage
-        [end_in, end_ex, Ti_by_Tt, BF]= select_breaths(tbv, FR);  
+        tbv = sum(use_data, 1); % total boundary voltage        
+        
+        imgr= inv_solve(imdl_comp, mean(use_data,2), use_data);
+        img_slices= calc_slices(imgr, [inf inf 1]);
+        img_slices(isnan(img_slices))= 0;
+        img_slices= img_slices .* lung_segmentation();
+        lungZ = squeeze( sum( img_slices, [1 2]) )';
+        [end_in, end_ex, Ti_by_Tt, BF]= select_breaths(-lungZ, FR);  
 %--------------------------------------------------------------------------        
-        % plot selected breath boundaries
-        plot_breath_boundaries(name, suffix, tbv, end_in, end_ex, front, back, j);
-        keyboard; % confirm landmark happiness
+%         % plot selected breath boundaries
+%         plot_breath_boundaries(name, suffix, -lungZ, end_in, end_ex, front, back, j);
+%         keyboard; % confirm landmark happiness
+        clf();
 %--------------------------------------------------------------------------        
         % Image reconstruction
         glob_ref= mean(use_data(:, end_ex(1,1):end_ex(2,1)), 2); % use mean of first breath as reference
@@ -85,8 +94,8 @@ for i= 3: size(ls, 1) % for each participant
         calc_img_stats(imgTV, j, 'fig');
         calc_img_stats(imgFRC, j, 'FRC');
         calc_time_stats(BF, j, 'BF');
-        calc_time_stats(Ti_by_Tt, j, 'FIT');
-        calc_time_stats(tbv, j, 'av_breath');
+%         calc_time_stats(Ti_by_Tt, j, 'FIT');
+        calc_time_stats(tbv, j, 'av_breath'); % plots
     end % end for j
     
 % --------------------------------------------------------------------------
@@ -113,7 +122,8 @@ for i= 3: size(ls, 1) % for each participant
     
     final_img2= mk_mosaic(final_img(6:27,:,:), [sep, 3], [], 13);
     final_img2(isnan(final_img2)) = 0;
-    boundaries= zeros(1,4); boundaries(1)= 32+ median(1:sep); boundaries(2:end)= boundaries(1)+ [1,6,11] * (32+ sep);
+    boundaries= zeros(1,4); boundaries(1)= 32+ median(1:sep); boundaries(2:end)= boundaries(1)+ [1,1+we_segments,1+we_segments*2] * (32+ sep);
+    black= find(sum(cmap==[0,0,0],2)==3);
     final_img2(:, boundaries)= black; % black
 
 %--------------------------------------------------------------------------
@@ -148,7 +158,7 @@ for i= 3: size(ls, 1) % for each participant
 % --------------------------------------------------------------------------
     % Export    
     cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\paper';
-    saveas(gcf, horzcat(front, '_baseline_', num2str(bsln), '.svg'));
+    saveas(gcf, horzcat(front, '_fig.svg'));
     
     cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint\features';
     header=fieldnames(stats);
@@ -156,7 +166,7 @@ for i= 3: size(ls, 1) % for each participant
     for h =1:length(header)
         out= [out, stats.(header{h})];
     end
-    save_name= horzcat('P',num2str(i-2), '_baseline_', num2str(bsln), '_features.csv');
+    save_name= horzcat('P',num2str(i-2), '_bsln',num2str(bsln), '_features.csv');
     table_out = array2table(out, 'VariableNames', header);
     writetable(table_out, save_name);
     
@@ -169,6 +179,7 @@ end % end for i
 
 function paper_figure(command, data, num)
 global cmap;
+global imgr_idx_list;
 B= 0;
 W= 0.95;
 H= 0.13; % height of each plot
@@ -182,13 +193,17 @@ shift=0.04;
 if strcmp(command, 'breath')
     mxsz= 0;
     datamx= 0;
+    datamn= 0;
     len_data= length(data);
     data_sz= zeros(len_data, 1);
     
     for i= 1:len_data
-        data_sz(i)= size(data{i}, 2);
-        mxsz= max( data_sz(i),  mxsz);
-        datamx= max( max(data{i},[],'all') ,  datamx);
+        if ~isempty(data{i}) % changed
+            data_sz(i)= size(data{i}, 2);
+            mxsz= max( data_sz(i),  mxsz);
+            datamx= max( max(data{i},[],'all') ,  datamx);
+            datamn= min( min(data{i},[],'all') ,  datamn);
+        end % end if
     end % end for len
     
     start= floor((mxsz- data_sz)./ 2) + 1;
@@ -206,10 +221,22 @@ if strcmp(command, 'breath')
         plot( (s:e), data{num}(j+1,:), 'm', 'linewidth', 2 ); % magenta
         ax.XTickLabel=[];ax.YTickLabel=[];ax.XTick=[];ax.YTick=[];
         ax.XLim= ([1 mxsz]);
-        ax.YLim= ([0 datamx]);
+        ax.YLim= ([datamn datamx]);
     end % end for num
 
 elseif strcmp(command, 'stat')
+    
+%     xlbls=cell(1,length(imgr_idx_list(1):imgr_idx_list(end)));
+%     we_segments = floor((length(xlbls)-2)/2);
+%     xlbls{1} = 'U'; xlbls{2} = 'R';
+%     idx=3;
+%     for i=1:we_segments
+%         xlbls{idx} = sprintf('W_%i',i);
+%         xlbls{idx+we_segments} = sprintf('X_%i',i);
+%         idx=idx+1;
+%     end
+    
+    xlbls={'U', 'R', 'W_1', 'W_2', 'W_3', 'W_4', 'W_5', 'X_1', 'X_2', 'X_3', 'X_4', 'X_5', 'P'};
     LW= 3; 
     ax1=axes('Position',[L  B+4.75*H+shift   W   2*H],'Box','on'); 
     plot(   data.FRCT,      'linewidth', LW); hold on;
@@ -217,13 +244,12 @@ elseif strcmp(command, 'stat')
     plot(   data.FRCB,      'linewidth', LW);
     plot(   data.TV,        'linewidth', LW);
     plot(   data.BF,        'linewidth', LW);
-    ax1.XLim=[0.5 13.5];    ax1.XTick=1:13;
-    xlbls={'U', 'R', 'W_1', 'W_2', 'W_3', 'W_4', 'W_5', 'X_1', 'X_2', 'X_3', 'X_4', 'X_5', 'P'};
+    ax1.XLim=[0.5 length(xlbls)+0.5];    ax1.XTick=1:length(xlbls);
+    
     set(gca,'XTickLabel', xlbls, 'fontsize', 20);
     yrule = ax1.YAxis;
     yrule.FontSize = 10;
     ax1.YAxisLocation= 'right';
-    ax1.YLim = [-0.75 2.75];
 
 elseif strcmp(command, 'reconst')
     fg1=axes('Position',[L B+H-shift R H*3]);
@@ -248,16 +274,12 @@ function [end_in, end_ex, Ti_by_Tt, BF]= select_breaths(tbv, FR)
     exp_to_exp= (diff(end_ex, 1))';
     Te= ((end_ex(2,:)- end_in))';
     Ti= (abs(end_ex(1,:)- end_in))';
-    boundaries= Te+ Ti;
-    end_ex_dif= abs(diff(tbv(end_ex), 1))';
-
-    qntls= quantile(boundaries, 7);
-    reject_breath= (boundaries> qntls(end)) + (boundaries< qntls(1));
-    qntls= quantile(end_ex_dif, 7);
-    reject_breath= reject_breath+ (end_ex_dif> qntls(6));
-    qntls= quantile(Ti, 7);
-    reject_breath= reject_breath+ (Ti> qntls(end));
-    keep= find(reject_breath==0);
+    
+    reject1 = abs( (end_in - end_ex(1,:)) ./ (end_in - end_ex(2,:)) );
+    reject2 = abs( (end_in - end_ex(2,:)) ./ (end_in - end_ex(1,:)) );
+    reject3 = abs(diff(tbv(end_ex), 1));
+    
+    keep = ((reject1 < 2.5) + (reject2 < 2)) == 2;
     
     end_in= end_in(keep);
     end_ex= end_ex(:,keep);
@@ -271,6 +293,7 @@ function [end_in, end_ex, Ti_by_Tt, BF]= select_breaths(tbv, FR)
 end % end function
 
 % -------------------------------------------------------------------------
+
 function all_seq_av_breath= calc_average_breath(tbv, end_in, end_ex)
 
 n_breaths= size(end_ex, 2);
@@ -295,14 +318,11 @@ all_seq_av_breath(i+1,:)= av_breath;
 end % end function
 
 % -------------------------------------------------------------------------
+
 function cntr_of_vnt= calc_cntr_of_vnt(img, lung_roi)
 % img is a 4D array. Output will be 2 x 13 x 3
 % remove image components not related to respiration
 img_= -(img.*lung_roi); % invert pixel values
-% row_pix= sum(lung_roi, 2);
-% row_pix(row_pix==0)=1; % avoid NaN in division
-% col_pix= sum(lung_roi, 1);
-% col_pix(col_pix==0)=1; % avoid NaN in division
 % 2 coordinates per image, images/row, number of rows
 n_imgs= size(img_, 3);
 n_rows= size(img_, 4);
@@ -316,6 +336,11 @@ for h=1:n_rows
         col_sums= sum(this_img, 1);
         c= cumsum(col_sums);
         cn= find(c <=50,1,'last');
+        if isempty(cn)
+            cntr_of_vnt(1,i,h) = 1;
+            cntr_of_vnt(2,i,h) = 1;
+            continue
+        end % end if
         k= (50- sum(col_sums(1:cn))) / cn;
         cntr_of_vnt(1,i,h)= round( ((cn+k+0.5) / (32+1)) *32); % X coor
         
@@ -333,6 +358,7 @@ end % end for h
 end % end function
 
 % -------------------------------------------------------------------------
+
 function files= load_wr_data(folder)
     
 while strcmp(folder(end), ' ')
@@ -369,6 +395,7 @@ files= {sref, pref, wref, wepos, epos};
 end % end function
 
 % -------------------------------------------------------------------------
+
 function plot_breath_boundaries(name, suffix, tbv, end_in, end_ex, front, back, j)
 
 n_breaths= length(end_in);
@@ -386,14 +413,20 @@ plot(end_ex, tbv(end_ex), 'or');
 ylabel('Voltage'); xlabel('Frame'); legend('total boundary voltage', 'retained data');
 
 hold off;
-starting_dir= cd;
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\data quality\breath selection';
-saveas(fg1, horzcat(front, '_', num2str(j), '_breaths_', back, '.svg'));
+starting_dir = cd;
+breathSelDir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\data quality\breath selection';
+cd(breathSelDir);
+if ~exist(name, 'dir')
+    mkdir(name);
+end
+cd(name); 
+saveas( fg1, sprintf('%s_%i_breaths_%s.svg', front, j, back) );
 cd(starting_dir);
 
 end % end function
 
 % -------------------------------------------------------------------------
+
 function [D, imdl_comp]= wr_pp(files, imdl, timeSeriesLength)
 
 % Weighted restraint pre-processing
@@ -402,7 +435,7 @@ D = struct;
 RMTHRESHOLD = 0.25;
 msel= imdl.fwd_model.meas_select;
 mm = find(msel);
-
+sequences = {};
 for file = 1:length(files)
     f = files{file};
     field = horzcat('seq', num2str(file));
@@ -418,6 +451,7 @@ for file = 1:length(files)
     D.(field).fs = 1e6 ./ median( diff(t_rel) ); %framerate is median dif of time points/ 1000000 (convert to s)
     dd = dd( :, 1: min(size(dd, 2), round(D.(field).fs * timeSeriesLength)) ); % ensure all time series are timeSeriesLength or less
     D.(field).data = dd;
+    sequences{file} = dd;
     useData = real(dd(mm, :));
     useData = lowpass(useData', 1, D.(field).fs)'; % 1 Hz lowpass
     useData = useData(:, clip:(size(useData,2)-clip) ); % trim filter edge artifacts
@@ -425,7 +459,7 @@ for file = 1:length(files)
 end % end for
 
 % find worst N electrodes
-[rmElecs, scores] = worst_n_elecs(D, imdl, 6);
+[rmElecs, scores] = worst_n_elecs(sequences, imdl, 6);
 rmElecs = rmElecs(scores >= RMTHRESHOLD); % change this
 imdl_comp= comp_RM_bad_elec(imdl, rmElecs); % remove measurements from noisy electrodes by adjusting imdl
 fprintf('electrodes removed with score threshold %s: %s \n', num2str(RMTHRESHOLD), num2str(rmElecs'));
@@ -433,6 +467,7 @@ fprintf('electrodes removed with score threshold %s: %s \n', num2str(RMTHRESHOLD
 end % end function
 
 % -------------------------------------------------------------------------
+
 function calc_time_stats(data, j, param)
 global stats;
 global end_in;

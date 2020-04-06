@@ -1,3 +1,45 @@
+maxsz= 0.2; maxh= 2; imgsize= [64 64];
+[fmdl, img, imdl]= mk_humHead_fmdl(maxsz, maxh, imgsize);
+
+% img.elem_data([fmdl.mat_idx{1}]) = 0.41;    %   1: scalp       
+% img.elem_data([fmdl.mat_idx{2}]) = 0.016;   %   2: skull      
+% img.elem_data([fmdl.mat_idx{3}]) = 0.0001;  %   3: air
+% img.elem_data([fmdl.mat_idx{4}]) = 1.71;    %   4: CSF
+% img.elem_data([fmdl.mat_idx{5}]) = 0.22;    %   5: white matter
+% img.elem_data([fmdl.mat_idx{6}]) = 0.47;    %   6: grey matter
+img.fwd_solve.get_all_meas = 1;
+vh = fwd_solve(img);
+
+figure();
+for i=1:10
+    img2 = img;
+    % img.elem_data([fmdl.mat_idx{1}]) = 0.41;    %   1: scalp       
+    % img.elem_data([fmdl.mat_idx{2}]) = 0.016;   %   2: skull      
+    % img.elem_data([fmdl.mat_idx{3}]) = 0.0001;  %   3: air
+    % img.elem_data([fmdl.mat_idx{4}]) = 1.71;    %   4: CSF
+    img2.elem_data([fmdl.mat_idx{5}]) = 0.22 + i * 0.02;    %   5: white matter
+    % img.elem_data([fmdl.mat_idx{6}]) = 0.47;    %   6: grey matter
+    vi = fwd_solve(img2);
+    temp = inv_solve(imdl, vh, vi);
+    if i==1
+        imgr = temp;
+        imgr.elem_data = nan(size(temp.elem_data, 1), 10);
+        imgr.elem_data(:, i) = temp.elem_data;
+    else
+        imgr.elem_data(:, i) = temp.elem_data;
+    end % end if
+    
+end % end for
+show_fem(imgr);
+
+
+
+
+
+
+
+
+
 function testAddInclusion(imdl, stim, meas, loc)
 % This function was written by :
 %                               Mark Campbell
