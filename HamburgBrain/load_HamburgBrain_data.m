@@ -54,93 +54,87 @@ function D= load_HamburgBrain_data(pig, ref)
 %   markacampbell@cmail.carleton.ca
 % -------------------------------------------------------------------------
 
-maxsz= 0.2; maxh= 2; imgsize= [64 64];
-[~, imdl]= mk_pighead_fmdl(maxsz, maxh, imgsize, pig);
+[~, imdl] = get_pig_mdl(pig);
 ELECSCORETHRESH = 0.25;
+switch pig
+    case '8-2'
+        eit_files= {    'EIT_8.2_nativ_1.eit',                  'EIT_8.2_nativ_2.eit',... 
+                        'EIT_8.2_30_Min_nach_Embolisation.eit', 'EIT_8.2_rechts_embolisiert.eit'};    
+        perf_files= {   'EIT_8.2_nativ_1.mat',                  'EIT_8.2_nativ_2.mat',... 
+                        'EIT_8.2_30_Min_nach_Embolisation.mat', 'EIT_8.2_rechts_embolisiert.mat'};
+        sync1= [681,    98,     941,    1027];
+        sync2= [6370,   4990,   4633,   5264];
+        e_apn= [42.5,   14.5,   -9.6,   15.7];
+        e_inj= [50.8,   31.1,   12.7,   26.1];
+        e_vnt= [98.2,   83.9,   58,     78.8];
+        p_apn= [53517,  14282,  7622,   30161];
+        p_inj= [61910,  30896,  30011,  40589];
+        p_vnt= [109097, 83697,  75311,  93234];
 
-% 8.2
-if pig== "8.2"
+    case '9-2'
     
-    eit_files= {    'EIT_8.2_nativ_1.eit',                  'EIT_8.2_nativ_2.eit',... 
-                    'EIT_8.2_30_Min_nach_Embolisation.eit', 'EIT_8.2_rechts_embolisiert.eit'};    
-    perf_files= {   'EIT_8.2_nativ_1.mat',                  'EIT_8.2_nativ_2.mat',... 
-                    'EIT_8.2_30_Min_nach_Embolisation.mat', 'EIT_8.2_rechts_embolisiert.mat'};
-    sync1= [681,    98,     941,    1027];
-    sync2= [6370,   4990,   4633,   5264];
-    e_apn= [42.5,   14.5,   -9.6,   15.7];
-    e_inj= [50.8,   31.1,   12.7,   26.1];
-    e_vnt= [98.2,   83.9,   58,     78.8];
-    p_apn= [53517,  14282,  7622,   30161];
-    p_inj= [61910,  30896,  30011,  40589];
-    p_vnt= [109097, 83697,  75311,  93234];
-
-elseif pig== "9.2"
+        eit_files= {    'EIT_9.2_Nativ_1.eit',                  'EIT_9.2_Nativ_2.eit',...
+                        'EIT_nach_Embolisation_1_9.2.eit',      'EIT_nach_Perfusionsminderun_2_9.2.eit'};    
+        perf_files= {   'EIT_9.2_Nativ_1.mat',                  'EIT_9.2_Nativ_2.mat',... 
+                        'EIT_nach_Embolisation_1_9.2.mat',      'EIT_nach_Perfusionsminderun_2_9.2.mat'};
+        sync1= [246,    291,    979,    239];
+        sync2= [5239,   5948,   5956,   6382];
+        e_apn= [12.3,   12.1,   14.7,   33.7];
+        e_inj= [27,     19.9,   20.7,   41];
+        e_vnt= [82.1,   98.7,   83.9,   112.1];
+        p_apn= [132012, 140143, 173558, 236714];
+        p_inj= [146787, 148520, 179538, 243968];
+        p_vnt= [201855, 226761, 242739, 315069];
     
-    eit_files= {    'EIT_9.2_Nativ_1.eit',                  'EIT_9.2_Nativ_2.eit',...
-                    'EIT_nach_Embolisation_1_9.2.eit',      'EIT_nach_Perfusionsminderun_2_9.2.eit'};    
-    perf_files= {   'EIT_9.2_Nativ_1.mat',                  'EIT_9.2_Nativ_2.mat',... 
-                    'EIT_nach_Embolisation_1_9.2.mat',      'EIT_nach_Perfusionsminderun_2_9.2.mat'};
-    sync1= [246,    291,    979,    239];
-    sync2= [5239,   5948,   5956,   6382];
-    e_apn= [12.3,   12.1,   14.7,   33.7];
-    e_inj= [27,     19.9,   20.7,   41];
-    e_vnt= [82.1,   98.7,   83.9,   112.1];
-    p_apn= [132012, 140143, 173558, 236714];
-    p_inj= [146787, 148520, 179538, 243968];
-    p_vnt= [201855, 226761, 242739, 315069];
+    case '10-2'
     
-elseif pig== "10.2"
+        eit_files= {    'EIT_nativ_10.2._schleuse.eit',                             'EIT_nativ_2_zvk_10.2.eit',... 
+                        'EIT_nach_Perfusionsminderung_Sequenz_3_Schleuse_10.2.eit', 'EIT_nach_Perfusionsminderung_Sequenz_4_ZVK.eit',...
+                        'EIT_10.2._nach_6h_Perfusionsmin_Schleuse Sequ5.eit',       'EIT_nach_6h_Perfusionsminderung_10.02 ZVK Sequ6.eit'};    
+        perf_files= {   'EIT_nativ_10.2._schleuse.mat',                             'EIT_nativ_2_zvk_10.2.mat',... 
+                        'EIT_nach_Perfusionsminderung_Sequenz_3_Schleuse_10.2.mat', 'EIT_nach_Perfusionsminderung_Sequenz_4_ZVK.mat',...
+                        'EIT_10.2._nach_6h_Perfusionsmin_Schleuse Sequ5.mat',       'EIT_nach_6h_Perfusionsminderung_10.02 ZVK Sequ6.mat'};    
+        sync1= [399,    262,    124,    149,    177,    191];
+        sync2= [5232,   6729,   4866,   5390,   5558,   4995];
+        e_apn= [7.4,    9.3,    12.8,   11.9,   14,     14.5];
+        e_inj= [13.4,   15.6,   18.6,   21.9,   20.1,   20.4];
+        e_vnt= [79.1,   85.5,   73,     88.5,   87.7,   81.2];
+        p_apn= [13720,  12336,  17460,  13854,  30897,  15381];
+        p_inj= [19708,  18832,  23357,  23835,  37773,  21370];
+        p_vnt= [85388,  88633,  77865,  90452,  104515, 82125];
     
-    eit_files= {    'EIT_nativ_10.2._schleuse.eit',                             'EIT_nativ_2_zvk_10.2.eit',... 
-                    'EIT_nach_Perfusionsminderung_Sequenz_3_Schleuse_10.2.eit', 'EIT_nach_Perfusionsminderung_Sequenz_4_ZVK.eit',...
-                    'EIT_10.2._nach_6h_Perfusionsmin_Schleuse Sequ5.eit',       'EIT_nach_6h_Perfusionsminderung_10.02 ZVK Sequ6.eit'};    
-    perf_files= {   'EIT_nativ_10.2._schleuse.mat',                             'EIT_nativ_2_zvk_10.2.mat',... 
-                    'EIT_nach_Perfusionsminderung_Sequenz_3_Schleuse_10.2.mat', 'EIT_nach_Perfusionsminderung_Sequenz_4_ZVK.mat',...
-                    'EIT_10.2._nach_6h_Perfusionsmin_Schleuse Sequ5.mat',       'EIT_nach_6h_Perfusionsminderung_10.02 ZVK Sequ6.mat'};    
-    sync1= [399,    262,    124,    149,    177,    191];
-    sync2= [5232,   6729,   4866,   5390,   5558,   4995];
-    e_apn= [7.4,    9.3,    12.8,   11.9,   14,     14.5];
-    e_inj= [13.4,   15.6,   18.6,   21.9,   20.1,   20.4];
-    e_vnt= [79.1,   85.5,   73,     88.5,   87.7,   81.2];
-    p_apn= [13720,  12336,  17460,  13854,  30897,  15381];
-    p_inj= [19708,  18832,  23357,  23835,  37773,  21370];
-    p_vnt= [85388,  88633,  77865,  90452,  104515, 82125];
+    case '11-2'
+        eit_files= {    'EIT_11.2_Nativ_1_Schleuse.eit',                'EIT_11.2_Nativ_2_ZVK.eit',... 
+                        'EIT_Sequenz_3_Schleuse.eit',                   'EIT_Seqeunz4_zvk.eit',...
+                        'EIT_11.2_4h_nach_Stroke_Schleuse_Sequ5.eit',   'EIT_4h_nach_Stroke_ZVk_Sequ6.eit'};
+        perf_files= {   'EIT_11.2_Nativ_1_Schleuse.mat',                'EIT_11.2_Nativ_2_ZVK.mat',...
+                        'EIT_Sequenz_3_Schleuse.mat',                   'EIT_Seqeunz4_zvk.mat',...
+                        'EIT_11.2_4h_nach_Stroke_Schleuse_Sequ5.mat',   'EIT_4h_nach_Stroke_ZVk_Sequ6.mat'};  
+        sync1= [1225,   211,    261,    55,     495,    169];
+        sync2= [6369,   5694,   7008,   5814,   5322,   6666];
+        e_apn= [-10.2,  10.7,   25.1,   22.3,   8.1,    12.1];
+        e_inj= [11.5,   15.3,   32.2,   66,     18.2,   16.2];
+        e_vnt= [89.1,   91.9,   113.7,  104.4,  80.4,   85.8];
+        p_apn= [11690,  10714,  36930,  31092,  16000,  19419];
+        p_inj= [33376,  15269,  43994,  74955,  26149,  23516];
+        p_vnt= [111004, 91873,  125489, 113239, 88339,  93187];
     
-elseif pig== "11.2"
-    
-    eit_files= {    'EIT_11.2_Nativ_1_Schleuse.eit',                'EIT_11.2_Nativ_2_ZVK.eit',... 
-                    'EIT_Sequenz_3_Schleuse.eit',                   'EIT_Seqeunz4_zvk.eit',...
-                    'EIT_11.2_4h_nach_Stroke_Schleuse_Sequ5.eit',   'EIT_4h_nach_Stroke_ZVk_Sequ6.eit'};
-    perf_files= {   'EIT_11.2_Nativ_1_Schleuse.mat',                'EIT_11.2_Nativ_2_ZVK.mat',...
-                    'EIT_Sequenz_3_Schleuse.mat',                   'EIT_Seqeunz4_zvk.mat',...
-                    'EIT_11.2_4h_nach_Stroke_Schleuse_Sequ5.mat',   'EIT_4h_nach_Stroke_ZVk_Sequ6.mat'};  
-    sync1= [1225,   211,    261,    55,     495,    169];
-    sync2= [6369,   5694,   7008,   5814,   5322,   6666];
-    e_apn= [-10.2,  10.7,   25.1,   22.3,   8.1,    12.1];
-    e_inj= [11.5,   15.3,   32.2,   66,     18.2,   16.2];
-    e_vnt= [89.1,   91.9,   113.7,  104.4,  80.4,   85.8];
-    p_apn= [11690,  10714,  36930,  31092,  16000,  19419];
-    p_inj= [33376,  15269,  43994,  74955,  26149,  23516];
-    p_vnt= [111004, 91873,  125489, 113239, 88339,  93187];
-    
-elseif pig== "12.2"
-    
-    eit_files= {    'EIT_12.2. Seqeunz 1 nativ Schleuse.eit',           'EIT_12.2_NATIV_ZVK_Sequ_2.eit',... 
-                    'EIT_direkt_nach_Stroke_12.2._Sequ_3_Schleuse.eit', 'EIT_12.2_Sequ_4_nach_Stroke_ZVK.eit',...
-                    'EIT_12.2._3,5_nach_Stroke_Sequ_5_Schleuse.eit',    'EIT_12.2._Sequ_6_3,5h_nach_Stroke_ZVK.eit'};
-    perf_files= {   'EIT 12.2 sequence 3.mat',                          'EIT 12.2 sequence 4.mat',...
-                    'EIT 12.2 sequence 5.mat',                          'EIT 12.2 sequence 6.mat',...
-                    'EIT 12.2 sequence 7.mat',                          'EIT 12.2 sequence 8.mat'};     
-    sync1= [251,    156,    126,    518,    132,    245];
-    sync2= [5754,   7179,   7600,   7420,   6586,   7715];
-    e_apn= [8.5,    14.5,   12.7,   13,     17.4,   12.6];
-    e_inj= [15,     23.4,   50,     36.2,   37.5,   19.9];
-    e_vnt= [94.7,   117,    128,    126.6,  107.6,  117];
-    p_apn= [10415,  15490,  15807,  22384,  24336,  12550];
-    p_inj= [16873,  24463,  53138,  45609,  44446,  19840];
-    p_vnt= [96616,  116350, 131095, 136047, 114530, 116881];
-
-end % end if
+    case '12-2'
+        eit_files= {    'EIT_12.2. Seqeunz 1 nativ Schleuse.eit',           'EIT_12.2_NATIV_ZVK_Sequ_2.eit',... 
+                        'EIT_direkt_nach_Stroke_12.2._Sequ_3_Schleuse.eit', 'EIT_12.2_Sequ_4_nach_Stroke_ZVK.eit',...
+                        'EIT_12.2._3,5_nach_Stroke_Sequ_5_Schleuse.eit',    'EIT_12.2._Sequ_6_3,5h_nach_Stroke_ZVK.eit'};
+        perf_files= {   'EIT 12.2 sequence 3.mat',                          'EIT 12.2 sequence 4.mat',...
+                        'EIT 12.2 sequence 5.mat',                          'EIT 12.2 sequence 6.mat',...
+                        'EIT 12.2 sequence 7.mat',                          'EIT 12.2 sequence 8.mat'};     
+        sync1= [251,    156,    126,    518,    132,    245];
+        sync2= [5754,   7179,   7600,   7420,   6586,   7715];
+        e_apn= [8.5,    14.5,   12.7,   13,     17.4,   12.6];
+        e_inj= [15,     23.4,   50,     36.2,   37.5,   19.9];
+        e_vnt= [94.7,   117,    128,    126.6,  107.6,  117];
+        p_apn= [10415,  15490,  15807,  22384,  24336,  12550];
+        p_inj= [16873,  24463,  53138,  45609,  44446,  19840];
+        p_vnt= [96616,  116350, 131095, 136047, 114530, 116881];
+end % end switch
 
 D = hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj, e_vnt, p_apn, p_inj, p_vnt, pig, imdl);
 
@@ -375,7 +369,7 @@ function seq= find_perf_landmarks(seq)
     
     j = 1;
     alpha = 5;
-    if seq.pig == "9.2"
+    if strcmp(seq.pig, '9-2')
         BETA = 10;
         THETA = 60;
     else
@@ -469,15 +463,15 @@ function glbl_ref = get_glbl_ref(D, pig)
     
     switch pig
         
-        case '8.2'
+        case '8-2'
             glbl_ref = mean( D.seq1.eit.fdata( :, D.seq1.eit.apn: D.seq1.eit.inj ), 2 );
-        case '9.2'
+        case '9-2'
             glbl_ref = mean( D.seq2.eit.fdata( :, D.seq1.eit.apn: D.seq1.eit.inj ), 2 );
-        case '10.2'
+        case '10-2'
             glbl_ref = mean( D.seq1.eit.fdata( :, D.seq1.eit.apn: D.seq1.eit.inj ), 2 );
-        case '11.2'
+        case '11-2'
             glbl_ref = mean( D.seq2.eit.fdata( :, D.seq2.eit.apn: D.seq2.eit.inj ), 2 );
-        case '12.2'
+        case '12-2'
             glbl_ref = mean( D.seq1.eit.fdata( :, D.seq2.eit.apn: D.seq1.eit.inj ), 2 );
     end % end switch
         

@@ -37,7 +37,7 @@ if isstruct(D)
     fn = fieldnames(D);
     n_files = length(fn);
     for i= 1:n_files
-       data(i) = D.(fn{i}).data;
+       data{i} = D.(fn{i}).eit.data;
     end % end for i
 elseif iscell(D)
     n_files = length(D);

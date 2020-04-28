@@ -225,27 +225,22 @@ if strcmp(command, 'breath')
     end % end for num
 
 elseif strcmp(command, 'stat')
-    
-%     xlbls=cell(1,length(imgr_idx_list(1):imgr_idx_list(end)));
-%     we_segments = floor((length(xlbls)-2)/2);
-%     xlbls{1} = 'U'; xlbls{2} = 'R';
-%     idx=3;
-%     for i=1:we_segments
-%         xlbls{idx} = sprintf('W_%i',i);
-%         xlbls{idx+we_segments} = sprintf('X_%i',i);
-%         idx=idx+1;
-%     end
-    
-    xlbls={'U', 'R', 'W_1', 'W_2', 'W_3', 'W_4', 'W_5', 'X_1', 'X_2', 'X_3', 'X_4', 'X_5', 'P'};
+    IDX = {[1],[2],[3:7],[8:12],[13]};
     LW= 3; 
-    ax1=axes('Position',[L  B+4.75*H+shift   W   2*H],'Box','on'); 
-    plot(   data.FRCT,      'linewidth', LW); hold on;
-    plot(   data.FRCM,      'linewidth', LW);
-    plot(   data.FRCB,      'linewidth', LW);
-    plot(   data.TV,        'linewidth', LW);
-    plot(   data.BF,        'linewidth', LW);
-    ax1.XLim=[0.5 length(xlbls)+0.5];    ax1.XTick=1:length(xlbls);
+    xlbls={'U', 'R', 'W_1', 'W_2', 'W_3', 'W_4', 'W_5', 'X_1', 'X_2', 'X_3', 'X_4', 'X_5', 'P'};
+    ax1=axes('Position',[L  B+4.75*H+shift   W   2*H],'Box','on');
+    hold on;
     
+    for i=1:5
+        plot( IDX{i}, data.FRCT(IDX{i}),    '-o',   'linewidth',LW, 'Color','#A2142F'); 
+        plot( IDX{i}, data.FRCM(IDX{i}),    '-o',   'linewidth',LW, 'Color','#D95319');
+        plot( IDX{i}, data.FRCB(IDX{i}),    '-o',   'linewidth',LW, 'Color','#0072BD');
+        plot( IDX{i}, data.TV(IDX{i}),    '--^',   'linewidth',LW, 'Color','#7E2F8E');
+        plot( IDX{i}, data.BF(IDX{i}),    ':s',   'linewidth',LW, 'Color','#77AC30');
+    end
+    
+    ax1.XLim=[0.5 length(xlbls)+0.5];    ax1.XTick=1:length(xlbls);
+    grid on;
     set(gca,'XTickLabel', xlbls, 'fontsize', 20);
     yrule = ax1.YAxis;
     yrule.FontSize = 10;

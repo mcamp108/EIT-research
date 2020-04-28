@@ -1,6 +1,6 @@
 % load data
 bsln= 2;
-statdir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint\features\paper';
+statdir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint\features';
 [D, header]= load_files(statdir);
 E = get_position_data(D, header);
 fg1= figure('units','normalized','outerposition',[0 0 1 1]);
@@ -10,7 +10,7 @@ results_figs(E);
 
 % outtable(D, header);
 %%
-results_figs(D);
+% results_figs(D);
 % %%
 % figure;hold on;
 % plot(D.all.TV.data);plot(D.pos2.TV.data);plot(D.pos3.TV.data);plot(D.P7.TV.data);
@@ -385,26 +385,51 @@ end % end function
 function results_figs(D)
 cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\paper';
 pp={'all','pos1','pos2','pos3'};
-abs={'BF','TV','FRCM'};
-lab={'BF','TV','FRCM'};
-titles={'Normalized respiration rate', 'Normalized tidal volume', 'Delta FRC change from R as a percentage of mean R tidal volume'};
-ylabels={'Normalized respiration rate (breaths/min)', 'Normalized tidal volume (ml/breath)', 'Delta FRC (% change)'};
+abs={'TV','BF','FRCM'};
+lab={'TV','BF','FRCM'};
+colours = {	'#0072BD', '#D95319', '#EDB120', '#7E2F8E'};
+markers = {'-o','--^',':s','-.d'};
+% titles={'Normalized respiration rate', 'Normalized tidal volume', 'Delta FRC Middle Plane change from R as a ratio of mean R tidal volume'};
+ylabels={'Normalized tidal volume (AU * breath^{-1})','Normalized respiration rate (breaths * min^{-1})','Delta FRC middle plane (% change)'};
+lw = 2;
+cpsz = 12;
+mrkrsz = 10;
+
 for h= 1:length(abs)
+    legEntries = [];
     fig=figure('units','normalized','outerposition',[0 0 1 1]);clf; hold on;
     fig.PaperOrientation='landscape';
     ax1=fig.Children;
     for i=1:length(pp)
-        errorbar(1:length(D.(pp{i}).(abs{h}).data), D.(pp{i}).(abs{h}).data, -D.(pp{i}).(abs{h}).sd, D.(pp{i}).(abs{h}).sd, 'linewidth', 4,'CapSize',12);
+        mrkr = markers{i};
+        mrkrclr = colours{i};
+        err = D.(pp{i}).(abs{h}).sd;
+        errorbar(1,     D.(pp{i}).(abs{h}).data(1),     err(1),     mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
+        errorbar(2,     D.(pp{i}).(abs{h}).data(2),     err(2),     mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
+        errorbar(3:7,   D.(pp{i}).(abs{h}).data(3:7),   err(3:7),   mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
+        errorbar(8:12,  D.(pp{i}).(abs{h}).data(8:12),  err(8:12),  mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
+        entry = errorbar(13,    D.(pp{i}).(abs{h}).data(13),    err(13),    mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
+        % create legend entry
+        legEntries = [legEntries, entry];
     end % end for i
-    legend('all','position 1', 'position 2','position 3');
-    title(titles{h}, 'fontsize', 20);
-    ax1.XLim=[0.5 13.5];    
+    
+    leg = legend(legEntries,...  
+                '\begin{tabular}{p{.05cm}r}&group average\end{tabular}',...
+                '\begin{tabular}{p{.05cm}r}&control posture\end{tabular}',...
+                '\begin{tabular}{p{.05cm}r}&restraint posture 1\end{tabular}',...
+                '\begin{tabular}{p{.05cm}r}&restraint posture 2\end{tabular}',... 
+                'FontSize', 15, 'Box', 'off', 'Location', 'northwest');
+    set(leg,'interpreter','latex'); % set interpreter
+    
+%     title(titles{h}, 'fontsize', 20);
+    ax1.XLim=[0.5 13.5];
     ax1.XTick=1:13;     
     ax1.XLabel.FontSize= 60;
     ax1.YLabel.FontSize= 60;
     ax1.XTickLabels={'U', 'R', 'W_1','W_2','W_3','W_4','W_5','X_1','X_2','X_3','X_4','X_5','P'};
-    xtickangle(30);
+    set(gca,'XTickLabel', ax1.XTickLabels, 'fontsize', 15);
     ylabel(ylabels{h});
+    xlabel('Experimental phase');
     saveas(gcf, horzcat('paper_',lab{h}, '.svg'));
 end % end for h
 end % end function

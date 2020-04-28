@@ -7,70 +7,66 @@
 %   Carleton University
 %   markacampbell@cmail.carleton.ca
 % -------------------------------------------------------------------------
-
+global seg;
 run 'myStartup.m';
-% bigFig();
-maxsz= 0.2; maxh= 2; imgsize= [64 64]; 
-% pigs= ["8.2","9.2","10.2","11.2","12.2"];
-pig= "12.2";
-[fmdl, imdl]= mk_pighead_fmdl(maxsz, maxh, imgsize, pig);
+pigs= {'8-2','9-2','10-2','11-2','12-2'};
+for q = 1:length(pigs)
+    
+close all
+bigFig();
+bigFig();
+
+pig = pigs{q};
+[fmdl, imdl] = get_pig_mdl(pig);
 % Load data
 ref = 'self';
 % ref = 'baseline';
 D= load_HamburgBrain_data(pig, ref);
+seg = get_brain_segmentation_for_pig(pig);
 fn= fieldnames(D);
-cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
 suffix= date;
 
-% configure colormap
-% cmap = confg_cmap();
-
-% 1. SHOW EIT AND PERFUSION DATA WITH PERFUSION ANNOTATIONS
-cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
-%%
-cd seqData;
-for i= 1:numel(fn)
-    plot_seq_data(D.(fn{i}));
-    saveas( gcf, horzcat(D.(fn{i}).name, suffix, '.svg') );
-end % end for
-close all
-cd ../
-%% 2. Injection Images Figure
-cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper');
+% 2. Injection Images Figure
+cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper\inj');
 nFrames = 15;
 switch pig
-    case "8.2";     ts = [0,0,0,0];             te = [10,10,10,10]; % use seq2 as ref
-    case "9.2";     ts = [10,10,10,10];         te = [25,25,25,25];
-    case "10.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
-    case "11.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
-%     case "12.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
-    case "12.2";    ts = [1,1,1,1,1,1];   te = [25,25,25,25,25,25];
+    case '8-2';     ts = [10,10,10,10];         te = [25,25,25,25]; % use seq2 as ref
+    case '9-2';     ts = [10,10,10,10];         te = [25,25,25,25];
+    case '10-2';    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+    case '11-2';    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+    case '12-2';    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+%     case '12-2';    ts = [1,1,1,1,1,1];   te = [25,25,25,25,25,25];
 end % end switch
 
-bigFig();
 show_inj_fig(D, ts, te, nFrames);
-saveas( gcf, sprintf('z %s injection figure simple.svg', char(D.(fn{1}).pig)) );
+figure(1);
+saveas( gcf, sprintf('%s injection figure.svg', char(D.(fn{1}).pig)) );
 
-%% 3. Total change over cardiac cycle
-cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper');
+figure(2);
+saveas( gcf, sprintf('%s injection figure plots.svg', char(D.(fn{1}).pig)) );
+pause(1);
+
+
+% 3. Total change over cardiac cycle
+clf();
+cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper\tcoc');
 switch pig
-    case "8.2";     opt.period = [2,2,1];        
+    case '8-2';     opt.period = [2,2,1];        
         temp = D.seq1.eit.apn; D.seq1.eit.apn = 1868; 
         temp2 = D.seq2.eit.apn; D.seq2.eit.apn = 1068;
         sel = [2,3,4];
-    case "9.2";     opt.period = [0,1,1,1];
+    case '9-2';     opt.period = [0,1,1,1];
         sel = [1,2,3];
-    case "10.2";    opt.period = [1,1,1,1,1,1];
+    case '10-2';    opt.period = [1,1,1,1,1,1];
         sel = [1,3,5];
-    case "11.2";    opt.period = [1,2,0,2,1,1];
+    case '11-2';    opt.period = [1,2,0,2,1,1];
         sel = [1,3,6];
         temp = D.seq3.eit.apn; D.seq3.eit.apn = 843;
-    case "12.2";    opt.period = [2,0,0,0,2,0];
+    case '12-2';    opt.period = [2,0,0,0,2,0];
         temp = D.seq3.eit.apn; D.seq3.eit.apn = 939; % 1223; 
         sel = [2,3,5];
 end % end switch
 
-bigFig();
 hold on;
 name = horzcat(char(pig), ' ',ref,' reference. Total change over average cardiac cycle');
 sgtitle( name );
@@ -81,274 +77,247 @@ colorbar();
 colormap jet;
 fig = gcf;
 fig.Colormap(1,:) = [1 1 1] * 0.9;
-saveas( gcf, horzcat('z ', char(pig),' TCOCC period ',num2str(opt.period),' sequences ',num2str(sel), ' simple.svg') );
+saveas( gcf, horzcat(char(pig),' TCOCC period ',num2str(opt.period),' sequences ',num2str(sel), '.svg') );
+
 switch pig
-    case "8.2";     D.seq.eit.apn = temp; D.seq2.eit.apn = temp2;
-    case "11.2";    D.seq3.eit.apn = temp;
-    case "12.2";    D.seq3.eit.apn = temp;
+    case '8-2';     D.seq.eit.apn = temp; D.seq2.eit.apn = temp2;
+    case '11-2';    D.seq3.eit.apn = temp;
+    case '12-2';    D.seq3.eit.apn = temp;
 end % end switch
 
+pause(1);
 
-
-%% 4. Compare average CC for all sequences with adjusted clim
-cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper');
-opt.sidelen = 5;
+% 4. Compare average CC for all sequences with adjusted clim
+cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper\ensemble');
+opt.sidelen = inf;
+% opt.sidelen = 5;
 switch pig
-    case "8.2";     opt.period = [2,2,2,1];
-    case "9.2";     opt.period = [0,1,1,1];
-    case "10.2";    opt.period = [1,1,1,1,1,1];
-    case "11.2";    opt.period = [1,2,0,2,1,1];
-    case "12.2";    opt.period = [2,0,0,0,2,0];
+    case '8-2';     opt.period = [2,2,2,1];
+    case '9-2';     opt.period = [0,1,1,1];
+    case '10-2';    opt.period = [1,1,1,1,1,1];
+    case '11-2';    opt.period = [1,2,0,2,1,1];
+    case '12-2';    opt.period = [2,0,0,0,2,0];
 end % end switch
 switch pig
-    case "8.2"
+    case '8-2'
         temp = D.seq1.eit.apn; D.seq1.eit.apn = 1868; 
         temp2 = D.seq2.eit.apn; D.seq2.eit.apn = 1068;
         sel = [2,3,4];
-        TITLE = '8.2 Ensemble Average of Pulsatile Signal. baseline (top), after embolism (middle), 30 minutes after embolism (bottom)';
-    case "9.2"
+        TITLE = '8-2 Ensemble Average of Pulsatile Signal. baseline (top), after embolism (middle), 30 minutes after embolism (bottom)';
+    case '9-2'
         sel = [1,2,3];
-        TITLE = '9.2 Ensemble Average of Pulsatile Signal. baseline (top), baseline 2 (middle), after embolism (bottom)';
-    case "10.2"
+        TITLE = '9-2 Ensemble Average of Pulsatile Signal. baseline (top), baseline 2 (middle), after embolism (bottom)';
+    case '10-2'
         opt.select = 1;
-        sel = [1,5];
-%         TITLE = '10.2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 6 hours after stroke induction (bottom)';
-        TITLE = '10.2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), 6 hours after stroke induction (bottom)';
-    case "11.2"
+        sel = [1,3,5];
+        TITLE = '10-2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 6 hours after stroke induction (bottom)';
+%         TITLE = '10-2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), 6 hours after stroke induction (bottom)';
+    case '11-2'
         temp = D.seq3.eit.apn; D.seq3.eit.apn = 843;
         sel = [1,3,6];
-        TITLE = '11.2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 4 hours after stroke induction (bottom)';
-    case "12.2"
+        TITLE = '11-2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 4 hours after stroke induction (bottom)';
+    case '12-2'
         temp = D.seq3.eit.apn; D.seq3.eit.apn = 939; % 1223; 
         sel = [2,3,5];
-        TITLE = '12.2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 3.5 hours after stroke induction (bottom)';
+        TITLE = '12-2 Schleuse Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 3.5 hours after stroke induction (bottom)';
 end % end switch
 
-saveName = horzcat('z simple ', char(pig), ' ensemble. seq', num2str(sel), ' ', ref, '.svg');
 opt.align = 2;
-bigFig();
+% bigFig();
 compare_pre_inj_imgs(D, sel, opt);
 
-title(TITLE); colorbar();
+figure(1);
+sgtitle(TITLE); colorbar();
+saveName = horzcat(char(pig), ' ensemble. seq', num2str(sel), ' ', ref, '.svg');
+saveas( gcf, saveName );
+
+figure(2);
+sgtitle(TITLE);
+saveName = horzcat(char(pig), ' ensemble. seq', num2str(sel), ' ', ref, 'brainZ.svg');
 saveas( gcf, saveName );
 
 switch pig
-    case "8.2";     D.seq.eit.apn = temp; D.seq2.eit.apn = temp2;
-    case "11.2";    D.seq3.eit.apn = temp;
-    case "12.2";    D.seq3.eit.apn = temp;
+    case '8-2';     D.seq.eit.apn = temp; D.seq2.eit.apn = temp2;
+    case '11-2';    D.seq3.eit.apn = temp;
+    case '12-2';    D.seq3.eit.apn = temp;
 end % end switch
 
-
-
-
-
-%% 2. Ensemble average perfusion images
-cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
-opt.av = 'mean';
-opt.align = 2;
-% opt.sidelen
-for i = 1:numel(fn)
-    bigFig();
-    show_pre_inj_img(D.(fn{i}), opt);
 end % end for
+%%
+% get brain segmentation by simulating measurements in which brain
+% conductivity increases alot.
 
 
-%% 3.5
-bigFig();
-compare_post_vnt_imgs(D, [5], opt);
-%% 4. Compare images after bolus injection
-cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
-show_inj_imgs(D.seq1, opt);
-%% 5. Show mean cycle from pre and post injection time periods
-cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
-opt.av = 'mean';
-for i = 1:numel(fn)
-    bigFig();
-    compare_pre_post_inj(D.(fn{i}), opt);
-    saveas( gcf, horzcat(D.(fn{i}).name, '_PrePostInj_', suffix, '.svg') );
-end % end for
-%% 6. Visualize different timeframes after injection
-cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
-ts = 1;
-te = 10;
-bigFig();
-for i = 1:numel(fn)
-    show_inj(D.(fn{i}),ts,te);
-    title( horzcat(num2str(i), '_',D.(fn{i}).name, '1-10 seconds Post-Injection. 1 row = 1 second') );
-%     saveas( gcf, horzcat(num2str(i), '_',D.(fn{i}).name,'1-10secondsPostInj.svg') );
-end % end for
-%% 8. Injection Images Exploration
-switch pig
-    case "8.2";     ts = [0,0,0,0];         te = [10,10,10,10];
-    case "9.2";     ts = [10,10,10,10];         te = [25,25,25,25];
-    case "10.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
-    case "11.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
-    case "12.2";    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
-end % end switch
-for i=1:length(fn)
-    bigFig();
-    show_inj(D.(fn{i}), ts(i), te(i));
-    colorbar();
-    title( sprintf('%i - %s %i - %i seconds Post-Injection. 1 row = 1 second', i, D.(fn{i}).name, ts(i), te(i)) );
-end % end for
-%% VIDEO OF RECONSTRUCTED IMAGE AND BRAIN SEGMENTATION
-
-cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
-for i= [1,3,5]
-    start= D.(fn{i}).eit.inj;
-    stop= D.(fn{i}).eit.inj+ 1000;
-    mk_vid(D.(fn{i}), start, stop, suffix);
-end % end for
-
-%% EIT, PREFUSION, AND RECONSTRUCTED IMAGE ENSEMBLES IN ONE FIGURE
-cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
-opt.pv= 3;
-opt.usefData= 1;
-opt.plotLM= 2;
-opt.ensemble= 'each';
-cd 'ensemble/rm CI greater than 400/each';
-for i= 1:numel(fn)
-    for j= 0:4
-        opt.section= j;
-        show_ensemble(D.(fn{i}), opt);
-        figureTitle= horzcat(num2str(j), ' ', D.(fn{i}).name, ' - ensemble', suffix);
-        print_convert(horzcat(figureTitle, '.png'));
-    end % end for
-    close all
-end % end for
-cd ../
-%% TIME TO PEAK
-opt.sel= [0 0 0 1];
-opt.plotLM= 1;
-ttp1= [];
-for i= [1, 2, 3, 4]
-%     opt.start= 50;
-%     opt.stop= D.(fn{i}).eit.inj;
-    opt.start= D.(fn{i}).eit.inj;
-    opt.stop= D.(fn{i}).eit.inj+ 1000;
-    ttp1= [ttp1, get_ttp(D.(fn{i}), 2, opt)];
-%     title("time to peak for " + D.(fn{i}).name);
-end % end for
-figure; imagesc(ttp1); axis 'equal'; colorbar;
-
-%% SHOW MEAN FRAME
-cd meanFrame
-for i= 1:numel(fn)
-    meanFrame = mean(calc_slices(D.(fn{i}).imgr), 3);
-    figure('units','normalized','outerposition',[0 0 1 1]);
-    imagesc(meanFrame);
-    title(horzcat(D.(fn{i}).name, suffix));
-    colorbar;
-    axis equal
-    
-    [imageDenoised, betheE]= mrfDeNoiseV3(meanFrame, 3);
-    figure('units','normalized','outerposition',[0 0 1 1]);
-    imagesc(imageDenoised);
-    
-%     print_convert(char(D.(fn{i}).name+ suffix+ ".png"));
-end % end for
-close all
-cd ../
-
-
-%% Plot selected pixels of brain segmentation over time
-acvOpt.pixels= (1:100);
-acvOpt.plotLM= 1;
-result= plot_segmentations(D.seq1, acvOpt);
-
-mtx= zeros(1, size(result, 1));
-for r= 1:size(result, 1)
-    row= result(r, :);
-    mtx(r)= find(row== max(row));
-end % end for
-imagesc(mtx); % loks kinda cool
+% 
+% cd seqData;
+% for i= 1:numel(fn)
+%     plot_seq_data(D.(fn{i}));
+%     saveas( gcf, horzcat(D.(fn{i}).name, suffix, '.svg') );
+% end % end for
+% close all
+% cd ../
+% 
+% %% 2. Ensemble average perfusion images
+% cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+% opt.av = 'mean';
+% opt.align = 2;
+% % opt.sidelen
+% for i = 1:numel(fn)
+%     bigFig();
+%     show_pre_inj_img(D.(fn{i}), opt);
+% end % end for
+% 
+% 
+% %% 3.5
+% bigFig();
+% compare_post_vnt_imgs(D, [5], opt);
+% %% 4. Compare images after bolus injection
+% cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+% show_inj_imgs(D.seq1, opt);
+% %% 5. Show mean cycle from pre and post injection time periods
+% cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+% opt.av = 'mean';
+% for i = 1:numel(fn)
+%     bigFig();
+%     compare_pre_post_inj(D.(fn{i}), opt);
+%     saveas( gcf, horzcat(D.(fn{i}).name, '_PrePostInj_', suffix, '.svg') );
+% end % end for
+% %% 6. Visualize different timeframes after injection
+% cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+% ts = 1;
+% te = 10;
+% bigFig();
+% for i = 1:numel(fn)
+%     show_inj(D.(fn{i}),ts,te);
+%     title( horzcat(num2str(i), '_',D.(fn{i}).name, '1-10 seconds Post-Injection. 1 row = 1 second') );
+% %     saveas( gcf, horzcat(num2str(i), '_',D.(fn{i}).name,'1-10secondsPostInj.svg') );
+% end % end for
+% %% 8. Injection Images Exploration
+% switch pig
+%     case '8-2';     ts = [0,0,0,0];         te = [10,10,10,10];
+%     case '9-2';     ts = [10,10,10,10];         te = [25,25,25,25];
+%     case '10-2';    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+%     case '11-2';    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+%     case '12-2';    ts = [10,10,10,10,10,10];   te = [25,25,25,25,25,25];
+% end % end switch
+% for i=1:length(fn)
+%     bigFig();
+%     show_inj(D.(fn{i}), ts(i), te(i));
+%     colorbar();
+%     title( sprintf('%i - %s %i - %i seconds Post-Injection. 1 row = 1 second', i, D.(fn{i}).name, ts(i), te(i)) );
+% end % end for
+% %% VIDEO OF RECONSTRUCTED IMAGE AND BRAIN SEGMENTATION
+% 
+% cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+% for i= [1,3,5]
+%     start= D.(fn{i}).eit.inj;
+%     stop= D.(fn{i}).eit.inj+ 1000;
+%     mk_vid(D.(fn{i}), start, stop, suffix);
+% end % end for
+% 
+% %% EIT, PREFUSION, AND RECONSTRUCTED IMAGE ENSEMBLES IN ONE FIGURE
+% cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+% opt.pv= 3;
+% opt.usefData= 1;
+% opt.plotLM= 2;
+% opt.ensemble= 'each';
+% cd 'ensemble/rm CI greater than 400/each';
+% for i= 1:numel(fn)
+%     for j= 0:4
+%         opt.section= j;
+%         show_ensemble(D.(fn{i}), opt);
+%         figureTitle= horzcat(num2str(j), ' ', D.(fn{i}).name, ' - ensemble', suffix);
+%         print_convert(horzcat(figureTitle, '.png'));
+%     end % end for
+%     close all
+% end % end for
+% cd ../
+% %% TIME TO PEAK
+% opt.sel= [0 0 0 1];
+% opt.plotLM= 1;
+% ttp1= [];
+% for i= [1, 2, 3, 4]
+% %     opt.start= 50;
+% %     opt.stop= D.(fn{i}).eit.inj;
+%     opt.start= D.(fn{i}).eit.inj;
+%     opt.stop= D.(fn{i}).eit.inj+ 1000;
+%     ttp1= [ttp1, get_ttp(D.(fn{i}), 2, opt)];
+% %     title('time to peak for ' + D.(fn{i}).name);
+% end % end for
+% figure; imagesc(ttp1); axis 'equal'; colorbar;
+% 
+% %% SHOW MEAN FRAME
+% cd meanFrame
+% for i= 1:numel(fn)
+%     meanFrame = mean(calc_slices(D.(fn{i}).imgr), 3);
+%     figure('units','normalized','outerposition',[0 0 1 1]);
+%     imagesc(meanFrame);
+%     title(horzcat(D.(fn{i}).name, suffix));
+%     colorbar;
+%     axis equal
+%     
+%     [imageDenoised, betheE]= mrfDeNoiseV3(meanFrame, 3);
+%     figure('units','normalized','outerposition',[0 0 1 1]);
+%     imagesc(imageDenoised);
+%     
+% %     print_convert(char(D.(fn{i}).name+ suffix+ '.png'));
+% end % end for
+% close all
+% cd ../
+% 
+% 
+% %% Plot selected pixels of brain segmentation over time
+% acvOpt.pixels= (1:100);
+% acvOpt.plotLM= 1;
+% result= plot_segmentations(D.seq1, acvOpt);
+% 
+% mtx= zeros(1, size(result, 1));
+% for r= 1:size(result, 1)
+%     row= result(r, :);
+%     mtx(r)= find(row== max(row));
+% end % end for
+% imagesc(mtx); % loks kinda cool
+% 
+% %%
+% opt.start= D.seq2.eit.inj;
+% opt.stop= D.seq2.eit.inj+ 600;
+% ttp1= get_ttp(D.seq2, 1, opt);
+% 
+% opt.start= D.seq6.eit.inj;
+% opt.stop= D.seq6.eit.inj+ 600;
+% ttp2= get_ttp(D.seq6, 1, opt);
+% imagesc([ttp1;ttp2])
+% 
+% figure; imagesc(ttp1- ttp2);
+% imageOrig= ttp1- ttp2;
+% out_img= mrfDeNoiseV2(ttp1, 5);
+% figure; image(out_img);
+% 
+% for i= 1: numel(fn)
+%     ensemble= get_ensembles(D.(fn{i}), 2, opt);
+%     figure('units','normalized','outerposition',[0 0 1 1]);
+%     sgtitle(D.(fn{i}).name);
+%     
+%     subplot(2, 2, [1,3]);
+%     show_slices(ensemble.imgr_ensemble);
+%     title('reconstructions averaged over cardiac cycles');
+%     
+%     subplot(2, 2, 2);
+%     xax= (1: size(ensemble.eit_ensemble, 2))/ D.(fn{i}).eit.fs;
+%     plot(xax, mean(ensemble.eit_ensemble, 1));
+%     title('Average EIT signal over all cardiac cycles');
+%     xlabel('Time (s)');
+%     
+%     subplot(2, 2, 4);
+%     xax= (1: size(ensemble.perf_ensemble, 2))/ D.(fn{i}).perf.tickrate;
+%     plot(xax, mean(ensemble.perf_ensemble, 1));
+%     title('Average perfusion signal over all cardiac cycles');
+%     xlabel('Time (s)');
+%     print_convert(char(D.(fn{i}).name+ ' ensemble simplified model.png'));
+% end % end for
+% cd ../
 
 %%
-opt.start= D.seq2.eit.inj;
-opt.stop= D.seq2.eit.inj+ 600;
-ttp1= get_ttp(D.seq2, 1, opt);
-
-opt.start= D.seq6.eit.inj;
-opt.stop= D.seq6.eit.inj+ 600;
-ttp2= get_ttp(D.seq6, 1, opt);
-imagesc([ttp1;ttp2])
-
-figure; imagesc(ttp1- ttp2);
-imageOrig= ttp1- ttp2;
-out_img= mrfDeNoiseV2(ttp1, 5);
-figure; image(out_img);
-
-for i= 1: numel(fn)
-    ensemble= get_ensembles(D.(fn{i}), 2, opt);
-    figure('units','normalized','outerposition',[0 0 1 1]);
-    sgtitle(D.(fn{i}).name);
-    
-    subplot(2, 2, [1,3]);
-    show_slices(ensemble.imgr_ensemble);
-    title("reconstructions averaged over cardiac cycles");
-    
-    subplot(2, 2, 2);
-    xax= (1: size(ensemble.eit_ensemble, 2))/ D.(fn{i}).eit.fs;
-    plot(xax, mean(ensemble.eit_ensemble, 1));
-    title("Average EIT signal over all cardiac cycles");
-    xlabel("Time (s)");
-    
-    subplot(2, 2, 4);
-    xax= (1: size(ensemble.perf_ensemble, 2))/ D.(fn{i}).perf.tickrate;
-    plot(xax, mean(ensemble.perf_ensemble, 1));
-    title("Average perfusion signal over all cardiac cycles");
-    xlabel("Time (s)");
-    print_convert(char(D.(fn{i}).name+ " ensemble simplified model.png"));
-end % end for
-cd ../
-
-%%
-
-
-function simulate_ischemic_zone(pig)
-
-img = mk_image(fmdl, 0.41); % Background conductivity is scalp
-img.elem_data([fmdl.mat_idx{1}]) = 0.41;    %   1: scalp        0.41
-img.elem_data([fmdl.mat_idx{2}]) = 0.016;   %   2: skull        0.016
-img.elem_data([fmdl.mat_idx{3}]) = 0.47;    %   3: grey matter  0.47
-img.elem_data([fmdl.mat_idx{4}]) = 0.0001;  %   4: air          0.0001
-img.fwd_solve.get_all_meas = 1;
-img.fwd_model.stimulation = imdl.fwd_model.stimulation;
-img.fwd_model.normalize_measurements = 0;
-vh = fwd_solve(img);
-
-figure();
-img2 = img;
-img2.elem_data([fmdl.mat_idx{1}]) = 0.41;    %   1: scalp        0.41
-img2.elem_data([fmdl.mat_idx{2}]) = 0.016;   %   2: skull        0.016
-img2.elem_data([fmdl.mat_idx{3}]) = 0.47;    %   3: grey matter  0.47
-img2.elem_data([fmdl.mat_idx{4}]) = 0.1;  %   4: air          0.0001
-vi = fwd_solve(img2);
-imgr = inv_solve(imdl, vh, vi);
-show_fem(imgr);
-
-nodes = fmdl.elems(fmdl.mat_idx{1}, :);
-coors = fmdl.nodes(nodes,:);
-end % end function
-
-
-
-function compare_pre_post_inj(seq, opt)
-
-    ax1 = subplot(2,1,1);
-        show_pre_inj_img(seq, opt);
-    ax2 = subplot(2,1,2);
-        show_inj_imgs(seq, opt);
-    
-    for i = [ax1, ax2]
-        i.Position(1) = 0.05;
-        i.Position(3) = 0.9;
-    end % end for
-    
-    ax2.Position(2) = 0.35;
-    
-end % end function
-
 % ======================================================================= %
 
 function temp = adjust_for_poi(seq, start, stop)
@@ -385,7 +354,7 @@ function show_inj_imgs(seq, opt)
     
     temp = adjust_for_poi(seq, start, stop);
     get_mean_cc(temp, opt);
-    title(horzcat(seq.name, " Post-injection conductivity from individual and ensemble-averaged (bottom) Cardiac Cycles"));
+    title(horzcat(seq.name, ' Post-injection conductivity from individual and ensemble-averaged (bottom) Cardiac Cycles'));
     
 end % end function
 
@@ -404,7 +373,7 @@ function show_pre_inj_img(seq, opt)
     temp = adjust_for_poi(seq, start, stop);
     opt.show = true;
     get_mean_cc( temp, opt );
-    title(horzcat(seq.name, " Pre-injection conductivity from individual and ensemble-averaged (bottom) Cardiac Cycles"));
+    title(horzcat(seq.name, ' Pre-injection conductivity from individual and ensemble-averaged (bottom) Cardiac Cycles'));
 
 end % end function
 
@@ -625,6 +594,8 @@ function delta_heatmap(D, sel, opt)
         temp = adjust_for_poi(seq, start, stop);
         meanCC = get_mean_cc( temp, opt );
         heatmapFrames(:,j) = max(meanCC, [], 2) - min(meanCC, [], 2);
+        % normalize
+        heatmapFrames(:,j) = ( heatmapFrames(:,j) - min(heatmapFrames(:,j)) ) ./ ( max(heatmapFrames(:,j)) - min(heatmapFrames(:,j)) );
     end % end for
     
     clim = max(heatmapFrames, [], 'all'); % adjust clim
@@ -632,11 +603,12 @@ function delta_heatmap(D, sel, opt)
     temp.calc_colours.clim = clim;
     temp.elem_data = heatmapFrames;
     temp.show_slices.img_cols = 3;
-    img = show_slices(temp);
-    assert(min(img(img~=1)) >= 128, "Min error");
-    img = img - 127;
-    img(img < 0) = 0;
-    image(img*2);
+    bigFig();
+	show_slices(temp);
+%     assert(min(img(img~=1)) >= 128, 'Min error');
+%     img = img - 127;
+%     img(img < 0) = 0;
+%     image(img*2);
 
 end % end function
 
@@ -681,9 +653,7 @@ function compare_pre_inj_imgs(D, sel, opt)
         outImg.elem_data = [outImg.elem_data, paddedAvCc];
     end % end for
     
-    outImg.calc_colours.clim = max(outImg.elem_data, [], 'all');
-    show_slices(outImg);
-    
+    show_slice_and_brain_seg_z(outImg, fn);
 end % end function
 
 % ======================================================================= %
@@ -730,13 +700,14 @@ function show_inj_fig(D, ts, te, nFrames)
     
     fn = fieldnames(D);
     switch D.seq1.pig
-        case "8.2"; ts = ts(1:3); te = te(1:3); fn = {'seq1','seq3','seq4'};
+        case '8-2'; ts = ts(1:3); te = te(1:3); fn = {'seq1','seq3','seq4'};
+        case '10-2'; ts = ts(1:3); te = te(1:3); fn = {'seq1','seq3','seq5'};
     end
     
     assert( length(fn) == length(ts), 'There must be one time slice pair per sequence!');
     assert( length(fn) == length(te), 'There must be one time slice pair per sequence!');
-    temp = D.seq1.imgr;
-    injFrames = zeros( size(temp.elem_data, 1), nFrames, length(fn) );
+    outImg = D.seq1.imgr;
+    injFrames = zeros( size(outImg.elem_data, 1), nFrames, length(fn) );
 
     for i=1:length(fn)
         seq = D.(fn{i});
@@ -745,35 +716,114 @@ function show_inj_fig(D, ts, te, nFrames)
         injFrameIdx = injFrameIdx(1:nFrames); % each frame is the start of a second this way.
         injFrames(:,:,i) = seq.imgr.elem_data(:, injFrameIdx);
     end % end for
+    
+    outImg.elem_data = reshape(injFrames, size(outImg.elem_data, 1), nFrames * i);
+    outImg.show_slices.img_cols = nFrames;
+    show_slice_and_brain_seg_z(outImg, fn);
+    figure(1);
+    sgtitle( sprintf('Subject %s - Reconstructed images from %i - %i seconds after saline bolus injection', char(D.(fn{i}).pig), ts(i), te(i)-1) );
+    figure(2);
+    sgtitle( sprintf('Subject %s - Reconstructed images from %i - %i seconds after saline bolus injection', char(D.(fn{i}).pig), ts(i), te(i)-1) );
+end % end function
 
-    temp.elem_data = reshape(injFrames, size(temp.elem_data, 1), nFrames * i);
-    temp.show_slices.img_cols = nFrames;
-    temp.calc_colours.clim = max(temp.elem_data, [] ,'all');
-    show_slices(temp);
+% ======================================================================= %
 
-    colorbar();
-    title( sprintf('Subject %s - Reconstructed images from %i - %i seconds after saline bolus injection', char(D.(fn{i}).pig), ts(i), te(i)-1) );
+function show_slice_and_brain_seg_z(img, fn)
+
+    img.calc_colours.clim = max(img.elem_data, [] ,'all');
+    
+    % show slices
+    figure(1);
+    show_slices(img); axis on
     ax = gca;
-    ax.Visible = 'on';
-    % Y labels
-    seqYTicksRef = linspace(ax.YLim(1), ax.YLim(2), i*2+1);
-    ax.YTick = seqYTicksRef(2:2:length(seqYTicksRef));
-    for j = 1:length(ax.YTick)
-        ax.YTickLabel{j} = sprintf('Sequence %i', j);
+    ax.YTick = [32 96 160];
+    ax.YTickLabel = cell(length(fn), 1);
+    for i = 1:length(fn)
+        ax.YTickLabel{i} = sprintf('Sequence %i', i);
     end % end for
-    % X labels
-    seqXTicksRef = linspace(ax.XLim(1), ax.XLim(2), nFrames*2+1);
-    ax.XTick = seqXTicksRef(2:2:length(seqXTicksRef));
-    for j = 1:length(ax.XTick)
-        ax.XTickLabel{j} = sprintf('%is', ts(1)+j-1);
+    ax.XTickLabel = {};
+    slc = calc_slices(img);
+    nFrames = img.show_slices.img_cols;
+    seqcount = 0;
+    ymax = -inf;
+    ymin = inf;
+    
+    % show line plots of brain conductivity
+    figure(2);
+    w = 5;      % number of subplot columns
+    z = w-1;    % number of subplot columns for line plot
+    for i = 1:length(fn)
+        seqcount    = seqcount + 1;
+        stop        = nFrames * i;
+        start       = stop + 1 - nFrames;
+        substop     = i * w;
+        substart    = substop - z;
+        subrng      = substart: substop-1;
+
+        % plot brain segmentation conductivity
+        
+        subplot(length(fn), w, subrng);
+        plot_brain_seg(slc(:, :, start: stop));
+        subplot(length(fn), w, substop);
+        show_seg(); % show brains segmentation as legend
+        fg = gcf;
+        
+        if fg.Children(3).YLim(1) < ymin
+            ymin = fg.Children(3).YLim(1);
+        end
+        
+        if fg.Children(3).YLim(2) > ymax
+            ymax = fg.Children(3).YLim(2);
+        end
+        
     end % end for
-    ax.TickLength = [0,0];
-    ax.FontSize = 15;
+
+    for i=3:3:length(fn)*3
+        fg.Children(i).YLim = [ymin*1.05 ymax*1.05];
+    end
 
 end % end function
 
 % ======================================================================= %
 
+function show_seg()
+    global seg;
+    imagesc(seg);
+    fg=gcf();
+    fg.Colormap = [ 1 1 1;...
+                    0.8500 0.3250 0.0980;...
+                    0.9290 0.6940 0.1250;...
+                    0.4940 0.1840 0.5560;...
+                    0.4660 0.6740 0.1880;...
+                    0.3010 0.7450 0.9330;...
+                    0.6350 0.0780 0.1840];
+    axis equal; 
+    axis off;
+end % end function
+
+
+function plot_brain_seg(slc)
+    global seg;
+    binSeg = (seg > 0)*1; % binary segmentation (all)
+    slc(isnan(slc)) = 0;
+    nPix = sum(binSeg,'all');
+    sumBrain = squeeze( sum( slc .* binSeg, [1,2] ) );
+    plot(sumBrain./nPix, 'linewidth', 2);
+    legend();
+    xlim([0.5, size(slc,3)+0.5]);
+    hold on;
+    for j = 1:max(seg,[],'all')
+        mask = (seg == j) *1;
+        nPix = sum(mask,'all');
+        plot( squeeze( sum( slc .* mask, [1,2] ) )./nPix, 'linewidth', 2);  
+        xlim([0.5, size(slc,3)+0.5]);
+    end % end for
+    ax = gca;
+    ax.XTick = 1:size(slc,3);
+    fg = gcf;
+    leg = fg.Children(1);
+    leg.String = {'Whole Brain Average'};
+end % end function
 
 
 

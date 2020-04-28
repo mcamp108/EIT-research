@@ -16,7 +16,23 @@ img.calc_colours.clim = 1;
 subplot(211); show_fem(img);
 subplot(212); plot([v1.meas, v2.meas, 1e3*(v1.meas- v2.meas)]);
 % ======================================================================= %
+%% 0. Simulations on actual pig model
+% pig= '8-2';
+% [fmdl, ~] = get_pig_mdl(pig);
+img = mk_image(fmdl, 1); % Background conductivity is scalp
+imdl = get_imdl(img);
+v1 = fwd_solve(img);
 
+% img.elem_data([fmdl.mat_idx{1}]) = 1.1;    %   1: scalp        0.41
+% img.elem_data([fmdl.mat_idx{2}]) = 0.9;   %   2: skull        0.016
+img.elem_data([fmdl.mat_idx{3}]) = 1.1;    %   3: grey matter  0.47
+% img.elem_data([fmdl.mat_idx{4}]) = 1.4;  %   4: air          0.0001
+v2 = fwd_solve(img);
+
+imgr = inv_solve(imdl,v1,v2);
+show_slices(imgr);
+    
+    
 %% 1. What is the minimum detectable whole-brain change in conducivity?
 savedir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\simulations\';
 v1 = fwd_solve(img);
