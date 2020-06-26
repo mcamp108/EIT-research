@@ -1,28 +1,28 @@
 function [fmdl, imdl] = get_pig_mdl(pig)
-% pig = '10-2';
+% pig = '12-2';
 switch pig
     case '8-2'
         fmdl_file= '8-2_fmdl.mat';
         imdl_file= '8-2_imdl.mat';
-        elec_z_plane= 93; % average of reference dot z planes from elec_loc_refs
+        elec_z_plane= 106; % average of reference dot z planes from elec_loc_refs
     case '9-2'
         fmdl_file= '9-2_fmdl.mat';
         imdl_file= '9-2_imdl.mat';
-        elec_z_plane= 93; % average of reference dot z planes from elec_loc_refs
+        elec_z_plane= 106; % average of reference dot z planes from elec_loc_refs
     case '10-2'
         fmdl_file= '10-2_fmdl.mat';
         imdl_file= '10-2_imdl.mat';
-        elec_z_plane= 116; % average of reference dot z planes from elec_loc_refs
-    case '11-2'  % use 9.2 for now.
-        pig = '9-2';
-        fmdl_file= '9-2_fmdl.mat';
-        imdl_file= '9-2_imdl.mat';
-        elec_z_plane= 93; % average of reference dot z planes from elec_loc_refs
-    case '12-2' % use 9.2 for now.
-        pig = '9-2';
-        fmdl_file= '9-2_fmdl.mat';
-        imdl_file= '9-2_imdl.mat';
-        elec_z_plane= 93; % average of reference dot z planes from elec_loc_refs
+        elec_z_plane= 125; % average of reference dot z planes from elec_loc_refs
+    case '11-2'
+        pig = '11-2';
+        fmdl_file= '11-2_fmdl.mat';
+        imdl_file= '11-2_imdl.mat';
+        elec_z_plane= 26; % average of reference dot z planes from elec_loc_refs
+    case '12-2'
+        pig = '12-2';
+        fmdl_file= '12-2_fmdl.mat';
+        imdl_file= '12-2_imdl.mat';
+        elec_z_plane= 41; % average of reference dot z planes from elec_loc_refs
 end % end switch
 
 cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Models\', pig,'\mesh'));
@@ -43,8 +43,7 @@ else
 
     load(seg3dOutMatFile);
     V = scirunnrrd.data;
-    V = rot90(V, 1);    % looking through back of pig
-    V = fliplr(V);      % looking through front of pig (anatomical position)
+    V = rot90(V, 1);    % looking through front of pig (anatomical position)      
 
     pixelScale = 1;
     volRes = 1 / pixelScale;
@@ -160,10 +159,8 @@ else
     x = fmdl.nodes(:,1);
     y = fmdl.nodes(:,2);
     fmdl.nodes(:,1) = y;
-    fmdl.nodes(:,2) = -x;
-    fmdl.nodes= fmdl.nodes .* [1 1 -1]; %flip x and y so that PAL to PAR is +x and inion to nasion is +y 
-    % flip so reconstructed images are in anatomical positioning
-
+    fmdl.nodes(:,2) = -x; % rotate x/y for EIDORS
+    
     % center model
     ctr = mean(fmdl.nodes);
     fmdl.nodes= fmdl.nodes - ctr; % center the model
@@ -198,6 +195,7 @@ else
     opt.noise_figure = [];
     opt.imgsz= imgsize;
     opt.keep_intermediate_results= true;
+    opt.save_memory = 1;
     img.fwd_model.normalize_measurements = 0;
 
     imdl = mk_GREIT_model(img, radius, weight, opt);

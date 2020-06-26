@@ -232,10 +232,10 @@ elseif strcmp(command, 'stat')
     hold on;
     
     for i=1:5
-        plot( IDX{i}, data.FRCT(IDX{i}),    '-o',   'linewidth',LW, 'Color','#A2142F'); 
-        plot( IDX{i}, data.FRCM(IDX{i}),    '-o',   'linewidth',LW, 'Color','#D95319');
-        plot( IDX{i}, data.FRCB(IDX{i}),    '-o',   'linewidth',LW, 'Color','#0072BD');
-        plot( IDX{i}, data.TV(IDX{i}),    '--^',   'linewidth',LW, 'Color','#7E2F8E');
+        plot( IDX{i}, data.FRCT(IDX{i}),  '-o',   'linewidth',LW, 'Color','#A2142F'); 
+        plot( IDX{i}, data.FRCM(IDX{i}),  '-o',   'linewidth',LW, 'Color','#D95319');
+        plot( IDX{i}, data.FRCB(IDX{i}),  '-o',   'linewidth',LW, 'Color','#0072BD');
+        plot( IDX{i}, data.TV(IDX{i}),    '--^',  'linewidth',LW, 'Color','#7E2F8E');
         plot( IDX{i}, data.BF(IDX{i}),    ':s',   'linewidth',LW, 'Color','#77AC30');
     end
     

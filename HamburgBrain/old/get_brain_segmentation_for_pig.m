@@ -23,17 +23,17 @@ function seg = get_brain_segmentation_for_pig(pig)
 
 switch pig
     case '8-2'
-        elec_z_plane= 93; % average of reference dot z planes from elec_loc_refs
+        elec_z_plane= 106; % average of reference dot z planes from elec_loc_refs
     case '9-2'
-        elec_z_plane= 93; % average of reference dot z planes from elec_loc_refs
+        elec_z_plane= 106; % average of reference dot z planes from elec_loc_refs
     case '10-2'
-        elec_z_plane= 116; % average of reference dot z planes from elec_loc_refs
+        elec_z_plane= 125; % average of reference dot z planes from elec_loc_refs
     case '11-2'  % use 9.2 for now.
         pig = '9-2';
-        elec_z_plane= 93; % average of reference dot z planes from elec_loc_refs
+        elec_z_plane= 106; % average of reference dot z planes from elec_loc_refs
     case '12-2' % use 9.2 for now.
         pig = '9-2';
-        elec_z_plane= 93; % average of reference dot z planes from elec_loc_refs
+        elec_z_plane= 106; % average of reference dot z planes from elec_loc_refs
 end % end switch
 
 cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Models\', pig,'\mesh'));
@@ -42,7 +42,6 @@ seg3dOutMatFile = horzcat(pig, '_seg3D_out');
 load(seg3dOutMatFile);
 V = scirunnrrd.data;
 V = rot90(V, 1); % looking through front of pig
-V = fliplr(V);      % looking through front of pig (anatomical position)
 
 elecPlaneImg = squeeze( V(:, :, elec_z_plane) );
 rowsum = sum(elecPlaneImg, 2);
