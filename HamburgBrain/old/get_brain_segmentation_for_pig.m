@@ -27,13 +27,11 @@ switch pig
     case '9-2'
         elec_z_plane= 106; % average of reference dot z planes from elec_loc_refs
     case '10-2'
-        elec_z_plane= 125; % average of reference dot z planes from elec_loc_refs
-    case '11-2'  % use 9.2 for now.
-        pig = '9-2';
-        elec_z_plane= 106; % average of reference dot z planes from elec_loc_refs
-    case '12-2' % use 9.2 for now.
-        pig = '9-2';
-        elec_z_plane= 106; % average of reference dot z planes from elec_loc_refs
+        elec_z_plane= 97; % average of reference dot z planes from elec_loc_refs
+    case '11-2'
+        elec_z_plane= 96; % average of reference dot z planes from elec_loc_refs
+    case '12-2'
+        elec_z_plane= 116; % average of reference dot z planes from elec_loc_refs
 end % end switch
 
 cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Models\', pig,'\mesh'));

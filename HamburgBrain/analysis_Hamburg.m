@@ -9,8 +9,10 @@
 % -------------------------------------------------------------------------
 global seg;
 run 'myStartup.m';
-% pigs= {'8-2','9-2','10-2'};
-pigs= {'10-2'};
+% pigs= {'8-2','9-2','10-2','11-2','12-2'};
+pigs= {'8-2'};
+% do = [1,2,4];
+do = [0];
 for q = 1:length(pigs)
     close all
     bigFig();
@@ -52,81 +54,121 @@ for q = 1:length(pigs)
     
 % -------------------------------------------------------------------------
     % 1. Injection Images Figure
-    cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper\inj');
+    if sum(ismember(do,1))> 0
+        cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper\inj');
 
-    switch pig
-%         case '8-2';     ts = [5,5,5,5];       te = [20,20,20,20]; % use seq2 as ref
-%         case '9-2';     ts = [5,5,5,5];       te = [20,20,20,20];
-%         case '10-2';    ts = [5,5,5,5,5,5];   te = [20,20,20,20,20,20];
-%         case '11-2';    ts = [5,5,5,5,5,5];   te = [20,20,20,20,20,20];
-%         case '12-2';    ts = [5,5,5,5,5,5];   te = [20,20,20,20,20,20];
-        case '8-2';     ts = [1,1,1,1];       te = [20,20,20,20]; % use seq2 as ref
-        case '9-2';     ts = [1,1,1,1];       te = [20,20,20,20];
-        case '10-2';    ts = [1,1,1,1,1,1];   te = [20,20,20,20,20,20];
-        case '11-2';    ts = [1,1,1,1,1,1];   te = [20,20,20,20,20,20];
-        case '12-2';    ts = [1,1,1,1,1,1];   te = [20,20,20,20,20,20];
-    end % end switch
+        switch pig
+            case '8-2';     ts = [1,1,1,1];       te = [20,20,20,20]; % use seq2 as ref
+            case '9-2';     ts = [1,1,1,1];       te = [20,20,20,20];
+            case '10-2';    ts = [1,1,1,1,1,1];   te = [20,20,20,20,20,20];
+            case '11-2';    ts = [1,1,1,1,1,1];   te = [20,20,20,20,20,20];
+            case '12-2';    ts = [1,1,1,1,1,1];   te = [20,20,20,20,20,20];
+        end % end switch
 
-    % options
-    nFrames = length(ts(1):te(1));
-    % make figure
-    show_inj_fig(D, ts, te, nFrames, sel);
-    % save figures
-    figure(1); pause(0.5);
-    printPDF( sprintf('%sInjectionFigure', char(D.(fn{1}).pig)) );
-    figure(2);
-    printPDF( sprintf('%sInjectionFigurePlots', char(D.(fn{1}).pig)) );   
-    pause(1);
-
+        % options
+        opt.normalize = true;
+        nFrames = length(ts(1):te(1));
+        % make figure
+        show_inj_fig(D, ts, te, nFrames, sel, opt);
+        % save figures
+        figure(1); pause(0.5);
+        printPDF( sprintf('%sInjectionFigure', char(D.(fn{1}).pig)) );
+        figure(2);
+        printPDF( sprintf('%sInjectionFigurePlots', char(D.(fn{1}).pig)) );   
+        pause(1);
+    end
 % -------------------------------------------------------------------------
 %     % 2. Total change over cardiac cycle
-%     clf();
-%     cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper\tcoc');
-%     hold on;
-%     % otptions
-%     name = horzcat(char(pig), ' ',ref,' reference. Total change over average cardiac cycle');
-%     title( name );
-%     % make figure
-%     delta_heatmap(D, sel, opt);
-%     colorbar();
-%     % title(horzcat(num2str(sel), ' - ',D.(fn{sel}).name));
-%     colormap jet;
-%     fig = gcf;
-%     fig.Colormap(1,:) = [1 1 1] * 0.75;
-%     printPDF( horzcat(char(pig),'TCOCC') );
-%     pause(1);
-
+    if sum(ismember(do,2))> 0
+        clf();
+        cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper\tcoc');
+        hold on;
+        % otptions
+        name = horzcat(char(pig), ' ',ref,' reference. Total change over average cardiac cycle');
+        title( name );
+        % make figure
+        delta_heatmap(D, sel, opt);
+        colorbar();
+        % title(horzcat(num2str(sel), ' - ',D.(fn{sel}).name));
+        colormap jet;
+        fig = gcf;
+        fig.Colormap(1,:) = [1 1 1] * 0.75;
+        printPDF( horzcat(char(pig),'TCOCC') );
+        pause(1);
+    end
 % -------------------------------------------------------------------------
     % 3. Compare average CC for all sequences with adjusted clim
-    figure(1); clf();
-    figure(2); clf();
-    cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper\ensemble');
-    % options
-    opt.sidelen = inf;
-    opt.align = 2;
-    % opt.sidelen = 5;
-    switch pig
-        case '8-2'
-            TITLE = '8-2 Ensemble Average of Pulsatile Signal. baseline (top), after perfusion reduction (middle), 30 minutes after perfusion reduction (bottom)';
-        case '9-2'
-%             TITLE = '9-2 Ensemble Average of Pulsatile Signal. baseline (top), after perfusion reduction (middle), 60 minutes after perfusion reduction (bottom)';
-            TITLE = '9-2 Ensemble Average of Pulsatile Signal. baseline (top), after perfusion reduction (bottom)';
-        case '10-2'
-            TITLE = '10-2 CVC Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 6 hours after stroke induction (bottom)';
-        case '11-2'
-            TITLE = '11-2 CVC Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 4 hours after stroke induction (bottom)';
-        case '12-2'
-            TITLE = '12-2 CVC Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 3.5 hours after stroke induction (bottom)';
-    end % end switch
-    % make figures
-    compare_pre_inj_imgs(D, sel, opt);
-    % save figures
-    figure(1); 
-    title(TITLE); colorbar(); pause(0.5);
-    printPDF(horzcat(char(pig), 'ensemble'));
-    figure(2);
-    title(TITLE);
-    printPDF(horzcat(char(pig), 'ensemblePlots'));
+    if sum(ismember(do,3))> 0
+        figure(1); clf();
+        figure(2); clf();
+        cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper\ensemble');
+        % options
+        opt.sidelen = inf;
+        opt.align = 2;
+        % opt.sidelen = 5;
+        switch pig
+            case '8-2'
+                TITLE = '8-2 Ensemble Average of Pulsatile Signal. baseline (top), after perfusion reduction (middle), 30 minutes after perfusion reduction (bottom)';
+            case '9-2'
+    %             TITLE = '9-2 Ensemble Average of Pulsatile Signal. baseline (top), after perfusion reduction (middle), 60 minutes after perfusion reduction (bottom)';
+                TITLE = '9-2 Ensemble Average of Pulsatile Signal. baseline (top), after perfusion reduction (bottom)';
+            case '10-2'
+                TITLE = '10-2 CVC Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 6 hours after stroke induction (bottom)';
+            case '11-2'
+                TITLE = '11-2 CVC Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 4 hours after stroke induction (bottom)';
+            case '12-2'
+                TITLE = '12-2 CVC Ensemble Average of Pulsatile Signal. baseline (top), after stroke induction (middle), 3.5 hours after stroke induction (bottom)';
+        end % end switch
+        % make figures
+        opt.normalize = true;
+        compare_pre_inj_imgs(D, sel, opt);
+        % save figures
+        figure(1); 
+        title(TITLE); colorbar(); pause(0.5);
+        printPDF(horzcat(char(pig), 'ensemble'));
+        figure(2);
+        title(TITLE);
+        printPDF(horzcat(char(pig), 'ensemblePlots'));
+    end
+% -------------------------------------------------------------------------
+% 4. Assess localization accuracy
+    if sum(ismember(do,4))> 0
+        NORMALIZE = true;
+        outImg = compare_pre_inj_imgs(D, sel, opt);
+        nFrames = size(outImg.elem_data, 2) / length(sel);
+        if NORMALIZE
+            tempImg = outImg;
+            slc     = [];
+            start   = 1;
+            stop    = nFrames;
+            for i = 1: length(sel)
+                tempImg.elem_data = outImg.elem_data(:, start:stop);
+                if i == 1
+                    slc = calc_colours(calc_slices(tempImg));
+                else
+                    slc(:,:,start:stop) = calc_colours(calc_slices(tempImg));
+                end % end if
+                start   = start + nFrames;
+                stop    = stop + nFrames;
+            end % end for
+        else
+            slc = calc_slices(outImg);
+        end % end if
+        segX = sum(seg, 1);
+        segY = sum(seg, 2);
+        
+        brainTop    = find(segY ~= 0, 1, 'first');
+        brainBot    = find(segY ~= 0, 1, 'last');
+        brainLeft   = find(segX ~= 0, 1, 'first');
+        brainRight  = find(segX ~= 0, 1, 'last');
+        
+        for r = 1:size(slc, 3)
+            img1 = slc(:,:,r);
+            Dxy = localization_err( img1(brainTop:brainBot,brainLeft:brainRight), cbv_img(pig) );
+            disp(Dxy);
+        end
+    end % end if do 4
+
 % -------------------------------------------------------------------------
     % revert landmarks
     switch pig
@@ -432,19 +474,18 @@ end % end function
 
 % ======================================================================= %
 
-function compare_pre_inj_imgs(D, sel, opt)
+function outImg = compare_pre_inj_imgs(D, sel, opt)
     IMGCOLS = 10;
-    fn = fieldnames(D);
-    period = opt.period;
+    fn      = fieldnames(D);
+    period  = opt.period;
     if nargin == 1
         sel = 1:length(fn);
     elseif isempty(sel)
         sel = 1:length(fn);
-    end % end if
-    
-    MC = struct;
+    end % end if    
+    MC      = struct;
     maxCcLen = 0;
-    CcLens = zeros(1, length(sel));
+    CcLens  = zeros(1, length(sel));
     for j = 1:length(sel)
         i = sel(j);
         seq = D.(fn{i});
@@ -479,7 +520,10 @@ function compare_pre_inj_imgs(D, sel, opt)
         outImg.elem_data = [outImg.elem_data, paddedAvCc];
     end % end for
     
-    show_slice_and_brain_seg_z(outImg, fn);
+    if nargout == 0
+        show_slice_and_brain_seg_z(outImg, fn, [], opt);
+    end % end if
+        
 end % end function
 
 % ======================================================================= %
@@ -522,7 +566,7 @@ end % end function
 
 % ======================================================================= %
 
-function show_inj_fig(D, ts, te, nFrames, sel)
+function show_inj_fig(D, ts, te, nFrames, sel, opt)    
     IMGCOLS = 10;
     fn = fieldnames(D);
     fn2 = cell(length(sel),1);
@@ -533,19 +577,19 @@ function show_inj_fig(D, ts, te, nFrames, sel)
 
     for i=1:length(sel)
         seq = D.(fn{sel(i)});
-        [start,stop] = define_period(seq, [3, ts(i), te(i)]);
-        injFrameIdx = round( linspace(start, stop, nFrames+1) );        
-        injFrameIdx = injFrameIdx(1:nFrames); % each frame is the start of a second this way.
-        injFrames(:,:,i) = seq.imgr.elem_data(:, injFrameIdx);
-        fn2{i} = fn{sel(i)};
-        
+        [start,stop]        = define_period(seq, [3, ts(i), te(i)]);
+        injFrameIdx         = round( linspace(start, stop, nFrames+1) );        
+        injFrameIdx         = injFrameIdx(1:nFrames); % each frame is the start of a second this way.
+        fn2{i}              = fn{sel(i)};
         % want to increase time resolution of line plots for brain
         % conductivity
-        injFrameIdx2 = start:stop;
+        injFrameIdx2        = start:stop; % data to use for plotting
         if i == 1
-            injFrames2 = zeros( size(outImg.elem_data, 1), length(injFrameIdx2), length(sel) );
+            injFrames2      = zeros( size(outImg.elem_data, 1), length(injFrameIdx2), length(sel) );
         end % end if
-        injFrames2(:,:,i) = seq.imgr.elem_data(:, injFrameIdx2);
+        
+        injFrames(:,:,i)    = seq.imgr.elem_data(:, injFrameIdx);
+        injFrames2(:,:,i)   = seq.imgr.elem_data(:, injFrameIdx2);
     end % end for
     
     outImg.elem_data = reshape(injFrames, size(outImg.elem_data, 1), nFrames * i);
@@ -556,7 +600,7 @@ function show_inj_fig(D, ts, te, nFrames, sel)
     plotimg.elem_data = reshape(injFrames2, size(plotimg.elem_data, 1), length(injFrameIdx2) * i); % num elems x (n seq x length each series)
     plotimg.show_slices.img_cols = length(injFrameIdx2);  
     
-    show_slice_and_brain_seg_z(outImg, fn2, plotimg);
+    show_slice_and_brain_seg_z(outImg, fn2, plotimg, opt);
     figure(1);
     title( sprintf('Subject %s - Reconstructed images from %i - %i seconds after saline bolus injection', char(D.(fn{i}).pig), ts(i), te(i)) );
     figure(2);    
@@ -565,23 +609,87 @@ end % end function
 
 % ======================================================================= %
 
-function show_slice_and_brain_seg_z(img, fn, plotimg)
+function show_slice_and_brain_seg_z(img, fn, plotimg, opt)
     global seg;
+    if isfield(opt, 'normalize')
+        NORMALIZE = opt.normalize;
+    else
+        NORMALIZE = false;
+    end % end if
     
+    NROWSINIMG = 32;
     % show slices
     figure(1);
-    binSeg = (seg > 0)*5; % binary segmentation (all) 5x multiplier for brain in show slices.
+    binSeg              = (seg > 0)*5; % binary segmentation (all) 5x multiplier for brain in show slices.
     binSeg(binSeg == 0) = 1;
-    slc = calc_slices(img).* binSeg;
-    img.calc_colours.clim = max(slc, [] ,'all');
-    rowPerSeq = size(img.elem_data, 2) / length(fn) / img.show_slices.img_cols;
-    fivexSlc = calc_colours(slc, img);
+    rowPerSeq           = size(img.elem_data, 2) / length(fn) / img.show_slices.img_cols;
+    if NORMALIZE
+        tempImg = img;
+        slc = [];
+        start   = 1;
+        stop    = rowPerSeq * img.show_slices.img_cols;
+        for i = 1: length(fn)
+            tempImg.elem_data = img.elem_data(:, start:stop);
+            if i == 1
+                slc = calc_colours(calc_slices(tempImg).* binSeg);
+            else
+                slc(:,:,start:stop) = calc_colours(calc_slices(tempImg).* binSeg);
+            end % end if
+            start   = start + rowPerSeq * img.show_slices.img_cols;
+            stop    = stop + rowPerSeq * img.show_slices.img_cols;
+        end % end for
+    else
+        slc = calc_slices(img).* binSeg;
+    end % end if
+    
+    img.calc_colours.clim = max(slc, [] ,'all');    
+    % trim EIT images so they are roughly the same height as the perfusion
+    % MR images.
+    segBoundaries   = sum(binSeg, 2) == size(binSeg, 2);
+    topRowSeg       = find(segBoundaries == 0,1,'first');
+    botRowSeg       = find(segBoundaries == 0,1,'last');
+    toDivide        = NROWSINIMG - (botRowSeg - topRowSeg + 1);
+    topIdx          = topRowSeg - floor(toDivide/2); % if toDivide is odd, will give more rows to bottom (as in MRI images)
+    botIdx          = botRowSeg + ceil(toDivide/2);
+    nRows           = size(slc,1);
+    if topIdx < 1
+        botIdx = botIdx + (1 - topIdx); % give these rows to bottom if too high on image
+        topIdx = 1;
+    elseif botIdx > nRows
+        topIdx = topIdx + (nRows - botIdx);
+        botIdx = nRows;
+    end % end if
+    
+    cutSlc      = slc(topIdx:botIdx, :, :);
+    fivexSlc    = calc_colours(cutSlc, img);
+    
+    % check to see if a full row of images is blank and remove if so.
+    rowPerSeq2 = repmat(rowPerSeq, length(fn), 1); 
+    elimRows = squeeze( sum(fivexSlc, [1,2]) / ( size(fivexSlc,1) * size(fivexSlc,2) * 128) )';
+    elimRows = reshape(elimRows, img.show_slices.img_cols, rowPerSeq*length(fn));
+    elimRows = sum(elimRows, 1) == img.show_slices.img_cols;
+    if sum(elimRows) >= 1
+        elimRowsIdxS = elimRows*1 .* (1:10:10*rowPerSeq*length(fn));
+        elimRowsIdxS = elimRowsIdxS(elimRowsIdxS >0);
+        elimRowsIdxE = elimRowsIdxS + img.show_slices.img_cols - 1;
+        for i = 1:length(elimRowsIdxS)
+            fivexSlc(:,:,elimRowsIdxS(i):elimRowsIdxE(i)) = nan;
+        end % end for i
+        fivexSlc = fivexSlc(~isnan(fivexSlc)); % remove those rows
+        fivexSlc = reshape(fivexSlc, NROWSINIMG, nRows, []); % reshape for show
+        rng = [1,rowPerSeq];
+        idx = find(elimRows); % get row numbers of all blank rows
+        for i = 1:length(fn)
+            rowPerSeq2(i) = rowPerSeq2(i) - sum( (idx >= rng(1)) + (idx <= rng(2)) == 2 ); % eliminate rows from rowsPerSeg to allow proper axis labelling.
+            rng = rng + rowPerSeq;
+        end % end for i
+    end % end if
+    
     imagesc(mk_mosaic(fivexSlc,0,[],img.show_slices.img_cols)); axis equal; axis image
-%     show_slices(img); axis on
     ax = gca;
-    ax.YTick = 32;
-    for i=2:length(fn)
-        ax.YTick = [ax.YTick, ax.YTick(i-1) + rowPerSeq*64];
+    ax.YTick = NROWSINIMG/2;
+    for i = 2: length(fn)
+        ax.YTick = [ax.YTick, ax.YTick(i-1) + rowPerSeq2(i-1) * NROWSINIMG];
     end % end for
     ax.YTickLabel = cell(length(fn), 1);
     for i = 1:length(fn)
@@ -590,15 +698,32 @@ function show_slice_and_brain_seg_z(img, fn, plotimg)
     ax.XTickLabel = {};
     
     % show line plots of brain conductivity
-    if nargin == 3 % if we want the higher temporal res plots
+    if isstruct(plotimg) % if we want the higher temporal res plots
         img = plotimg;
         nFrames = img.show_slices.img_cols;
     else
         nFrames = img.show_slices.img_cols * rowPerSeq;
     end
-    
-    img.calc_colours.clim = max(img.elem_data, [] ,'all');
-    slc = calc_slices(img);
+
+    if NORMALIZE
+        tempImg = img;
+        slc = [];
+        start   = 1;
+        stop    = nFrames;
+        for i = 1: length(fn)
+            tempImg.elem_data = img.elem_data(:, start:stop);
+            if i == 1
+                slc = calc_colours(calc_slices(tempImg));
+            else
+                slc(:,:,start:stop) = calc_colours(calc_slices(tempImg));
+            end % end if
+            start   = start + nFrames;
+            stop    = stop + nFrames;
+        end % end for
+    else
+        slc = calc_slices(img);
+    end % end if
+%     img.calc_colours.clim = max(slc, [] ,'all');
     seqcount = 0;
     ymax = -inf;
     ymin = inf;
@@ -630,7 +755,7 @@ function show_slice_and_brain_seg_z(img, fn, plotimg)
     end % end for
 
     for i=3:3:length(fn)*3
-        fg.Children(i).YLim = [ymin*1.05 ymax*1.05];
+        fg.Children(i).YLim = [ymin*.95 ymax*1.05];
     end
 
 end % end function
@@ -663,6 +788,7 @@ function plot_brain_seg(slc)
     slc(isnan(slc)) = 0;
     nPix = sum(binSeg,'all');
     sumBrain = squeeze( sum( slc .* binSeg, [1,2] ) );
+    sumBrain(sumBrain == nPix) = nan;
     % plot global signal first, dark blue colour.
     plot(sumBrain./nPix, 'linewidth', 2);
     legend();
@@ -670,9 +796,11 @@ function plot_brain_seg(slc)
     hold on;
     % plot each of the 6 regions next.
     for j = 1:max(seg,[],'all')
-        mask = (seg == j) *1;
-        nPix = sum(mask,'all');
-        plot( squeeze( sum( slc .* mask, [1,2] ) )./nPix, 'linewidth', 2);  
+        mask            = (seg == j) *1;
+        nPix            = sum(mask,'all');
+        dd              = squeeze( sum( slc .* mask, [1,2] ) );
+        dd(dd == nPix)  = nan;
+        plot( dd./nPix, 'linewidth', 2);  
         xlim([0.5, size(slc,3)+0.5]);
     end % end for
     
@@ -682,7 +810,6 @@ function plot_brain_seg(slc)
         ax.XTickLabel = 1:20;
     else
         ax.XTick = 1:size(slc,3);
-        
     end % end if
     
     % set axis labels

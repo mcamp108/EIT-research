@@ -117,7 +117,7 @@ xlim([0 size(v1.meas,1)]);
 saveas( gcf, horzcat(savedir,'skullBrainLocChangeZDownsameclimFine.svg') );
 % ======================================================================= %
 
-%% 3. How does sensitivity change wih thickness of skull as percentage of brain radius?
+%% 3. How does sensitivity change with thickness of skull as percentage of brain radius?
 savedir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\simulations\';
 %prep
 brainR = 0.5;
@@ -335,11 +335,95 @@ fcD = brD * FCSZ;   % focus diameter
 brC = [0, -stD/4];  % brain center
 skC = brC;          % skull center
 
-% brD = 1.4;          % brain diameter human
-% skD = 1.6;          % skull diameter human
-% fcD = brD * FCSZ;   % focus diameter human
-% brC = [0, 0];       % brain center human
-% skC = brC;          % skull center human
+THETA = brD * 0.05; % focus edge from brain edge safety factor
+lim = brD/2 - (fcD/2 + THETA);
+
+fcC = [ brC(1), brC(2); 
+        brC(1), brC(2)+lim; 
+        brC(1)+lim, brC(2);
+        brC(1), brC(2)-lim;
+        brC(1)-lim, brC(2) ];
+legendEntries = {'center','bottom','left','top','right'};
+doRange = fliplr(-0.5 : 0.1 : 0.5);
+fcRange = fliplr(-0.9 : 0.1 : 0);
+nIter = length(doRange);
+fcIter = length(fcRange);
+opt.cut=1;
+img = mk_sim_img(stD, [skC,skD], [brC, brD], [fcC(do,:),fcD], opt);
+imdl = get_imdl(img);
+v1 = fwd_solve(img);
+count=1;
+
+for i =1:fcIter
+    img.elem_data(img.fwd_model.mat_idx{2}) =       0.47 + (0.47 * fcRange(i)); % focus   
+    for j =1:nIter
+        img.elem_data(img.fwd_model.mat_idx{3}) =   0.47 + (0.47 * doRange(j)); % brain
+        img.elem_data(img.fwd_model.mat_idx{1}) =   0.41 + (0.41 * doRange(j)); % soft tissue
+        v2 = fwd_solve(img);
+        imgr = inv_solve(imdl, v1, v2);
+        
+        if count == 1
+            elemData = zeros(size(imgr.elem_data,1), nIter * fcIter);
+        end % end if
+        if j==1
+            bsln = imgr.elem_data; % baseline simulating second reference at average diastole.
+        end % end if
+        elemData(:,count) = imgr.elem_data - bsln;
+        elemData(:,count) = imgr.elem_data;
+        count = count + 1;
+    end % end for j
+end % end for i
+
+imgr.elem_data = elemData;
+imgr.show_slices.img_cols = nIter;
+imgr.calc_slices.clim = max(imgr.elem_data(:));
+show_slices(imgr);
+title(sprintf('Simulated pulsatile image set with %s side ischemia', doLoc));
+
+% format axes
+ax = gcf;
+ax.Visible = 'on';
+axC = ax.Children;
+axC.Visible = 'on';
+% Y labels
+seqYTicksRef = linspace(axC.YLim(1), axC.YLim(2), fcIter*2+1);
+axC.YTick = seqYTicksRef(2:2:length(seqYTicksRef));
+
+for j = 1:fcIter
+    zVal = (0.47 + (0.47 * fcRange(j)) ) / 0.47 * 100;
+    axC.YTickLabel{j} = sprintf('%0.f%s', zVal, '%');
+end % end for
+
+% X labels
+seqXTicksRef = linspace(axC.XLim(1), axC.XLim(2), nIter*2+1);
+axC.XTick = seqXTicksRef(2:2:length(seqXTicksRef));
+
+for j = 1:nIter
+    zVal = (0.47 + (0.47 * doRange(j)) ) / 0.47 * 100;
+    axC.XTickLabel{j} = sprintf('%0.f%s', zVal, '%');
+end % end for
+
+axC.TickLength = [0,0];
+axC.FontSize = 15;
+ylabel('Focus Conductivity (% Normal Brain)');
+xlabel('Brain Conductivity (% Normal Brain)');
+view(180,90)
+% saveas( gcf, horzcat(savedir, sprintf('SubDiastolePulsatilitySimulation %0.1fFocSize %swithSofttisuedeltaZFine.svg', FCSZ, doLoc)) );
+saveas( gcf, horzcat(savedir, sprintf('SubDiastolePulsatilitySimulation %0.1fFocSize %sFine.svg', FCSZ, doLoc)) );
+
+
+%% 7. Human head simulations
+savedir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\simulations\6';
+big_fig();
+loc = {'center','bottom','left','top','right'};
+do = 3; % which location to show.
+doLoc = loc{do};
+
+brD = 1.4;          % brain diameter human
+skD = 1.6;          % skull diameter human
+fcD = brD * FCSZ;   % focus diameter human
+brC = [0, 0];       % brain center human
+skC = brC;          % skull center human
 
 THETA = brD * 0.05; % focus edge from brain edge safety factor
 lim = brD/2 - (fcD/2 + THETA);
@@ -417,6 +501,7 @@ view(180,90)
 % saveas( gcf, horzcat(savedir, sprintf('SubDiastolePulsatilitySimulation %0.1fFocSize %swithSofttisuedeltaZFine.svg', FCSZ, doLoc)) );
 saveas( gcf, horzcat(savedir, sprintf('SubDiastolePulsatilitySimulation %0.1fFocSize %sFine.svg', FCSZ, doLoc)) );
 
+%%
 % ======================================================================= %
 % ======================================================================= %
 

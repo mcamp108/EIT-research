@@ -47,7 +47,7 @@ else
     data = D;
 end % end if
 
-elec_scores = zeros(32, n_files);
+elecScores = zeros(32, n_files);
 mmScores = zeros( length(find(imdl.fwd_model.meas_select)), n_files );
 stimScores = zeros(32, n_files);
 
@@ -57,7 +57,7 @@ for i= 1:n_files
     else
         [elecScores, mmScores(:,i), stimScores(:,i)] = elec_clip_scores(data{i}, imdl);
     end % end if
-    elec_scores(:,i) = resolve_scores(elecScores, imdl);
+    elecScores(:,i) = resolve_scores(elecScores, imdl);
 %         plot(elecScores); hold on; 
 %         plot(stimScores(:,i));
 %         plot(elec_scores(:,i));
@@ -65,12 +65,12 @@ for i= 1:n_files
 end % end for
 
 if n_files > 1
-    elec_scores= mean(elec_scores, 2);
+    elecScores= mean(elecScores, 2);
     mmScores= mean(mmScores, 2);
     stimScores= mean(stimScores, 2);
 end % end if
 
-[hi_lo_scores, elecs]= sort(elec_scores, 'descend');
+[hi_lo_scores, elecs]= sort(elecScores, 'descend');
 wElecs = elecs(hi_lo_scores > 0);
 
 if length(wElecs) > n
@@ -148,28 +148,29 @@ function [clip_scores, mmScores, stimScores] = elec_clip_scores(data, imdl)
         nMeasWithElec(i) = sum(elecUsed == i, 'all');
     end % end for
 
-    data_= data(mm,:);
-    clipped = find_clipped_agresive(data_);
-    tltClipped = sum(clipped, 2);
-    mmScores = sum(clipped, 2) ./ size(data_, 2); % output
+    data_       = data(mm,:);
+    clipped     = find_clipped_agresive(data_); % mark clipped measurements.
+    rDataNeg    = real(data_) < 0; % mark measurements with negative real component.
+    allMarked   = sum( (clipped*1 + rDataNeg*1) > 0, 2);
+    mmScores    = allMarked ./ size(data_, 2); % output
     measPerPair = length(mm) / nElec;
 
-    score = 1;
+    score       = 1;
     clip_scores = zeros(nElec,1);
-    stimScores = zeros(nElec,1); % number of clipped measurements when this electrode is measuring
+    stimScores  = zeros(nElec,1); % number of clipped measurements when this electrode is measuring
     
     for i = 1:nElec
         stop  = i * measPerPair;
         start = stop - measPerPair + 1;
         idx = stimPairs(i, :);
-        stimScores( idx ) = stimScores( idx ) + sum( tltClipped(start:stop) );
+        stimScores( idx ) = stimScores( idx ) + sum( allMarked(start:stop) );
     end % end for
     stimScores = stimScores ./ (measPerPair * size(data, 2));
     
     while score > 0
-        score = max(tltClipped);
-        worst = find(tltClipped == score);
-        tltClipped(worst) = 0;
+        score = max(allMarked);
+        worst = find(allMarked == score);
+        allMarked(worst) = 0;
 
         for i=1:length(worst)
             elecs = elecUsed(worst(i),:);

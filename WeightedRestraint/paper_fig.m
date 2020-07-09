@@ -35,6 +35,7 @@ recordings= {'sref', 'pref', 'wref', 'wepos', 'epos'}; % change these with your 
 bsln = 2; % prone unweighted default is recording #2. This is used as the reference for all recordings.
 
 for i= 3: size(ls, 1) % for each participant
+    i=5;
     stats=struct;
     all_seq_av_breath=struct;
     clf;
@@ -67,7 +68,7 @@ for i= 3: size(ls, 1) % for each participant
         img_slices= img_slices .* lung_segmentation();
         lungZ = squeeze( sum( img_slices, [1 2]) )';
         [end_in, end_ex, Ti_by_Tt, BF]= select_breaths(-lungZ, FR);  
-%--------------------------------------------------------------------------        
+%--------------------------------------------------------------------------
 %         % plot selected breath boundaries
 %         plot_breath_boundaries(name, suffix, -lungZ, end_in, end_ex, front, back, j);
 %         keyboard; % confirm landmark happiness
@@ -438,6 +439,8 @@ for file = 1:length(files)
     
     inspect_eit_elec_and_data({dd, D.(field).aux} , imdl, RMTHRESHOLD);
     sgtitle(remove_underscores(f));
+    savefigdir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\data quality\electrode quality\';
+    printPDF( sprintf('%s%s data quality Resolve', savefigdir, remove_underscores(f)) );
 %     keyboard;
     clf();
     
@@ -616,4 +619,15 @@ cmap(1:black,3)=white_grad;
 
 cmap= [[1, 1, 1]; flipud(cmap(2:end, :))];
 
+end % end function
+
+function printPDF(filename)
+    h = gcf;
+    set(h, 'PaperUnits','centimeters');
+    set(h, 'Units','centimeters');
+    pos=get(h,'Position');
+    set(h, 'PaperSize', [pos(3) pos(4)]);
+    set(h, 'PaperPositionMode', 'manual');
+    set(h, 'PaperPosition',[0 0 pos(3) pos(4)]);
+    print('-dpdf',filename);
 end % end function

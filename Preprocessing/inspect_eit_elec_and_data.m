@@ -73,8 +73,8 @@ badMeas = mmScores > thresh;
 badElecIdx = scores > thresh;
 if length(badElecIdx) >= 1
     badElecs = wElecs(badElecIdx);
-%     kk = meas_icov_rm_elecs(imdl, badElecs);
-%     ee = find(diag(kk)~=1);
+    kk = meas_icov_rm_elecs(imdl, badElecs);
+    ee1 = find(diag(kk)~=1);
 end % end if
 ee = badMeas;
 ei = mean(elec_impedance, 2);
@@ -95,8 +95,11 @@ subplot(424);
     hold on;
     vk(~msel,:) = NaN;
     plot(vk,'b');   % selected meas
-    vn = NaN * vk; vn(ee,:) = vk(ee,:);
+    vn = NaN * vk; vn(ee1,:) = vk(ee1,:); % measurements from rejected electrodes
+    plot(vn,'mo');
+    vn = NaN * vk; vn(ee,:) = vk(ee,:); % independently rejected measurements
     plot(vn,'ro');
+    
     hold off;
     box off; 
     xlim([0,400]);
@@ -109,8 +112,13 @@ subplot(4,2,[3,5,7]);
     hold on;
     % used meas
     plot(1e3 * data(msel, data_samp), 'b+');
+    
+    ee1 = mm(ee1);
+    plot(1e3 * data(ee1,data_samp), 'm+');  % measurements from rejected electrodes
+    
     ee = mm(ee);
-    plot(1e3 * data(ee,data_samp), 'r+');
+    plot(1e3 * data(ee,data_samp), 'r+');   % independently rejected measurements
+    
     hold off; 
     box off;
     axis equal;

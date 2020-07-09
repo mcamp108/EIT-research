@@ -22,7 +22,7 @@ function varargout = n_back_gui(varargin)
 
 % Edit the above text to modify the response to help n_back_gui
 
-% Last Modified by GUIDE v2.5 27-Oct-2019 17:01:46
+% Last Modified by GUIDE v2.5 06-Jul-2020 11:21:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -67,18 +67,18 @@ handles.screenSize = get(0, 'screensize');
 % Set default command line output for n_back_gui
 global Start;
 global Stop;
-Start= false;
-Stop= false;
-handles.n_value= str2double(handles.n_value_popup.String{handles.n_value_popup.Value});
-handles.n_correct= str2double(handles.n_correct_popup.String{handles.n_correct_popup.Value});
-handles.deck_length= str2double(handles.length_popup.String{handles.length_popup.Value});
+Start = false;
+Stop = false;
+handles.n_value = str2double(handles.n_value_popup.String{handles.n_value_popup.Value});
+handles.n_correct = str2double(handles.n_correct_popup.String{handles.n_correct_popup.Value});
+handles.deck_length = str2double(handles.length_popup.String{handles.length_popup.Value});
 handles.output = hObject;
 
-handles.mainscreen.FontSize= 20;
-handles.mainscreen.HorizontalAlignment= 'center';
-handles.mainscreen.String= "Welcome to the N-back working memory exercise! Select your test parameters from the bottom left corner of the screen, then press 'Start' to begin.";
-handles.stimulus_number.String= "Stimulus number: ";
-handles.your_answer.String= "Your answer: ";
+handles.mainscreen.FontSize = 20;
+handles.mainscreen.HorizontalAlignment = 'left';
+handles.mainscreen.String = sprintf("Welcome to the N-back working memory exercise!\n\nSelect your test parameters from the bottom right corner of the screen.\n\nPress ''Start'' to read the instructions.");
+handles.stimulus_number.String = "Stimulus number: ";
+handles.your_answer.String = "Your answer: ";
 guidata(hObject, handles);
 % UIWAIT makes n_back_gui wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -106,14 +106,14 @@ global response_time;
 global responses;
 
 if Start== false
-    current_text= handles.mainscreen.String;
-    handles.mainscreen.String= "The exercise not started yet.";
+    current_text = handles.mainscreen.String;
+    handles.mainscreen.String = "The exercise not started yet.";
     pause(1);
-    handles.mainscreen.String= current_text;
+    handles.mainscreen.String = current_text;
 else
-    response_time(handles.stimulus_num)= toc;
-    responses(handles.stimulus_num)= 0;
-    handles.your_answer.String= "Your answer: No Match";
+    response_time(handles.stimulus_num) = toc;
+    responses(handles.stimulus_num) = 0;
+    handles.your_answer.String = "Your answer: No Match";
 end
 guidata(hObject, handles);
 
@@ -127,15 +127,15 @@ global Start;
 global response_time;
 global responses;
 
-if Start== false
+if Start == false
     current_text= handles.mainscreen.String;
-    handles.mainscreen.String= "The exercise not started yet.";
+    handles.mainscreen.String = "The exercise not started yet.";
     pause(1);
-    handles.mainscreen.String= current_text;
+    handles.mainscreen.String = current_text;
 else
-    response_time(handles.stimulus_num)= toc;
-    responses(handles.stimulus_num)= 1;
-    handles.your_answer.String= "Your answer: Match";
+    response_time(handles.stimulus_num) = toc;
+    responses(handles.stimulus_num) = 1;
+    handles.your_answer.String = "Your answer: Match";
 end
 guidata(hObject, handles);
 
@@ -151,7 +151,7 @@ global Stop;
 global response_time;
 global responses;
 
-if Start== false
+if Start == false
 %     Stop= false;
 %     handles.mainscreen.FontSize= 20;
 %     handles.mainscreen.HorizontalAlignment= 'center';
@@ -163,9 +163,11 @@ if Start== false
 % % Start has been pressed once. Show the instructions
 % elseif Start== false 
     [handles.n_back_deck, handles.answers]= build_nBack_deck(handles.n_value, handles.n_correct, handles.deck_length);
-    handles.mainscreen.HorizontalAlignment= 'left';
-    handles.mainscreen.String= ["Instructions:", newline,... 
-                                "You will be shown a random series of letters. The goal of this exercise is to press 'Match' when the letter being shown is the same as the letter that was shown 'n' times ago. If the current letter does not match the letter shown 'n' times ago, press 'No Match' instead.", newline, "Press 'Start' again when are are ready to begin."];
+    handles.mainscreen.HorizontalAlignment = 'left';
+    handles.mainscreen.FontSize = 15; 
+    handles.mainscreen.String = ["Instructions:", newline,... 
+                                "You will be shown a random series of letters. The goal of this exercise is to press 'Match' (hotkey: 'm') when the letter being shown is the same as the letter that was shown 'n' times ago. If the current letter does not match the letter shown 'n' times ago, press 'No Match' (hotkey: 'n') instead.",...
+                                newline, "Press 'Start' again when are are ready to begin. You may pause or end the session at any time."];
     Start= true;
 
 % Start has been pressed a second time. Start the exercise
@@ -240,25 +242,26 @@ global Start;
 global Stop;
 
 handles.mainscreen.FontSize= 20;
-handles.mainscreen.HorizontalAlignment= 'center';
+handles.mainscreen.HorizontalAlignment= 'left';
 
 if Start== true % if it was started, stop it
     Stop= true;
+    handles.mainscreen.HorizontalAlignment= 'center';
     handles.mainscreen.String= "End of Exercise.";
     Start= false;
     pause(1.5);
-elseif Start== false && Stop== true % if it wasn't started, don't stop it
-    handles.mainscreen.String= "Welcome to the N-back working memory exercise! Select your test parameters from the bottom left corner of the screen, then press 'Start' to begin.";
+elseif Start== false && Stop == true % if it wasn't started, don't stop it
+    handles.mainscreen.String = sprintf("Welcome to the N-back working memory exercise!\n\nSelect your test parameters from the bottom right corner of the screen.\n\nPress ''Start'' to read the instructions.");
     Stop= false;
-elseif Start== false && Stop== false
-    handles.mainscreen.String= "The exercise has not started yet.";
+elseif Start== false && Stop == false
+    handles.mainscreen.String = "The exercise has not started yet.";
     Stop= false;
     pause(1.5);
 % else
 %     message= "Welcome to the N-back working memory exercise! Select your test parameters from the bottom left corner of the screen, then press 'Start' to begin.";
 end % end if
 
-handles.mainscreen.String= "Welcome to the N-back working memory exercise! Select your test parameters from the bottom left corner of the screen, then press 'Start' to begin.";
+handles.mainscreen.String = sprintf("Welcome to the N-back working memory exercise!\n\nSelect your test parameters from the bottom right corner of the screen.\n\nPress ''Start'' to read the instructions.");
 handles.stimulus_number.String= "Stimulus number: ";
 handles.your_answer.String= "Your answer: ";
 guidata(hObject, handles);
@@ -417,4 +420,82 @@ function axes1_DeleteFcn(hObject, eventdata, handles)
 function axes1_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to axes1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on key press with focus on pushbutton_start and none of its controls.
+function pushbutton_start_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to pushbutton_start (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.UICONTROL)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on key press with focus on n_value_popup and none of its controls.
+function n_value_popup_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to n_value_popup (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.UICONTROL)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on key press with focus on length_popup and none of its controls.
+function length_popup_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to length_popup (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.UICONTROL)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on key press with focus on n_correct_popup and none of its controls.
+function n_correct_popup_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to n_correct_popup (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.UICONTROL)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on key press with focus on pushbutton_pause and none of its controls.
+function pushbutton_pause_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to pushbutton_pause (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.UICONTROL)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on key press with focus on pushbutton_stop and none of its controls.
+function pushbutton_stop_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to pushbutton_stop (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.UICONTROL)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on key press with focus on pushbutton_stop and none of its controls.
+function match_button_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to pushbutton_stop (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.UICONTROL)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on key press with focus on pushbutton_stop and none of its controls.
+function nomatch_button_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to pushbutton_stop (see GCBO)
+% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.UICONTROL)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
 % handles    structure with handles and user data (see GUIDATA)

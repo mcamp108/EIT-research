@@ -12,17 +12,17 @@ switch pig
     case '10-2'
         fmdl_file= '10-2_fmdl.mat';
         imdl_file= '10-2_imdl.mat';
-        elec_z_plane= 125; % average of reference dot z planes from elec_loc_refs
+        elec_z_plane= 97; % average of reference dot z planes from elec_loc_refs
     case '11-2'
         pig = '11-2';
         fmdl_file= '11-2_fmdl.mat';
         imdl_file= '11-2_imdl.mat';
-        elec_z_plane= 26; % average of reference dot z planes from elec_loc_refs
+        elec_z_plane= 96; % average of reference dot z planes from elec_loc_refs
     case '12-2'
         pig = '12-2';
         fmdl_file= '12-2_fmdl.mat';
         imdl_file= '12-2_imdl.mat';
-        elec_z_plane= 41; % average of reference dot z planes from elec_loc_refs
+        elec_z_plane= 116; % average of reference dot z planes from elec_loc_refs
 end % end switch
 
 cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Models\', pig,'\mesh'));
@@ -167,16 +167,17 @@ else
     
     figure(1);
     sgtitle(sprintf('Tissue Segmentation Meshes for %s',pig));
-    subplot(4,4,1:12);
-    show_fem(fmdl, [0 1 0]);
-    subplot(4,4,13); wireframe(fmdl,1); axis equal;
-    subplot(4,4,14); wireframe(fmdl,2); axis equal;
-    subplot(4,4,15); wireframe(fmdl,3); axis equal;
-    subplot(4,4,16); wireframe(fmdl,4); axis equal;
+    subplot(4,5,1:16);
+    show_fem(fmdl, [0 1 0]); view(0,45);
+    subplot(4,4,17); wireframe(fmdl,1); axis equal;
+    subplot(4,4,18); wireframe(fmdl,2); axis equal;
+    subplot(4,4,19); wireframe(fmdl,3); axis equal;
+    subplot(4,4,20); wireframe(fmdl,4); axis equal;
     % Check FWD is ok
     if valid_fwd_model(fmdl)
         disp('Forward model is ok!');
     end
+    
     keyboard;
     saveas(gcf,sprintf('%s model.svg',pig));
 
