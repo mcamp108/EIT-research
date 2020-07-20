@@ -44,7 +44,7 @@ else
 %     nElec           = 32;
 
     % load segmentation
-    I           = load(horzcat(dataDir,seg3dOutMatFile));
+    I           = load(horzcat(dataDir, seg3dOutMatFile));
     I           = I.scirunnrrd;
     V.data      = I.data;
     pixelScale  = [I.axis(1).spacing, I.axis(2).spacing, I.axis(3).spacing];
@@ -60,7 +60,7 @@ else
     saveinr_EIT(uint8(V.data), inrFileName, xyzRes); % save the segmentation to inr for the mesher
 
     % Run the mesher
-    factor = 1;
+    factor = 2;
     P = getmesherparam;
     
     % facet sizes
@@ -70,14 +70,14 @@ else
     
     % electrode size
     P.refine.electrodes         = 1;
-    P.electrode_radius_mm       = 10 * factor;
+    P.electrode_radius_mm       = 10;
     P.cell_size_electrodes_mm   = .5 * factor;
     
     % Turn off all optimisations
     P.opt.exude_opt     = 0;
-    P.opt.lloyd_opt     = 0;
-    P.opt.odt_opt       = 0;
-    P.opt.perturb_opt   = 0;
+    P.opt.lloyd_opt     = 1;
+    P.opt.odt_opt       = 1;
+    P.opt.perturb_opt   = 1;
 
     % save the output to csv to load into matlab
     P.save.save_nodes_tetra = 1;
@@ -153,8 +153,8 @@ else
     % TRANSFORM
     x = fmdl.nodes(:,1);
     y = fmdl.nodes(:,2);
-    fmdl.nodes(:,1) = y;
-    fmdl.nodes(:,2) = -x; % rotate x/y for EIDORS
+    fmdl.nodes(:,1) = x;
+    fmdl.nodes(:,2) = -y; % rotate x/y for EIDORS
     
     % center model
     ctr = mean(fmdl.nodes);
@@ -190,23 +190,24 @@ else
     img.elem_data([fmdl.mat_idx{6}]) = 0.7;     %   6: diploe
     img.elem_data([fmdl.mat_idx{7}]) = 0.0001;  %   7: air
 
-    % Set stim patterns
-    imgsize = [64 64];
+    % Make 3D distribution
+    nPix = 32;
+    vopt.imgsz          = [nPix nPix nPix];
+    vopt.square_pixels  = true;
+    vopt.save_memory    = 1;
+    [imdl_t, opt.distr] = GREIT3D_distribution(fmdl, vopt);
+    
     radius = 0.2; % - requested weighting matrix  (recommend 0.2 for 16 electrodes)
     weight = 1; % - weighting matrix (weighting of noise vs signal). Can be empty options.noise_figure is specified
     opt.noise_figure = [];
-    opt.imgsz = imgsize;
+    opt.save_memory    = 1;
     opt.keep_intermediate_results = true;
     img.fwd_model.normalize_measurements = 0;
-    imdl = mk_GREIT_model(img, radius, weight, opt);
+    imdl = mk_GREIT_model(imdl_t, radius, weight, opt);
     save(fmdlFileName,'fmdl');
     save(imdlFileName,'imdl');
+    
 end % end if
-
-%%
-% clf();
-% wireframe(fmdl,4); axis equal; view(-30,30); title('Scalp');
-%%
 
 end % end function
 

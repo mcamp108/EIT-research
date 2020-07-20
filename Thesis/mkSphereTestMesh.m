@@ -1,4 +1,4 @@
-function [fmdl, imdl]= mkSphereTestMesh(maxsz, maxh)
+function [fmdl, imdl] = mkSphereTestMesh()
 % This function was written by :
 %                               Mark Campbell
 %                               Carleton University    
@@ -26,20 +26,22 @@ else
     imdlFileName    = 'sphereImdl';
 
     % Make spherical model
-    npers   = 50;
+    DIAM    = 100;
+    RAD     = DIAM/2;
+    npers   = 1;
     spc     = 1/npers; 
-    rlim    = 1; % specify spacing and radius limit
-    skLim   = 0.85;
-    brLim   = 0.7;
+    rlim    = RAD; % specify spacing and radius limit
+    skLim   = 0.9*RAD;
+    brLim   = 0.8*RAD;
     [x,y,z] = meshgrid(-rlim:spc:rlim,-rlim:spc:rlim, -rlim:spc:rlim); % from: by: to.
-    img = (x.^2 + y.^2 + z.^2) < rlim; % transform meshgrid to hyperbola, with 1's where x^2+y^2 > rlim, and 0's elsewhere. This creates a circular matrix of 0's within the square matrix.
-    sk = (x.^2 + y.^2 + z.^2) < skLim;
-    br = (x.^2 + y.^2 + z.^2) < brLim;
-    V.data = img + sk + br;
+    img = sqrt(x.^2 + y.^2 + z.^2) < rlim;
+    sk = sqrt(x.^2 + y.^2 + z.^2) < skLim;
+    br = sqrt(x.^2 + y.^2 + z.^2) < brLim;
+    V.data = img*1 + sk*1 + br*1;
 
     % find electrode locations
-    h     = (npers + 1) / 2;
-    f     = npers * 2 + 1;
+    f     = size(img,1);    % full model dimension
+    h     = f/2;            % half model dimension
     V.Nz  = [h 1 h];
     V.Iz  = [h f h];
     V.PAR = [1 h h];
@@ -51,15 +53,15 @@ else
     % Run the mesher
     factor = 1;
     P = getmesherparam;
-
     % facet sizes
-    P.facet_distance_mm     = 0.2 * factor;
-    P.cell_fine_size_mm     = 2 * factor;
-    P.cell_coarse_size_mm   = 4 * factor;
+    P.cell_coarse_size_mm   = 0.2*DIAM;
+    P.facet_distance_mm     = P.cell_coarse_size_mm;
+    P.cell_fine_size_mm     = P.cell_coarse_size_mm/8;
+    
     % electrode size
     P.refine.electrodes         = 1;
-    P.electrode_radius_mm       = 4;
-    P.cell_size_electrodes_mm   = .5 * factor;
+    P.electrode_radius_mm       = P.cell_fine_size_mm;
+    P.cell_size_electrodes_mm   = P.cell_fine_size_mm/4;
     % Turn off all optimisations
     P.opt.exude_opt     = 0;
     P.opt.lloyd_opt     = 0;
@@ -133,42 +135,36 @@ else
 
     % center model
     ctr = mean(fmdl.nodes);
-%     fmdl.nodes= fmdl.nodes - ctr; % center the model
+    fmdl.nodes= fmdl.nodes - ctr; % center the model
 
-    figure(1);
-    sgtitle('Tissue Segmentation Meshes');
-    subplot(3,4,[1:3,5:7,9:11]);    show_fem(fmdl, [0 1 0]); axis equal; title('FEM: Front');
-    subplot(3,4,4);  wireframe(fmdl,1); axis equal; view(-30,30); title('Scalp');
-    subplot(3,4,8);  wireframe(fmdl,2); axis equal; view(-30,30); title('Skull');
-    subplot(3,4,12);  wireframe(fmdl,3); axis equal; view(-30,30); title('Brain');
+%     figure(1);
+%     sgtitle('Tissue Segmentation Meshes');
+%     subplot(3,4,[1:3,5:7,9:11]);    show_fem(fmdl, [0 1 0]); axis equal; title('FEM: Front'); view(0,45);
+%     subplot(3,4,4);  wireframe(fmdl,1); axis equal; view(-30,30); title('Scalp');
+%     subplot(3,4,8);  wireframe(fmdl,2); axis equal; view(-30,30); title('Skull');
+%     subplot(3,4,12);  wireframe(fmdl,3); axis equal; view(-30,30); title('Brain');
 
     % Check FWD is ok
     if valid_fwd_model(fmdl)
         disp('Forward model is ok!');
     end
-    keyboard;
-    saveas(gcf,'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-neuroimaging\Figures\Sphere model.svg');
+%     keyboard;
+%     saveas(gcf,'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-neuroimaging\Figures\Sphere model.svg');
 
     % Add conductivity and solve
-    img = mk_image(fmdl, 0.41); % Background conductivity is scalp
-    img.elem_data([fmdl.mat_idx{1}]) = 0.41;    %   1: scalp
-    img.elem_data([fmdl.mat_idx{2}]) = 0.016;   %   2: skull
-    img.elem_data([fmdl.mat_idx{3}]) = 0.47;    %   3: Brain
+
 
     % Make 3D distribution
     nPix = 32;
-    vopt.imgsz          = [nPix nPix];
+    vopt.imgsz          = [nPix nPix nPix];
     vopt.square_pixels  = true;
-    vopt.zvec           = linspace(0, max(fmdl.nodes(:,3)), nPix + 1); % try 6 next time. targetsize= 0.17 for 10 0.20 for 6
+%     vopt.zvec           = linspace(0, max(fmdl.nodes(:,3)), nPix + 1); % try 6 next time. targetsize= 0.17 for 10 0.20 for 6
     vopt.save_memory    = 1;
     [imdl_t, opt.distr] = GREIT3D_distribution(fmdl, vopt);
 
     radius = 0.2; % - requested weighting matrix  (recommend 0.2 for 16 electrodes)
-    weight = 1; % - weighting matrix (weighting of noise vs signal). Can be empty options.noise_figure is specified
-    opt.noise_figure = [];
-    opt.imgsz = [nPix nPix];
+    weight = 0.5; % - weighting matrix (weighting of noise vs signal). Can be empty options.noise_figure is specified
     opt.keep_intermediate_results = true;
-    img.fwd_model.normalize_measurements = 0;
     imdl = mk_GREIT_model(imdl_t, radius, weight, opt);
     save(fmdlFileName,'fmdl');
     save(imdlFileName,'imdl');
