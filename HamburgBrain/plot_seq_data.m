@@ -31,8 +31,6 @@ subplot(3, 1, 3);
     
 end % end function
 
-
-
 function plot_perf_data(seq)
 
     fs= seq.perf.tickrate;
@@ -44,8 +42,6 @@ function plot_perf_data(seq)
     title("Arterial Blood Pressure: "+ seq.name);
     
 end % end function
-
-
 
 function plot_sum_Z(seq)
 
@@ -75,8 +71,6 @@ function plot_sum_Z(seq)
     
 end % end function
 
-
-
 function plot_pv(seq, pOpt)
 
 hold on;
@@ -101,8 +95,6 @@ end % end if
 hold off;
 
 end % end function
-
-
 
 function plot_sum_V(seq)
    

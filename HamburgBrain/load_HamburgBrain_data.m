@@ -221,10 +221,10 @@ function D= hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj,
         D.(fn{i}) = allign_eit_and_perf(D.(fn{i}));
         D.(fn{i}) = find_perf_landmarks(D.(fn{i}));
         
-        inspect_eit_elec_and_data({D.(fn{i}).eit.data, aux}, imdl, 0.25);
-        cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
-        sgtitle(horzcat(char(pig), ' - ', D.(fn{i}).name));
-        saveas( gcf, sprintf('%s data qualityNoResolve.svg', fn{i}) );
+%         inspect_eit_elec_and_data({D.(fn{i}).eit.data, aux}, imdl, 0.25);
+%         cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\', char(pig)));
+%         sgtitle(horzcat(char(pig), ' - ', D.(fn{i}).name));
+%         saveas( gcf, sprintf('%s data qualityNoResolve.svg', fn{i}) );
     end % end for
 
 end % end function

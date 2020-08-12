@@ -35,7 +35,6 @@ recordings= {'sref', 'pref', 'wref', 'wepos', 'epos'}; % change these with your 
 bsln = 2; % prone unweighted default is recording #2. This is used as the reference for all recordings.
 
 for i= 3: size(ls, 1) % for each participant
-    i=5;
     stats=struct;
     all_seq_av_breath=struct;
     clf;
@@ -355,43 +354,6 @@ end % end function
 
 % -------------------------------------------------------------------------
 
-function files= load_wr_data(folder)
-    
-while strcmp(folder(end), ' ')
-    folder= folder(1:end-1);
-end % end while
-
-hdr= length(horzcat(folder, '_'))+ 1;
-cd(folder);
-files= ls;
-for f= 3: size(files, 1)
-    file= files(f, :);
-    while strcmp(file(end), ' ')
-        file= file(1:end-1);
-    end % end while
-    if strcmp(file(end-3:end), '.eit')
-        if strcmp(file(hdr:hdr+8), 'proneRef.')
-            pref= file;
-        elseif strcmp(file(hdr:hdr+13), 'proneRefWeight')
-            wref= file;
-        elseif strcmp(file(hdr:hdr+16), 'standingReference')
-            sref= file;
-        elseif strcmp(file(hdr:hdr+18), 'proneWeightExercise')
-            wepos= file;
-        elseif strcmp(file(hdr:hdr+20), 'proneNoWeightExercise')
-            epos= file;
-        else
-            disp("Unrecognized file name!")
-        end % end if
-    end % end if
-end % end for f
-
-files= {sref, pref, wref, wepos, epos};
-% cd ../.
-end % end function
-
-% -------------------------------------------------------------------------
-
 function plot_breath_boundaries(name, suffix, tbv, end_in, end_ex, front, back, j)
 
 n_breaths= length(end_in);
@@ -418,49 +380,6 @@ end
 cd(name); 
 saveas( fg1, sprintf('%s_%i_breaths_%s.svg', front, j, back) );
 cd(starting_dir);
-
-end % end function
-
-% -------------------------------------------------------------------------
-
-function [D, imdl_comp]= wr_pp(files, imdl, timeSeriesLength)
-
-% Weighted restraint pre-processing
-clip= 50;
-D = struct;
-RMTHRESHOLD = 0.25;
-msel= imdl.fwd_model.meas_select;
-mm = find(msel);
-sequences = {};
-for file = 1:length(files)
-    f = files{file};
-    field = horzcat('seq', num2str(file));
-    [ dd, D.(field).aux ] = eidors_readdata(f);
-    
-    inspect_eit_elec_and_data({dd, D.(field).aux} , imdl, RMTHRESHOLD);
-    sgtitle(remove_underscores(f));
-    savefigdir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\data quality\electrode quality\';
-    printPDF( sprintf('%s%s data quality Resolve', savefigdir, remove_underscores(f)) );
-%     keyboard;
-    clf();
-    
-    D.(field).aux.elec_impedance = D.(field).aux.elec_impedance(:, 1: size(dd, 2));
-    t_rel = D.(field).aux.t_rel(:, 1: size(dd, 2));
-    D.(field).fs = 1e6 ./ median( diff(t_rel) ); %framerate is median dif of time points/ 1000000 (convert to s)
-    dd = dd( :, 1: min(size(dd, 2), round(D.(field).fs * timeSeriesLength)) ); % ensure all time series are timeSeriesLength or less
-    D.(field).data = dd;
-    sequences{file} = dd;
-    useData = real(dd(mm, :));
-    useData = lowpass(useData', 1, D.(field).fs)'; % 1 Hz lowpass
-    useData = useData(:, clip:(size(useData,2)-clip) ); % trim filter edge artifacts
-    D.(field).useData = useData;
-end % end for
-
-% find worst N electrodes
-[rmElecs, scores] = worst_n_elecs(sequences, imdl, 6);
-rmElecs = rmElecs(scores >= RMTHRESHOLD); % change this
-imdl_comp= comp_RM_bad_elec(imdl, rmElecs); % remove measurements from noisy electrodes by adjusting imdl
-fprintf('electrodes removed with score threshold %s: %s \n', num2str(RMTHRESHOLD), num2str(rmElecs'));
 
 end % end function
 
@@ -619,15 +538,4 @@ cmap(1:black,3)=white_grad;
 
 cmap= [[1, 1, 1]; flipud(cmap(2:end, :))];
 
-end % end function
-
-function printPDF(filename)
-    h = gcf;
-    set(h, 'PaperUnits','centimeters');
-    set(h, 'Units','centimeters');
-    pos=get(h,'Position');
-    set(h, 'PaperSize', [pos(3) pos(4)]);
-    set(h, 'PaperPositionMode', 'manual');
-    set(h, 'PaperPosition',[0 0 pos(3) pos(4)]);
-    print('-dpdf',filename);
 end % end function

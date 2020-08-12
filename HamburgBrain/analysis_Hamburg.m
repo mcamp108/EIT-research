@@ -9,10 +9,11 @@
 % -------------------------------------------------------------------------
 global seg;
 run 'myStartup.m';
-% pigs= {'8-2','9-2','10-2','11-2','12-2'};
-pigs= {'8-2'};
-% do = [1,2,4];
-do = [0];
+pigs= {'8-2','9-2','10-2','11-2','12-2'};
+% pigs= {'11-2'};
+do = [1,3];
+% do = [0];
+    
 for q = 1:length(pigs)
     close all
     bigFig();
@@ -51,8 +52,7 @@ for q = 1:length(pigs)
             sel = [1,3,5];
             temp = D.seq3.eit.apn; D.seq3.eit.apn = 939; % 1223;
     end % end switch
-    
-% -------------------------------------------------------------------------
+          
     % 1. Injection Images Figure
     if sum(ismember(do,1))> 0
         cd('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Figures\paper\inj');
@@ -124,10 +124,11 @@ for q = 1:length(pigs)
         compare_pre_inj_imgs(D, sel, opt);
         % save figures
         figure(1); 
-        title(TITLE); colorbar(); pause(0.5);
+%         title(TITLE); 
+        colorbar(); pause(0.5);
         printPDF(horzcat(char(pig), 'ensemble'));
         figure(2);
-        title(TITLE);
+%         title(TITLE);
         printPDF(horzcat(char(pig), 'ensemblePlots'));
     end
 % -------------------------------------------------------------------------
@@ -177,9 +178,7 @@ for q = 1:length(pigs)
         case '12-2';    D.seq3.eit.apn = temp;
     end % end switch
 end % end for
-
 % ======================================================================= %
-
 function temp = adjust_for_poi(seq, start, stop)
 
     shift = start - 1;
@@ -190,9 +189,7 @@ function temp = adjust_for_poi(seq, start, stop)
     temp.eit.vals = seq.eit.vals( :, useLndmrk ) - shift ;
 
 end
-
 % ======================================================================= %
-
 function show_inj_imgs(seq, opt)
     SECONDS = 15;
     if nargin == 1
@@ -217,9 +214,7 @@ function show_inj_imgs(seq, opt)
     title(horzcat(seq.name, ' Post-injection conductivity from individual and ensemble-averaged (bottom) Cardiac Cycles'));
     
 end % end function
-
 % ======================================================================= %
-
 function show_pre_inj_img(seq, opt)
     
     if seq.eit.apn < 1
@@ -236,9 +231,7 @@ function show_pre_inj_img(seq, opt)
     title(horzcat(seq.name, ' Pre-injection conductivity from individual and ensemble-averaged (bottom) Cardiac Cycles'));
 
 end % end function
-
 % ======================================================================= %
-
 function meanCycle = get_mean_cc(seq, opt)
     
     if nargin == 1
@@ -338,9 +331,7 @@ function meanCycle = get_mean_cc(seq, opt)
         show_slices(puls_img);
     end % end if
 end % end function
-
 % ======================================================================= %
-
 function compare_post_vnt_imgs(D, sel, opt)
 
     fn = fieldnames(D);
@@ -385,9 +376,7 @@ function compare_post_vnt_imgs(D, sel, opt)
     show_slices(outImg);
     
 end % end function
-
 % ======================================================================= %
-
 function [start,stop] = define_period(seq, period)
     injOpt = [];
     if length(period) > 1
@@ -429,9 +418,7 @@ function [start,stop] = define_period(seq, period)
 
     end % end switch
 end % end function
-
 % ======================================================================= %
-
 function delta_heatmap(D, sel, opt)
 
     fn = fieldnames(D);
@@ -471,9 +458,7 @@ function delta_heatmap(D, sel, opt)
 %     image(img*2);
 
 end % end function
-
 % ======================================================================= %
-
 function outImg = compare_pre_inj_imgs(D, sel, opt)
     IMGCOLS = 10;
     fn      = fieldnames(D);
@@ -525,9 +510,7 @@ function outImg = compare_pre_inj_imgs(D, sel, opt)
     end % end if
         
 end % end function
-
 % ======================================================================= %
-
 function cmap = confg_cmap()
 
     calc_colours('cmap_type', 'blue_black_red');
@@ -546,15 +529,11 @@ function cmap = confg_cmap()
     cmap(1:black,3)=white_grad;
 
 end % end funcion
-
 % ======================================================================= %
-
 function bigFig()
     figure('units','normalized','outerposition',[0 0 1 1]);
 end % end function
-
 % ======================================================================= %
-
 function show_inj(seq, ts, te)
     [start,stop] = define_period(seq, [3, ts, te]);
     temp = seq.imgr;
@@ -563,9 +542,7 @@ function show_inj(seq, ts, te)
     temp.show_slices.img_cols = round(seq.eit.fs);
     show_slices(temp);
 end % end function
-
 % ======================================================================= %
-
 function show_inj_fig(D, ts, te, nFrames, sel, opt)    
     IMGCOLS = 10;
     fn = fieldnames(D);
@@ -602,13 +579,11 @@ function show_inj_fig(D, ts, te, nFrames, sel, opt)
     
     show_slice_and_brain_seg_z(outImg, fn2, plotimg, opt);
     figure(1);
-    title( sprintf('Subject %s - Reconstructed images from %i - %i seconds after saline bolus injection', char(D.(fn{i}).pig), ts(i), te(i)) );
+%     title( sprintf('Subject %s - Reconstructed images from %i - %i seconds after saline bolus injection', char(D.(fn{i}).pig), ts(i), te(i)) );
     figure(2);    
-    title( sprintf('Subject %s - Reconstructed images from %i - %i seconds after saline bolus injection', char(D.(fn{i}).pig), ts(i), te(i)) );
+%     title( sprintf('Subject %s - Reconstructed images from %i - %i seconds after saline bolus injection', char(D.(fn{i}).pig), ts(i), te(i)) );
 end % end function
-
 % ======================================================================= %
-
 function show_slice_and_brain_seg_z(img, fn, plotimg, opt)
     global seg;
     if isfield(opt, 'normalize')
@@ -693,7 +668,8 @@ function show_slice_and_brain_seg_z(img, fn, plotimg, opt)
     end % end for
     ax.YTickLabel = cell(length(fn), 1);
     for i = 1:length(fn)
-        ax.YTickLabel{i} = sprintf('Sequence %i', i);
+%         ax.YTickLabel{i} = sprintf('Sequence %i', i);
+        ax.YTickLabel{i} = '';
     end % end for
     ax.XTickLabel = {};
     
@@ -759,9 +735,7 @@ function show_slice_and_brain_seg_z(img, fn, plotimg, opt)
     end
 
 end % end function
-
 % ======================================================================= %
-
 function show_seg()
     global seg;
     trimseg = seg;
@@ -780,8 +754,7 @@ function show_seg()
     axis equal; 
     axis off;
 end % end function
-
-
+% ======================================================================= %
 function plot_brain_seg(slc)
     global seg;
     binSeg = (seg > 0)*1; % binary segmentation (all)
@@ -829,8 +802,7 @@ function plot_brain_seg(slc)
     end % end if    
 
 end % end function
-
-
+% ======================================================================= %
 function printPDF(filename)
     h = gcf;
     set(h, 'PaperUnits','centimeters');
@@ -841,3 +813,4 @@ function printPDF(filename)
     set(h, 'PaperPosition',[0 0 pos(3) pos(4)]);
     print('-dpdf',filename);
 end % end function
+% ======================================================================= %

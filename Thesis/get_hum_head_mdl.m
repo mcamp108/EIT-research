@@ -70,14 +70,14 @@ else
     
     % electrode size
     P.refine.electrodes         = 1;
-    P.electrode_radius_mm       = 10;
-    P.cell_size_electrodes_mm   = .5 * factor;
+    P.electrode_radius_mm       = 5;
+    P.cell_size_electrodes_mm   = .5;
     
     % Turn off all optimisations
     P.opt.exude_opt     = 0;
-    P.opt.lloyd_opt     = 1;
-    P.opt.odt_opt       = 1;
-    P.opt.perturb_opt   = 1;
+    P.opt.lloyd_opt     = 0;
+    P.opt.odt_opt       = 0;
+    P.opt.perturb_opt   = 0;
 
     % save the output to csv to load into matlab
     P.save.save_nodes_tetra = 1;
@@ -178,7 +178,7 @@ else
     end
     keyboard;
     saveas(gcf,'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-neuroimaging\Figures\Human model.svg');
-
+    save(fmdlFileName,'fmdl');
     % Add conductivity and solve
 
     img = mk_image(fmdl, 0.41); % Background conductivity is scalp
@@ -196,15 +196,25 @@ else
     vopt.square_pixels  = true;
     vopt.save_memory    = 1;
     [imdl_t, opt.distr] = GREIT3D_distribution(fmdl, vopt);
-    
+    % clear memory for imdl
+    save(imdlFileName,'imdl_t');
+    clear all;
+    run myStartup.m
+    fmdl_file = 'humHeadFmdl.mat';
+    imdl_file = 'humHeadImdl.mat';
+    imdlFileName    = 'humHeadImdl';
+    dataDir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-neuroimaging\Models\HumanHead\mesh\';
+    cd(dataDir);
+    fmdl= load(fmdl_file); fmdl= fmdl.fmdl;
+    imdl= load(imdl_file); imdl_t= imdl.imdl_t;
+    % make imdl
     radius = 0.2; % - requested weighting matrix  (recommend 0.2 for 16 electrodes)
     weight = 1; % - weighting matrix (weighting of noise vs signal). Can be empty options.noise_figure is specified
     opt.noise_figure = [];
-    opt.save_memory    = 1;
+    opt.save_memory  = 1;
     opt.keep_intermediate_results = true;
     img.fwd_model.normalize_measurements = 0;
     imdl = mk_GREIT_model(imdl_t, radius, weight, opt);
-    save(fmdlFileName,'fmdl');
     save(imdlFileName,'imdl');
     
 end % end if
@@ -264,22 +274,27 @@ elX1= elX.* T(1,1)+ elY* T(1,2)+ elZ* T(1,3)+ T(4,1);
 elY1= elX.* T(2,1)+ elY* T(2,2)+ elZ* T(2,3)+ T(4,2);
 elZ1= elX.* T(3,1)+ elY* T(3,2)+ elZ* T(3,3)+ T(4,3);
 elecPos = [elX1; elY1; elZ1]';
-% mdl = prepare_surf_model(mdl1);
 
-% % Find electrode xyz coordinates
-% V1= mdl.nodes(mdl.boundary(:, 1), :);
-% V2= mdl.nodes(mdl.boundary(:, 2), :);
-% V3= mdl.nodes(mdl.boundary(:, 3), :);
-% elecPos= zeros(32, 3);
-% for e= 1:32
-%     elV= elecPosABC(e,:);
-%     elecPos(e,:)= getEPos(elV, Or, mdl, V1, V2, V3);
-% end % end for
-% figure; show_fem(mdl); hold on
-% % plot3([Or(1) elecPosABC(1,1)], [Or(2) elecPosABC(1,2)], [Or(3) elecPosABC(1,3)]);
-% % plot3(Vs(:,1), Vs(:,2), Vs(:,3));
-% plot3(elecPos(:,1), elecPos(:,2), elecPos(:,3), 'o'); hold off
-% keyboard;
+for i =1:length(elTheta)
+    rad     = 0;
+    qPos    = round(Or);
+    while mdl1.data( qPos(1),qPos(2),qPos(3) ) ~=0
+        rad = rad + 1;    
+        % find vector in Cartesian space
+        elX = rad* sind(elTheta(i)).* cosd(elPhi(i));
+        elY = rad* sind(elTheta(i)).* sind(elPhi(i));
+        elZ = rad* cosd(elTheta(i));
+        % convert to RAS vector and find Cartesian coordinates
+        elX1 = elX.* T(1,1)+ elY* T(1,2)+ elZ* T(1,3)+ T(4,1);
+        elY1 = elX.* T(2,1)+ elY* T(2,2)+ elZ* T(2,3)+ T(4,2);
+        elZ1 = elX.* T(3,1)+ elY* T(3,2)+ elZ* T(3,3)+ T(4,3);
+        % update
+        qPos = round([elX1 elY1 elZ1]); % query position
+        trueloc = qPos; % store previous query, will be true position once loop exited.
+    end % end while
+    elecPos(i,:) = trueloc;
+end % end for
+
 end % end function
 
 % ======================================================================= %
@@ -315,7 +330,6 @@ function [I,check]=plane_line_intersect(n,V0,P0,P1)
 %                             Research Assistant and Phd candidate
 %If you have any comments or face any problems, please feel free to leave
 %your comments and i will try to reply to you as fast as possible.
-
 I=[0 0 0];
 u = P1-P0;
 w = P0 - V0;
@@ -339,7 +353,6 @@ if (sI < 0 || sI > 1)
 else
     check=1;
 end % end if
-
 end % end function
 
 % ======================================================================= %

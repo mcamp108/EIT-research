@@ -4,10 +4,8 @@ function imdl_comp= comp_RM_bad_elec(imdl, rm_elecs, type)
 %   imdl_comp= comp_RM_bad_elec(imdl, rm_elecs)
 %
 %   Modify reconstruction matrix of imdl to compensate for noisy or
-%   disconnected electrodes using the method from Mamatjan 2017. This
-%   function will remove electrodes whose average contact impedance was
-%   over 400 ohms. If more than 6 electrodes are identified, only the worst
-%   6 are removed.
+%   disconnected electrodes using the method from Adler 2004 and Mamatjan
+%   2017.
 % -------------------------------------------------------------------------
 % Parameters:
 %   imdl:
@@ -58,7 +56,7 @@ for i= 1:length(ee)
     X_star(:, channel)  = 0;
 end % end for
 
-imdl_comp.solve_use_matrix.X_star= X_star;
-imdl_comp.solve_use_matrix.RM= PJt* X_star;
+imdl_comp.solve_use_matrix.X_star   = X_star;
+imdl_comp.solve_use_matrix.RM       = PJt* X_star;
 
 end % end function

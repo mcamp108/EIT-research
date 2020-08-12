@@ -1,132 +1,114 @@
-% This function was written by :
-%                               Mark Campbell
-%                               Carleton University
-% model x y z ranges from 0 - 0.1.
+% Chapter 5 Figures
+%--------------------------------------------------------------------------
+figure('units','normalized','outerposition',[0 0 1 1]); clf;
+cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint';
+SAVEDIR = 'C:\Users\Mark\Documents\GraduateStudies\LAB\Thesis\files\figures\Chap_5\';
+dirs= ls;
+% get model
+[fmdl, imdl]= mk_weighted_restraint_model(); % model
+lung_roi= lung_segmentation(); % lung roi
+mid_col= size(lung_roi, 2)/2;
+lung_divide_idx= mid_col* size(lung_roi, 1) + 1;
+is_lung= find(lung_roi);
+left_lung_idx= is_lung(is_lung>= lung_divide_idx);
+right_lung_idx= is_lung(is_lung< lung_divide_idx);
+recordings= {'sref', 'pref', 'wref', 'wepos', 'epos'}; % change these with your own abbreviations for trials you have.
+bsln = 2; % prone unweighted default is recording #2. This is used as the reference for all recordings.
+i=5;
+folder= dirs(i, :);
+%--------------------------------------------------------------------------
+% Weighted restraint pre-processing
+clip= 50;
+D = struct;
+RMTHRESHOLD = 0.25;
+msel= imdl.fwd_model.meas_select;
+mm = find(msel);
+% sequences = {};
+file = 2;
+f = files{file};
+field = horzcat('seq', num2str(file));
+[ dd, D.(field).aux ] = eidors_readdata(f);
+D.(field).aux.elec_impedance = D.(field).aux.elec_impedance(:, 1: size(dd, 2));
+t_rel = D.(field).aux.t_rel(:, 1: size(dd, 2));
+FR = 1e6 ./ median( diff(t_rel) ); %framerate is median dif of time points/ 1000000 (convert to s)
+dd = dd( :, 1: min(size(dd, 2), round(FR * timeSeriesLength)) ); % ensure all time series are timeSeriesLength or less
+D.(field).data = dd;
+useData = real(dd(mm, :));
+useData = lowpass(useData', 1, FR)'; % 1 Hz lowpass
+useData = useData(:, clip:(size(useData,2)-clip) ); % trim filter edge artifacts
+D.(field).useData = useData;
+%--------------------------------------------------------------------------
+% find worst N electrodes
+[rmElecs, scores] = worst_n_elecs(dd, imdl, 6);
+rmElecs = rmElecs(scores >= RMTHRESHOLD);
+imdl_comp_resolve = comp_RM_bad_elec(imdl, 26);
+imgr_resolve = inv_solve(imdl_comp_resolve, mean(useData,2), useData);
+imdl_comp_noResolve = comp_RM_bad_elec(imdl, [21 26 31]);
+imgr_noResolve = inv_solve(imdl_comp_noResolve, mean(useData,2), useData);
+%--------------------------------------------------------------------------  
+% Data pre-processing and breath selection
+img_slices_resolve(isnan(img_slices_resolve))= 0;
+img_slices = img_slices_resolve .* lung_segmentation();
+lungZ = squeeze( sum( img_slices, [1 2]) )';
+[end_in, end_ex, Ti_by_Tt, BF]= select_breaths(-lungZ, FR);
+%--------------------------------------------------------------------------        
+% make figures
+frm = 1;
+imgr_compare = imgr_resolve;
+imgr_compare.elem_data = [  imgr_noResolve.elem_data(:,end_ex(1,frm)),  imgr_resolve.elem_data(:,end_ex(1,frm)),zeros(1878,1),...
+                            imgr_noResolve.elem_data(:,end_in(frm)),    imgr_resolve.elem_data(:,end_in(frm)),  zeros(1878,1),...
+                            imgr_noResolve.elem_data(:,end_ex(2,frm)),  imgr_resolve.elem_data(:,end_ex(2,frm)),zeros(1878,1)
+                            ];
+slices_compare = calc_colours( calc_slices(imgr_compare, [inf inf 1]) );
+bkg = slices_compare(:,:,1)==1;
+slices_compare(:,:,3) = slices_compare(:,:,2) - slices_compare(:,:,1) + 125;
+slices_compare(:,:,6) = slices_compare(:,:,5) - slices_compare(:,:,4) + 125;
+slices_compare(:,:,9) = slices_compare(:,:,8) - slices_compare(:,:,7) + 125;
+for i=[3 6 9]
+    temp = slices_compare(:,:,i); temp(bkg) = 1;
+    slices_compare(:,:,i) = temp;
+end
+final_img = mk_mosaic(slices_compare(6:27,:,:),[1, 1],[], 3); 
+final_img(isnan(final_img)) = 0;
+image(final_img);axis equal; axis image; axis tight;
+colorbar;
+fg = gcf();
+ax = fg.Children(2);
+incrX = linspace(1,98,7);
+ax.XTick = incrX([2,4,6]);
+ax.XTickLabel = {'No Score Resolution';'Score Resolution';'Difference'};
+incrY = linspace(1,65,7);
+ax.YTick = incrY([2,4,6]);
+ax.YTickLabel = {'End Expiration';'End Inspiration';'End Expiration'};
+ax.XAxis.FontSize=20; ax.XAxis.FontWeight='bold';
+ax.YAxis.FontSize=20; ax.YAxis.FontWeight='bold'; ax.YAxis.TickLabelRotation=-45;
+printPDF(sprintf('%sResolveImgs',SAVEDIR));
 
-[fmdl, imdl] = get_hum_head_mdl(); % load models
-% constants
-DELTA   = 1.1; % ratio of brain conductivity between vh and vi.
-SNR     = 80; % measurement signal to noise ratio. ref for SNR: https://www.ncbi.nlm.nih.gov/books/NBK549564/
-IMGCOLS = 8;
-SAVEDIR = 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-neuroimaging\Figures\simulations\';
-img = mk_image(fmdl, 0.41); % Background conductivity is scalp
-img.elem_data([fmdl.mat_idx{1}]) = 0.41;    %   1: scalp
-img.elem_data([fmdl.mat_idx{2}]) = 0.016;   %   2: skull
-img.elem_data([fmdl.mat_idx{3}]) = 1.71;    %   3: CSF
-img.elem_data([fmdl.mat_idx{4}]) = 0.47;    %   4: grey matter
-img.elem_data([fmdl.mat_idx{5}]) = 0.22;    %   5: white matter
-img.elem_data([fmdl.mat_idx{6}]) = 0.7;     %   6: diploe
-img.elem_data([fmdl.mat_idx{7}]) = 0.0001;  %   7: air
+% =========================================================================
 
-img.fwd_solve.get_all_meas = 1;
-vh = fwd_solve(img); % reference data (assumes no noise)
-J = calc_jacobian( calc_jacobian_bkgnd( imdl) );
-iRtR = inv(prior_noser( imdl ));
-hp = 0.17;
-iRN = hp^2 * speye(size(J,1));
-RM = iRtR*J'/(J*iRtR*J' + iRN);
-imdl.solve = @solve_use_matrix; 
-imdl.solve_use_matrix.RM  = RM;
+function [end_in, end_ex, Ti_by_Tt, BF]= select_breaths(tbv, FR)
 
-% parameters for setting up brain foci size and position.
-targetMat   = 4;
-matRef      = 0.47;
-brainNodes  = fmdl.nodes( fmdl.elems( fmdl.mat_idx{targetMat},: ), : );
-brainC      = mean(brainNodes); 
-brainD      = mean( max(brainNodes) - min(brainNodes) );
-brainR      = brainD/2;
-fociR       = [1/16, 1/8, 1/4] * brainR;
-fociDist    = [1/8, 1/4, 1/2] * brainR;
-levels      = inf(32, 3);
-levels(:,3) = imdl.rec_model.mdl_slice_mapper.z_pts;
-% levels = flipud(levels);
-radPos      = linspace(-pi, pi, 9);
-radPos      = radPos(1:8); % 8 positions
-res         = zeros(length(fociDist), length(radPos), length(fociR), 4);    % store loc and amp acc results
-mRes        = zeros(length(fociDist), length(radPos), length(fociR), 544);  % store measurements
-mResN       = zeros(length(fociDist), length(radPos), length(fociR), 544);  % store noisy measurements
-%%
-for i=1:length(fociDist)
-    dist = [1 1 0] * fociDist(i);
-    for j=1:length(radPos) % correctly plots in circle.
-        vx      = cos(radPos(j)); 
-        vy      = sin(radPos(j));
-        fociCtr = brainC + dist .* [vx vy 1];
-        for k=1:length(fociR)
-            img2        = img;
-            % set delta sigma for foci elements
-            eq          = sprintf('(x-(%f)).^2 + (y-(%f)).^2 + (z-(%f)).^2 < (%f)^2', fociCtr(1),fociCtr(2),fociCtr(3),fociR(k));
-            select_fcn  = inline(eq, 'x','y','z');
-            memb_frac   = find(elem_select( img2.fwd_model, select_fcn));
-            img2.elem_data(memb_frac) = img2.elem_data(memb_frac) * DELTA;
-            % simulate noisy measurement data
-            vi = fwd_solve(img2); 
-            mRes(i,j,k,:)   = vi.meas;
-            vi              = add_noise( SNR, vi);
-            mResN(i,j,k,:)  = vi.meas;
-            imgr            = inv_solve(imdl, vh, vi);
-            figure(1);clf();
-            recon           = show_fem(imgr);
-            figure(2);clf();
-            % show slices
-            r_img           = mk_mosaic( squeeze(calc_slices(imgr, levels)) , 0, [], IMGCOLS);
-            c_img           = calc_colours( r_img, imgr);
-            out_img         = reshape(c_img, size(r_img,1), size(r_img,2) ,[]);
-            image(out_img);axis equal;
-            ttl = sprintf('%s%.1f pctFociR %.1f pctDist %.2f radPos', SAVEDIR, fociR(i)/brainR*100, (dist(i)/brainR*100), radPos(j));
-            printPDF(ttl);
-            % calc image stats
-            [posErr,meanAmp]= img_quality(recon, brainR, fociCtr, fociR(k), DELTA-1);
-            res(i,j,k,:)    = [posErr,meanAmp];
-        end % end for k
-    end % end for j
-end % end for i
-%%
+    % Breath boundaries
+    breaths= find_breaths(tbv);
+    end_in= breaths.ins_idx;
+    end_ex= breaths.exp_idx;
+    exp_to_exp= (diff(end_ex, 1))';
+    Te= ((end_ex(2,:)- end_in))';
+    Ti= (abs(end_ex(1,:)- end_in))';
+    
+    reject1 = abs( (end_in - end_ex(1,:)) ./ (end_in - end_ex(2,:)) );
+    reject2 = abs( (end_in - end_ex(2,:)) ./ (end_in - end_ex(1,:)) );
+    reject3 = abs(diff(tbv(end_ex), 1));
+    
+    keep = ((reject1 < 2.5) + (reject2 < 2)) == 2;
+    
+    end_in= end_in(keep);
+    end_ex= end_ex(:,keep);
+    Ti= Ti(keep);
+    Te= Te(keep);
+    exp_to_exp= exp_to_exp(keep);
+    
+    Ti_by_Tt= Ti ./ (Ti + Te);
+    BF= 60./ (exp_to_exp./ FR); % instantaneous breaths per minute
 
-function [locErr,meanAmp] = img_quality(recon, brainR, fociCtr, fociR, amp)
-    [cog, meanAmp]  = COG(recon, fociR);
-    locErr          = sqrt( sum( (cog(1:2)-fociCtr(1:2)).^2, 2) ) / brainR; % xy component
-    locErr(3)       = abs(cog(3) - fociCtr(3)) / brainR;
-    meanAmp         = meanAmp / amp;
-%     szErr = 
-%     ampErr = 
 end % end function
-
-function [cog, meanAmp] = COG(recon, fociR)
-    num = [0 0 0];
-    den = 0;
-    for idx = 1:size(recon.Faces, 1)
-        x = mean(recon.XData(:,idx));
-        y = mean(recon.YData(:,idx));
-        z = mean(recon.ZData(:,idx));
-        amp = mean(recon.CData(:, idx)); % delta sigma_i
-        num = num + ([x y z] * amp);
-        den = den + amp;
-    end % end for
-    cog     = num/den;
-    meanAmp = 0;
-    N       = 0;
-    for idx = 1:size(recon.Faces, 1)
-        fc  = recon.Faces(idx, :); % gives vertice index
-        vtx = recon.Vertices(fc, :); % vertexes of face
-        pos = mean(vtx); % mean position of vertexes in face
-        che = sqrt( sum((cog-pos).^2, 2) ); % check if distance of pos is within radius
-        if che <= fociR
-            meanAmp = meanAmp + mean(recon.CData(:, idx));
-            N = N + 1;
-        end % end if
-    end % end for
-    meanAmp = meanAmp / N;
-end % end function
-
-function printPDF(filename)
-    h = gcf;
-    set(h, 'PaperUnits','centimeters');
-    set(h, 'Units','centimeters');
-    pos=get(h,'Position');
-    set(h, 'PaperSize', [pos(3) pos(4)]);
-    set(h, 'PaperPositionMode', 'manual');
-    set(h, 'PaperPosition',[0 0 pos(3) pos(4)]);
-    print('-dpdf',filename);
-end % end function
-

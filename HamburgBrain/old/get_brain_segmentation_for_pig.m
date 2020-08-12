@@ -66,6 +66,4 @@ for i = -90:60:210
     seg(bw) = seg(bw)*cnt;
 end
 
-% imagesc(seg);
-
 end % end function
