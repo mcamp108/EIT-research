@@ -1,37 +1,39 @@
-function [fmdl, imdl] = get_pig_mdl(pig)
+function [fmdl, imdl] = get_pig_mdl(pig, directory)
 % pig = '12-2';
 switch pig
     case '8-2'
-        fmdl_file= '8-2_fmdl.mat';
-        imdl_file= '8-2_imdl.mat';
-        elec_z_plane= 106; % average of reference dot z planes from elec_loc_refs
+        fmdl_file = '8-2_fmdl.mat';
+        imdl_file = '8-2_imdl.mat';
+        elec_z_plane = 106; % average of reference dot z planes from elec_loc_refs
     case '9-2'
-        fmdl_file= '9-2_fmdl.mat';
-        imdl_file= '9-2_imdl.mat';
-        elec_z_plane= 106; % average of reference dot z planes from elec_loc_refs
+        fmdl_file = '9-2_fmdl.mat';
+        imdl_file = '9-2_imdl.mat';
+        elec_z_plane = 106; % average of reference dot z planes from elec_loc_refs
     case '10-2'
-        fmdl_file= '10-2_fmdl.mat';
-        imdl_file= '10-2_imdl.mat';
-        elec_z_plane= 97; % average of reference dot z planes from elec_loc_refs
+        fmdl_file = '10-2_fmdl.mat';
+        imdl_file = '10-2_imdl.mat';
+        elec_z_plane = 97; % average of reference dot z planes from elec_loc_refs
     case '11-2'
-        pig = '11-2';
-        fmdl_file= '11-2_fmdl.mat';
-        imdl_file= '11-2_imdl.mat';
-        elec_z_plane= 96; % average of reference dot z planes from elec_loc_refs
+        fmdl_file = '11-2_fmdl.mat';
+        imdl_file = '11-2_imdl.mat';
+        elec_z_plane = 96; % average of reference dot z planes from elec_loc_refs
     case '12-2'
-        pig = '12-2';
-        fmdl_file= '12-2_fmdl.mat';
-        imdl_file= '12-2_imdl.mat';
-        elec_z_plane= 116; % average of reference dot z planes from elec_loc_refs
+        fmdl_file = '12-2_fmdl.mat';
+        imdl_file = '12-2_imdl.mat';
+        elec_z_plane = 116; % average of reference dot z planes from elec_loc_refs
 end % end switch
 
-cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Models\', pig,'\mesh'));
+
+% cd(horzcat(directory, pig, '/mesh/old'));
+% cd(horzcat(directory, pig, '/mesh/nf2'));
+modelDir = sprintf('%s/%s/mesh', directory, pig);
+cd(modelDir);
 
 if exist(fmdl_file, 'file') == 2
-    fmdl= load(fmdl_file);
-    fmdl= fmdl.fmdl;
-    imdl= load(imdl_file);
-    imdl= imdl.imdl;
+    fmdl = load(fmdl_file);
+    fmdl = fmdl.fmdl;
+    imdl = load(imdl_file);
+    imdl = imdl.imdl;
 else
     seg3dOutMatFile = horzcat(pig, '_seg3D_out');
     inrFileName     = horzcat(pig,'_SegImg.inr');
@@ -51,7 +53,7 @@ else
 
     elecPlaneImg = squeeze( V(:, :, elec_z_plane) );
     clf(); imagesc(elecPlaneImg); axis equal
-    keyboard;
+%     keyboard;
     rad = -linspace(-2*pi, 0, nElec+1); % first elec is bottom of pig, then proceed clockwise
     elec_pos = rad(1:32)';
     elecCoors = find_elec_locations(elecPlaneImg, nElec, elec_pos, elec_z_plane);
@@ -94,7 +96,7 @@ else
     runmesher(inrFileName, elecFileName, 'mesh_params.txt','output/',meshFileName);
 
     % Load into EIDORS and check electrodes
-    Mesh = loadmesh(sprintf('output/%s',meshFileName));
+    Mesh = loadmesh(sprintf('%s/output/%s',modelDir, meshFileName));
     %remember to run eidors startup
     %based on mk_fmdl_from_nodes
     MDL=eidors_obj('fwd_model','test');
@@ -136,20 +138,20 @@ else
 
         % count how many times each node is used in the surface
         bdy_els = zeros(size(srf,1),1);
-        for nd= curNodes(:)'
+        for nd = curNodes(:)'
             bdy_els = bdy_els + any(srf==nd,2);
         end
         % Nodes used three times are part of a triangulation
         ffb = find(bdy_els == size(srf,2));
         % only use nodes which appear 3 times 
-        curNodes=intersect(curNodes,unique(srf(ffb,:)));
+        curNodes = intersect(curNodes, unique(srf(ffb, :)));
         electrodes(iElec).nodes = curNodes;
     end
 
-    MDL.electrode =     electrodes;
-    MDL.solve =         @fwd_solve_1st_order;
-    MDL.jacobian =      @jacobian_adjoint;
-    MDL.system_mat =    @system_mat_1st_order;
+    MDL.electrode = electrodes;
+    MDL.solve = @fwd_solve_1st_order;
+    MDL.jacobian = @jacobian_adjoint;
+    MDL.system_mat = @system_mat_1st_order;
     MDL.normalize_measurements = 0;
     [MDL.stimulation, MDL.meas_select] = mk_stim_patterns(32,1,[0,5],[0,5],{'no_meas_current_next2'},1); % try next3
 
@@ -167,18 +169,17 @@ else
     
     figure(1);
     sgtitle(sprintf('Tissue Segmentation Meshes for %s',pig));
-    subplot(4,5,1:16);
+    subplot(4, 5, 1:16);
     show_fem(fmdl, [0 1 0]); view(0,45);
-    subplot(4,4,17); wireframe(fmdl,1); axis equal;
-    subplot(4,4,18); wireframe(fmdl,2); axis equal;
-    subplot(4,4,19); wireframe(fmdl,3); axis equal;
-    subplot(4,4,20); wireframe(fmdl,4); axis equal;
+    subplot(4, 5, 17); wireframe(fmdl,1); axis equal;
+    subplot(4, 5, 18); wireframe(fmdl,2); axis equal;
+    subplot(4, 5, 19); wireframe(fmdl,3); axis equal;
+    subplot(4, 5, 20); wireframe(fmdl,4); axis equal;
     % Check FWD is ok
     if valid_fwd_model(fmdl)
         disp('Forward model is ok!');
     end
     
-    keyboard;
     saveas(gcf,sprintf('%s model.svg',pig));
 
     % Add conductivity and solve
@@ -191,21 +192,25 @@ else
 
     % Set stim patterns
     imgsize = [64 64];
-    radius= 0.2; % - requested weighting matrix  (recommend 0.2 for 16 electrodes)
-    weight= 1; % - weighting matrix (weighting of noise vs signal). Can be empty options.noise_figure is specified
-    opt.noise_figure = [];
-    opt.imgsz= imgsize;
-    opt.keep_intermediate_results= true;
+    radius = 0.2; % - requested weighting matrix  (recommend 0.2 for 16 electrodes)
+%     weight = 1; % - weighting matrix (weighting of noise vs signal). Can be empty options.noise_figure is specified
+    weight = []; % - weighting matrix (weighting of noise vs signal). Can be empty options.noise_figure is specified
+    opt.noise_figure = 0.5;
+    opt.imgsz = imgsize;
+    opt.keep_intermediate_results = true;
     opt.save_memory = 1;
     img.fwd_model.normalize_measurements = 0;
-
+    
+%     keyboard;
     imdl = mk_GREIT_model(img, radius, weight, opt);
 
     save(fmdlFileName,'fmdl');
     save(imdlFileName,'imdl');
 end % end if
+
 end % end function
 %%
+
 function elecCoors = find_elec_locations(elecPlaneImg, numElec, elec_pos, zPlane)
 
 elecPlaneImg(elecPlaneImg~=0) = 1;
@@ -230,6 +235,7 @@ for i =1:length(elec_pos)
 end % end for
 
 end % end function
+
 
 function wireframe(mesh, material)
 nodeIdx = mesh.elems( mesh.mat_idx{material}, : );

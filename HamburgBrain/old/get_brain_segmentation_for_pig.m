@@ -34,7 +34,7 @@ switch pig
         elec_z_plane= 116; % average of reference dot z planes from elec_loc_refs
 end % end switch
 
-cd(horzcat('C:\Users\Mark\Documents\GraduateStudies\LAB\HamburgBrain\Models\', pig,'\mesh'));
+cd(horzcat('E:\University\Masters\HamburgBrain\Models\', pig,'\mesh'));
 
 seg3dOutMatFile = horzcat(pig, '_seg3D_out');
 load(seg3dOutMatFile);

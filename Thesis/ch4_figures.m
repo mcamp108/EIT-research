@@ -39,21 +39,22 @@ df3 = readmatrix(sprintf('%slocErr1.01Delta', simDir));
 df4 = readmatrix(sprintf('%slocErr1.10Delta', simDir));
 %%
 sim_plots(df1,1);
-sgtitle('Localization Accuracy for 10% Z Decrease');
+cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\Thesis\files\figures\Chap_4';
+sgtitle('Localization Accuracy for 10% Conductivity Decrease', 'FontSize', 20);
 printPDF("10decrease");
 sim_plots(df2,2);
-sgtitle('Localization Accuracy for 1% Z Decrease');
+sgtitle('Localization Accuracy for 1% Conductivity Decrease', 'FontSize', 20);
 printPDF("1decrease");
 sim_plots(df3,3);
-sgtitle('Localization Accuracy for 1% Z Increase');
+sgtitle('Localization Accuracy for 1% Conductivity Increase', 'FontSize', 20);
 printPDF("1increase");
 sim_plots(df4,4);
-sgtitle('Localization Accuracy for 10% Z Increase');
+sgtitle('Localization Accuracy for 10% Conductivity Increase', 'FontSize', 20);
 printPDF("10increase");
 
 %%
 function sim_plots(df1, n)
-figure(n);
+figure(n);clf();
 radPos = linspace(-pi, pi, 9);
 radPos = round(radPos(1:8), 2); % 8 positions
 
@@ -74,24 +75,24 @@ d3_r1to8_s2 = d3(2:3:24, 1);
 d3_r1to8_s3 = d3(3:3:24, 1);
 
 subplot(3,1,1);
-    plot(d1_r1to8_s1, '-o'); ylim([0 1]); hold on
-    plot(d1_r1to8_s2, '-x'); ylim([0 1]);
-    plot(d1_r1to8_s3, '-v'); ylim([0 1]);
+    plot(d1_r1to8_s1, '-o', 'LineWidth',2,'MarkerSize',8); ylim([0 1]); hold on
+    plot(d1_r1to8_s2, '-x', 'LineWidth',2,'MarkerSize',8); ylim([0 1]);
+    plot(d1_r1to8_s3, '-v', 'LineWidth',2,'MarkerSize',8); ylim([0 1]);
     ax=gca;ax.XTickLabels=radPos;
-    title('Foci Distance From Brain Center = 1/8 Brain Radius', 'FontSize', 18);
+    title('Foci Distance From Brain Centre = 1/8 Brain Radius', 'FontSize', 18);
 subplot(3,1,2);
-    plot(d2_r1to8_s1, '-o'); ylim([0 1]); hold on
-    plot(d2_r1to8_s2, '-x'); ylim([0 1]);
-    plot(d2_r1to8_s3, '-v'); ylim([0 1]);
+    plot(d2_r1to8_s1, '-o', 'LineWidth',2,'MarkerSize',8); ylim([0 1]); hold on
+    plot(d2_r1to8_s2, '-x', 'LineWidth',2,'MarkerSize',8); ylim([0 1]);
+    plot(d2_r1to8_s3, '-v', 'LineWidth',2,'MarkerSize',8); ylim([0 1]);
     ax=gca;ax.XTickLabels=radPos;
-    title('Foci Distance From Brain Center = 1/4 Brain Radius', 'FontSize', 18);
+    title('Foci Distance From Brain Centre = 1/4 Brain Radius', 'FontSize', 18);
     ylabel('Localization Error, X-Y Plane (% Brain Radius)', 'FontSize', 20);
 subplot(3,1,3);
-    plot(d3_r1to8_s1, '-o'); ylim([0 1]); hold on
-    plot(d3_r1to8_s2, '-x'); ylim([0 1]);
-    plot(d3_r1to8_s3, '-v'); ylim([0 1]);
+    plot(d3_r1to8_s1, '-o', 'LineWidth',2,'MarkerSize',8); ylim([0 1]); hold on
+    plot(d3_r1to8_s2, '-x', 'LineWidth',2,'MarkerSize',8); ylim([0 1]);
+    plot(d3_r1to8_s3, '-v', 'LineWidth',2,'MarkerSize',8); ylim([0 1]);
     ax=gca;ax.XTickLabels=radPos;
-    title('Foci Distance From Brain Center = 1/2 Brain Radius', 'FontSize', 18);
+    title('Foci Distance From Brain Centre = 1/2 Brain Radius', 'FontSize', 18);
     xlabel('Radial Position from Baseline', 'FontSize', 20);
 end
 

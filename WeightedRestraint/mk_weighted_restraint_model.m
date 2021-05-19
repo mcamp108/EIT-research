@@ -23,7 +23,7 @@ function [fmdl, imdl]= mk_weighted_restraint_model()
 % -------------------------------------------------------------------------
 
 starting_dir= cd;
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\models';
+cd 'E:\University\Masters\EIT-restraint\zzMC\models';
 
 if exist('weighted_restraint_fmdl.mat', 'file') == 2
     mdl= load('weighted_restraint_fmdl.mat');
@@ -39,9 +39,9 @@ else
     elec_spec = [0.01];
     % elec_spec = [0.5, 0, 0.1]; % Radius of circular electrodes
     fmdl = ng_mk_extruded_model(shape, elec_pos, elec_spec);
-    row1= [13:16, 1:12]; 
-    row2= [29:32, 17:28]; 
-    idx= [row1;row2]';
+    row1 = [13:16, 1:12]; 
+    row2 = [29:32, 17:28]; 
+    idx = [row1;row2]';
     fmdl.electrode(idx)= fmdl.electrode(:);
 
     % Set up square pattern
@@ -50,7 +50,7 @@ else
     fmdl.electrode(idx) = fmdl.electrode(:);
 
     % Stim pattern
-    [fmdl.stimulation, fmdl.meas_select]=mk_stim_patterns(32,1,[0,5],[0,5],{'no_meas_current_next2'},1); % Skip 4 
+    [fmdl.stimulation, fmdl.meas_select] = mk_stim_patterns(32,1,[0,5],[0,5],{'no_meas_current_next2'},1); % Skip 4
     fmdl.normalize = 0;
 
     % imdl
@@ -58,8 +58,9 @@ else
     vopt.square_pixels = true;
     vopt.zvec = linspace(0.5,1.5,4);
     vopt.save_memory = 1;
-    opt.noise_figure = 1.0;
-    opt.keep_intermediate_results= true;
+%     opt.noise_figure = 1.0;
+    opt.noise_figure = 2.0;
+    opt.keep_intermediate_results = true;
     [imdl_t, opt.distr] = GREIT3D_distribution(fmdl, vopt);
     imdl= mk_GREIT_model(imdl_t, 0.2, [], opt);
     

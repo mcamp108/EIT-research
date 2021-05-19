@@ -1,7 +1,8 @@
 function [] = make_fun(V)
 
-fun_name = horzcat('function out= ', V, '(in)');
+fun_name = horzcat('function out = ', V, '(in)');
 end_function= 'end % end function';
+cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\Scripts\EIT-reserach\Other';
 fid = fopen('C:\Users\Mark\Documents\GraduateStudies\LAB\Scripts\EIT-reserach\Other\my_template.m');
 F = fread(fid, '*char')';
 fclose(fid);

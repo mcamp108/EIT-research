@@ -1,243 +1,360 @@
 % load data
-bsln= 2;
-statdir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\Mali Weighted Restraint\features';
-[D, header]= load_files(statdir);
-E = get_position_data(D, header);
-fg1= figure('units','normalized','outerposition',[0 0 1 1]);
-results_figs(E);
-% recordings= {'sref', 'pref', 'wref', 'wepos', 'epos'};
-% participants= fieldnames(D);
+POS1    = 'P07,P08,P10,P11,P12'; % 5
+POS2    = 'P04,P05,P06,P09,P15,P18'; % 6
+POS3    = 'P01,P02,P03,P13,P17,P19'; % 6
+bsln = 2;
+file = 'E:\University\Masters\EIT-restraint\zzMC\features\per_observation_features_selfRef.csv';
+data = readtable(file);
 
-% outtable(D, header);
+phases = {'U','R','W1','W2','W3','W4','W5','X1','X2','X3','X4','X5','P'};
+
 %%
-% results_figs(D);
+close all
+dat = data.FRCMRELind;
+nSubjs = 19;
+colours = linspace(0, 1, nSubjs)';
+colours = [colours, flipud(colours), colours];
+
+xshift = linspace(-0.25, 0.25, 19);
+figure();
+for p = 1:19
+    
+%     figure();
+    if p < 10
+        subj = sprintf('P0%.0f', p);
+    else
+        subj = sprintf('P%.0f', p);
+    end
+    idx1 = strcmp(data.subj, subj);
+    for i = 1:length(phases)
+        phase = phases{i};
+        idx2 = strcmp(data.phase, phase);
+
+        selection = (idx1 + idx2) == 2;
+        idx = find(selection);
+        xax = repmat(i + xshift(p), length(idx), 1);
+        plot(xax, dat(idx), 'o', 'MarkerFaceColor', colours(p, :), 'MarkerEdgeColor', 'k');
+        hold on;
+    end
+    title(subj);
+end
+%%
+% rename P to P1 and P2
+for row =1:size(data,1)
+    thisRow = data(row,:);
+    if strcmp(thisRow.phase, 'P')
+        if thisRow.time <= 60
+            data.phase{row} = 'P1';
+        else
+            data.phase{row} = 'P2';
+        end
+    end
+    
+end
+writetable(data, file);
+
+%%
+for i = 1:size(data, 1)
+    row = data(i, :);
+    if strcmp(row(1), 'P01')
+        
+    end
+end
+    
+
+statdir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\phys_meas\features';
+[D, header] = load_files(statdir);
+params = {'BF','BFREL','TV','TVREL','FRCB','FRCBREL','FRCM','FRCMREL','FRCT','FRCTREL','MINVNT','MINVNTREL'};
+E = get_position_data(D, header, params);
+
+saveDir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\data\phys_meas\features\Roslyn';
+fn = fieldnames(E);
+for i = 1:length(fn)
+    tbl = participant_data_to_table(E.(fn{i}));
+    save_name = sprintf('%s%s%s_features.csv',saveDir,'\',fn{i});
+    writetable(tbl, save_name);
+end
+
+
+% results_figs(E);
+%%
+% tests    = {'U:R';'W1:R';'W5:R';'W1:W5';'X1:X5';'W1:X1';'W5:X5'};
+% tests    = {'U:R'};
+% F = struct;
+% F.pos1=E.pos1;
+% F.pos2=E.pos2;
+% F.pos3=E.pos3;
+% F.all=E.all;
+% outtable(F, tests, statdir);
 % %%
-% figure;hold on;
-% plot(D.all.TV.data);plot(D.pos2.TV.data);plot(D.pos3.TV.data);plot(D.P7.TV.data);
-% plot(D.all.TV.data)
-% plot(D.all.BF.data)
+% age = [22,41,22,20,38,28,27,21,21,21,19,21,21,21,44,21,42];
+% bmi = [22.4,34.0,22.9,29.3,28.0,29.4,31.5,23.9,21.0,25.9,28.5,24.0,25.8,22.6,36.9,31.3,21.6];
+% E = get_position_data(D, header, params);
+% U = 1;
+% R = 2;
+% W = 3:7;
+% X = 8:12;
+% P = 13;
+% params  = {'MINVNTREL','FRCMREL'};
+% param   = params{2};
+% posCond = X(5);
+% allCond = W(5);
 % 
-% fn=fieldnames(D.pos3);
+% [pooledw5, pos] = pos_vs_all(E, param, posCond, X(1));
+% y1 = pooledw5(:,4);
+% [pooledx5, ~] = pos_vs_all(E, param, posCond, W(5));
+% y2 = pooledx5(:,4);
+% y = y2 - y1;
+% % groups = {pos,age',bmi'};
+% % test if posture at X5 was different than group mean at W5.
+% % [pooled, pos] = pos_vs_all(E, param, posCond, allCond);
+% % p = anovan(y,{pos}); fprintf('\npos1 vs all for %s p = %.5f',param,p);
+% % p = anovan(y,{age},'continuous',1); fprintf('\npos1 vs all for %s p = %.5f',param,p);
+% % p = anovan(y,{bmi},'continuous',1); fprintf('\npos1 vs all for %s p = %.5f',param,p);
+% % p = anovan(y1,groups); fprintf('\npos1 vs all for %s p = %.5f',param,p);
+% % p = anovan(y2,groups); fprintf('\npos1 vs all for %s p = %.5f',param,p);
+% % p = anova1(pooled); fprintf('\npos1 vs all for %s p = %.5f',param,p);
+% y1 = y1(~isnan(y2));
+% y2 = y2(~isnan(y2));
+% p = anova1([y1,y2]); fprintf('\npos1 vs all for %s p = %.5f',param,p);
+% 
+% 
+% % p = anova1(pooled(:,[1,4])); fprintf('\npos1 vs all for %s p = %.5f',param,p);
+% % p = anova1(pooled(:,[2,4])); fprintf('\npos2 vs all for %s p = %.5f',param,p);
+% % p = anova1(pooled(:,[3,4])); fprintf('\npos3 vs all for %s p = %.5f',param,p);
+% % % test if posture at X5 was different than control.
+% % [p,anovatab,stats] = anova1(pooled(:,[2,1])); fprintf('\npos2 vs pos1 for %s p = %.5f',param,p);
+% % [p,anovatab,stats] = anova1(pooled(:,[3,1])); fprintf('\npos3 vs pos1 for %s p = %.5f',param,p);
+% 
+% %%
+% % 6.	X1 for all postures
+% % 7.	X5 for all postures – is there significance where previously there was none?
+% % One-way anova shows that cannot reject the null that means for MINVNT during X1 are the same across all positions.
+% % One-way anova shows that means for MINVNT during X5 are not the same for pos1 and pos3 but cannot reject for pos1 and pos2.
+% % One-way anova shows that cannot reject the null that means for FRCM during X1 are the same across all positions.
+% % One-way anova shows that cannot reject the null that means for FRCM during X1 are the same across all positions.
+% % One-way anova shows that cannot reject the null that means for FRCM during X5 are the same across all positions.
+% 
+% %%
+% % Params correlated with age or BMI?
+% W = 3:7;
+% X = 8:12;
+% params  = {'MINVNTREL','FRCMREL'};
+% posCond = X(5);
+% allCond = W(5);
+% param   = params{2};
+% age = [22,41,22,20,38,28,27,21,21,21,19,21,21,21,21,22,44,21,42,23,25];
+% bmi = [22.4,34.0,22.9,29.3,28.0,29.4,31.5,23.9,21.0,25.9,28.5,24.0,25.8,32.3,22.6,38.5,36.9,31.3,21.6,26.4,34.7];
+% fn = fieldnames(E);
 % for i=1:length(fn)
-%     disp (fn{i});
-%     disp(D.pos2.(fn{i}).data);disp(D.pos2.(fn{i}).sd);
+%    try
+%        idx = str2double(fn{i}(2:end));
+%        if ~isnan(idx) && idx~=14 && idx~=16
+%            E.(fn{i}).age = age(idx);
+%            E.(fn{i}).bmi = bmi(idx);
+%        end
+%    catch
+%        continue
+%    end
 % end
 % 
-% %% 1. for PW position, is there ate least one statistically significant
-% % decrease in FRC relative to PR after the addition of weight?
-% pos= 'p1';
-% param= 'TVABS';
-% n=3;
-% v = repmat(2*n-2,13,1);
-% sd0= repmat(D.(pos).(param).sd(2), 13, 1);
-% mu0= repmat(D.(pos).(param).data(2), 13,1); % test different than prone rest.
-% sdbar= D.(pos).(param).sd;
-% mubar= D.(pos).(param).data;
-% 
-% tval= (mubar - mu0) ./ sqrt((sd0.^2 + sdbar.^2)./n);
-% 
-% tdist2T = @(t,v) (1-betainc(v./(v+t.^2),v./2,0.5));    % 2-tailed t-distribution
-% tprob = 1- tdist2T(tval,v);
-% disp(tprob);
-% 
-% %% 2. Is this decrease in FRC accompanied by decrease in TV?
-% pos= 'pos2';
-% param= 'TV';
-% n=3;
-% sd= D.(pos).(param).sd;
-% mu0=ones(13,1);
-% mubar= D.(pos).(param).data;
-% 
-% z= (mubar - mu0) ./ (sd ./ sqrt(n));
-% disp(tcdf(z,n));
-% 
-% %% 3. Do they compensate by increasing BF?
-% pos= 'p1';
-% param= 'TVABS';
-% n=D.(pos).(param).n;
-% sd= D.(pos).(param).sd;
-% mu0=repmat(D.(pos).(param).data(2),13,1);
-% mubar= D.(pos).(param).data;
-% 
-% z= (mubar - mu0) ./ (sd ./ sqrt(n));
-% disp(1-tcdf(z,n));
-% 
 % %%
-% par2= {'p1','p2','p3','p4','p5','p6','p7'};
-% param= 'FRCABS';
-% allprob=zeros(13,7);
-% alpha=0.05;
-% txt= cell(13,7);
-% for i=1:length(par2)
-%     pos= par2{i};
-%     
-%     x1= D.(pos).(param).data;
-%     s1= D.(pos).(param).sd;
-%     n1= D.(pos).(param).n;
+% params  = {'MINVNTREL','FRCMREL'};
+% param   = params{2};
+% xVars = {'age','bmi'};
+% xVar = xVars{2};
 % 
-%     x2= repmat(D.(pos).(param).data(2),13,1);
-%     s2= repmat(D.(pos).(param).sd(2),13,1);
-%     n2= repmat(D.(pos).(param).n(2),13,1);
-% 
-%     for j=1:13
-%         if s1(j)~=0
-%             allprob(j,i)= welch_t(x1(j), s1(j), n1(j), x2(j), s2(j), n2(j));
-%         else
-%             allprob(j,i)=1;
-%         end % end if
-%         txt{j,i}= horzcat(num2str(round(x1(j),2)),'(', num2str(round(s1(j),2)),')');
-%         if allprob(j,i)<alpha
-%             txt{j,i}=horzcat(txt{j,i},'*');
-%         end % end if
-%     end % end for j
-%     
-% end % end for i
-% disp(txt);
-% %% does adding weight decrease FRC
-% for i=1:7
-%     x1= D.(participants{i})(2,4);
-%     s1= D.(participants{i})(2,5);
-%     n1= D.(participants{i})(2,6);
-% 
-%     x2= D.(participants{i})(6,4);
-%     s2= D.(participants{i})(6,5);
-%     n2= D.(participants{i})(6,6);
-% 
-%     p= welch_t(x1, s1, n1, x2, s2, n2);
-%     disp(p);
+% x1 = []; x2 = [];
+% y1 = []; y2 = [];
+% for i=1:length(fn)
+%    try
+%        idx = str2double(fn{i}(2:end));
+%        if ~isnan(idx) && idx~=14 && idx~=16
+%            x1 = [x1, E.(fn{i}).age];
+%            x2 = [x2, E.(fn{i}).bmi];
+%            y1 = [y1, E.(fn{i}).(param).data(W(1))];
+%            y2 = [y2, E.(fn{i}).(param).data(W(5))-E.(fn{i}).(param).data(W(1))];
+%        end
+%    catch
+%        continue
+%    end    
 % end
-% %% stats table
-% results=D;
-% var_names={};
-% results_tbl=[];
-% count=1;
-% for p=1:length(participants)
-%     for q=1:length(recordings)
-%         record=recordings{q};
-%         x= D.(participants{p}).(record)(:,1);
-%         results.(participants{p}).(record)=zeros(6,2);
-%         len_x=length(x);
-%         current_res= [];
-%         for r= 2:length(header)
-%             y= D.(participants{p}).(record)(:,r);
-%             P= polyfit(x,y,1);
-%             yfit = P(1)*x+P(2);
-%             change= round(100* (yfit(end)- yfit(1)) / yfit(end), 2);
-%             R= corrcoef(yfit, y);            
-%             t=R(1,2)* sqrt((len_x-2)/ (1-R(1,2)^2));
-%             Pv=round(2*(1- tcdf(t, len_x- 2)), 2);
-%             current_res(r-1,:)= [change, Pv];
-%         end
-%         results_tbl= [results_tbl,current_res];
-%         var_names{count}= horzcat(participants{p},'_change_',record);
-%         count= count+1;
-%         var_names{count}= horzcat('p_',num2str(count));
-%         count= count+1;
-%     end % end for q
-% end % end for p
-% table_out = array2table(results_tbl, 'VariableNames', var_names);
-% save_name= horzcat('pooled_results.csv');
-% writetable(table_out,save_name);
-% %%
-% % for each person, how does parameter change with each recording?
-% part_pos= fieldnames(D);
-% for i= 1: numel(part_pos)
-%     part= part_pos{i};
-%     for j= 2:length(header)
-%         parameter_name= header{j};
-%         data_= [];
-%         label= [];
-%         for k= 1:length(recordings)
-%             record= recordings{k};
-%             data= D.(part).(record);
-%             data_= [data_; data(:, j)];
-%             m= repmat({record}, size(data, 1), 1);
-%             label= [label; m];
-%         end % end for k
-%         
-%         fig_title= remove_underscores(horzcat(part, ' feature - ', parameter_name));
-%         boxplot(data_, label);
-%         title(fig_title);
-%         cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\feature_comparison';
-%         saveas(gcf, horzcat(fig_title, '.svg'));
-%     end % end for j
-% end % end for i
-
+% subplot(2,2,1);plot(x1,y1, 'o');xlabel(xVars{1});ylabel(param);title('W1');
+% subplot(2,2,2);plot(x1,y2, 'o');xlabel(xVars{1});ylabel(param);title('W5-W1');
+% subplot(2,2,3);plot(x2,y1, 'o');xlabel(xVars{2});ylabel(param);title('W1');
+% subplot(2,2,4);plot(x2,y2, 'o');xlabel(xVars{2});ylabel(param);title('W5-W1');
+% 
+% fit1 = fitlm(x1, y1);
+% fit2 = fitlm(x1, y2);
+% fit3 = fitlm(x2, y1);
+% fit4 = fitlm(x2, y2);
+%%
 % ----------------------------------------------------------------------- %
 % ----------------------------------------------------------------------- %
+function tbl = participant_data_to_table(Participant)
+startingStruct = struct;
+fn = fieldnames(Participant);
+for i = 1:length(fn)
+   variable = fn{i};
+   variableFns = fieldnames(Participant.(variable));
+   for j = 1:length(variableFns)
+       if ~isempty(Participant.(variable).(variableFns{j}))
+           startingStruct.(sprintf('%s_%s', variable, variableFns{j})) = Participant.(variable).(variableFns{j});
+       end
+   end
+end
+tbl = struct2table(startingStruct);
+end % end function
 
 
-function isSig = test_significance( participant, header, param )
+function [pooled,pos] = pos_vs_all(E, param, posCond, allCond)
+POS1    = 'P07,P08,P10,P11,P12'; % 5
+POS2    = 'P04,P05,P06,P09,P15,P18'; % 6
+POS3    = 'P01,P02,P03,P13,P17,P19'; % 6
+fn      = fieldnames(E);
+nPart   = length(split(sprintf('%s,%s,%s',POS1,POS2,POS3),','));
+pooled  = nan(nPart,4);
+pos     = nan(nPart,1);
+pstn = 0;
+a = 0;
+b = 0;
+p1idx=0; p2idx=0; p3idx=0; allIdx=0;
+for i = 1:length(fn)
+    do = true;
+    p = fn{i};
+    if contains(POS1, p)
+        p1idx=p1idx+1;
+        pooled(p1idx,1) = E.(p).(param).data(posCond);
+        pstn = 1;
+    elseif contains(POS2, p)
+        p2idx=p2idx+1;
+        pooled(p2idx,2) = E.(p).(param).data(posCond);
+        pstn = 2;
+    elseif contains(POS3, p)
+        p3idx=p3idx+1;
+        pooled(p3idx,3) = E.(p).(param).data(posCond);
+        pstn = 3;
+    else
+        do = false; % not a subj field, dont add to all column.
+    end
+    if do
+        allIdx=allIdx+1;
+        pooled(allIdx,4) = E.(p).(param).data(allCond);
+    end
+    if pstn>0
+       pos(allIdx)=pstn; 
+    end
+end
+end
 
+function isSig = test_significance( param, featTest )
 % test significance
-% U vs R
-% end X vs P
-% each W time point vs R
-% each X time point vs end W
-isSig=cell(13,1);
-alpha=0.05;
+% 1.	W1 vs W5 for group average – is there a progressive change in parameter due to weight?
+% 2.	X1 vs X5 for group average – is there a progressive change in parameter due to weight and exercise?
+% 3.	W1 vs X1 for group average – is there a difference initially when weight is applied before and after exercise?
+% 4.	W5 vs X5 for group average – Is the progressive effect of weight different before and after exercise?
+% 5.	Is the W1-X1 difference significantly different than the X5-W5 difference?
+phases  = {'U';'R';'W1';'W2';'W3';'W4';'W5';'X1';'X2';'X3';'X4';'X5';'P'};
+featTest= split(featTest,':');
+phase1  = featTest{1};
+phase2  = featTest{2};
 
-x1 = participant(:, strcmp(header, horzcat(param,'ABS')));
-if strcmp(param, 'FIT')
-    x1 = participant(:, strcmp(header, param));
+for i=1:length(phases)
+   if strcmp(phase1, phases{i})
+       idx1 = i;
+   end
+   if strcmp(phase2, phases{i})
+       idx2 = i;
+   end
+end
+
+if idx1==0 || idx2==0;keyboard;end
+
+isSig   = cell(length(idx1),1);
+alpha   = 0.05;
+x       = param.data;
+s       = param.sd;
+n       = param.n;
+
+if isempty(s) || isempty(n)
+    return
+end
+mu1= x(idx1);   mu2= x(idx2);
+s1 = s(idx1);   s2 = s(idx2);
+n1 = n(idx1);   n2 = n(idx2);
+
+if isnan(mu1) || isnan(mu2)
+    p = 1;
+elseif s1~=0 && s2~=0
+    p = welch_t(mu1, s1, n1, mu2, s2, n2);
+elseif (mu1==1&&s1==0) || (mu2==1&&s2==0) || (mu2==0&&s2==0) %testing against phase R
+    df      = n1-1; % make sure df is the same type as X
+    xmean   = mu1;
+    sdpop   = s1;
+    sqrtn   = sqrt(n1);
+    xdiff   = (xmean - mu2);
+
+    % Check for rounding issues causing spurious differences
+    fix = (xdiff~=0) ...                                     % a difference
+        & (abs(xdiff) < 100*sqrtn.*max(eps(xmean),eps(mu2)));  % but a small one
+    if any(fix(:))
+        % Fix any columns that are constant, even if computed difference is
+        % non-zero but small
+        constvalue = min(x,[],dim);
+        fix = fix & all(x==constvalue | isnan(x),dim);
+    end
+    if any(fix(:))
+        % Set difference and standard deviation to 0, and recompute mean
+        xdiff(fix) = 0;
+        sdpop(fix) = 0;
+        xmean = xdiff+mu2;
+    end
+    ser = sdpop ./ sqrtn;
+    tval = xdiff ./ ser;
+    % Compute the correct p-value for the test, and confidence intervals
+    % if requested.
+    p = 2 * tcdf(-abs(tval), df);
+else
+    p=1;
 end % end if
-s1 = participant(:, strcmp(header, horzcat(param,'SD')));
-n1 = participant(:, strcmp(header, horzcat(param,'N')));
 
-x2= [repmat(x1(2),7,1) ; repmat(x1(7),5,1) ; x1(12)];
-s2= [repmat(s1(2),7,1) ; repmat(s1(7),5,1) ; s1(12)];
-n2= [repmat(n1(2),7,1) ; repmat(n1(7),5,1) ; n1(12)];
-
-for j=1:13
-    if s1(j)~=0 && s2(j)~=0
-        p = welch_t(x1(j), s1(j), n1(j), x2(j), s2(j), n2(j));
-    else
-        p = 1;
-    end % end if
-    if p < alpha
-        isSig{j}='*';
-    else
-        isSig{j}='';
-    end % end if
-end % end for j
-isSig = {isSig};
+if p < alpha
+    ast='*';
+else
+    ast='';
+end % end if
+    isSig = sprintf('%0.2f %s %0.2f%s(%.5f)', mu1,char(177),s1,ast,p);
+%     isSig = sprintf('%0.2f %s %0.2f%s', mu1,char(177),s1,ast);
 end % end function
 
 % ----------------------------------------------------------------------- %
 
-function outtable(D, header)
+function outtable(D, tests, saveDir)
+if ~strcmp(saveDir(end), '\')
+    saveDir = horzcat(saveDir, '\');
+end
+fn      = fieldnames(D);
+% RES     = D;
+% col1    = {'U';'R';'W1';'W2';'W3';'W4';'W5';'X1';'X2';'X3';'X4';'X5';'P'};
+% fn2     = {'TV','BF','FRCM','MINVNT'};
+fn2     = {'FRCB','FRCM','FRCT'};
+nrows   = length(tests);
 
-fn = fieldnames(D);
-RES = struct;
-check = {'ABS', 'SD'};
-col1 = {'U';'R';'W1';'W2';'W3';'W4';'W5';'X1';'X2';'X3';'X4';'X5';'P'};
-for NPART=1:length(fn)
-    for i=1:length(header)
-        name = strtrim(header{i});
-        if strcmp(name, 'FIT'); name = 'FITABS';end
-        for j= 1:length(check)
-            tok= regexp(name, check{j});
-            if ~isempty(tok)
-                param = name(1:tok-1);
-                RES.(fn{NPART}).(param).(check{j}) = D.(fn{NPART})(:,i);
-            end % end if
-        end % end for j
-    end % end for i
-end % end for h
-
-fn2 = fieldnames(RES.(fn{NPART}));
-nrows = size(D.(fn{NPART})(:,i), 1);
-for i=1:length(fn2) % for each param
-    tbl = cell(nrows, NPART);
-    for j=1:NPART % for each participant
-        RES.(fn{j}).(fn2{i}).sig = test_significance( D.(fn{j}), header, fn2{i} );
-        for r=1:nrows
-            current = RES.(fn{j}).(fn2{i});
-            tbl{r,j} = sprintf( '%0.2f(%0.2f)%s', current.(check{1})(r), current.(check{2})(r), current.sig{1}{r} );
-        end % end for r
+for i = 1:length(fn2) % for each param
+    tbl = cell(nrows, length(fn));
+    for j = 1: length(fn) % for each participant
+        if sum(contains( {'pos1','pos2','pos3','all'}, (fn{j}) )) == 1
+            param = sprintf('%sREL',fn2{i});
+        else
+            param = fn2{i};
+        end
+        for r = 1:nrows
+            featTest = tests{r};
+            tbl{r,j} = test_significance( D.(fn{j}).(param), featTest );
+        end
     end
-    out = array2table( horzcat(col1,tbl), 'VariableNames', vertcat({'Condition'},fn));
-    writetable(out, sprintf('paper_table_%s.csv', fn2{i}));
+    out = array2table( horzcat(tests,tbl), 'VariableNames', vertcat({'Condition'},fn));
+    writetable(out, sprintf('%spaper_table_%s.csv', saveDir, fn2{i}));
 end % end for i
 
 end % end function
@@ -247,17 +364,17 @@ end % end function
  function [D, header]= load_files(statdir)
  
 cd(statdir);
-files= ls;
-D= struct;
-have_header=false;
-for i= 3: size(files, 1)
-    f=files(i,:);
-    file= strtrim(f);
+files = ls;
+D = struct;
+have_header = false;
+for i = 3: size(files, 1)
+    f = files(i,:);
+    file = strtrim(f);
 %     tok= regexp(file, 'P._', 'match');
-    tok= regexp(file, 'features', 'match');
+    tok = regexp(file, 'features', 'match');
     if length(tok)>0 && ~isempty(tok{1})
 %         part_name=tok{1}(1:end-1);
-        part_name=f(1:2);
+        part_name = f(strfind(f,'P') : strfind(f,'P')+2);
     else
         continue
     end % end if
@@ -265,10 +382,10 @@ for i= 3: size(files, 1)
         if ~have_header
             fid = fopen(file, 'r');
             header = textscan(fid, '%s', 1); 
-            header=header{1};
+            header = header{1};
             header = textscan(header{1}, '%s', 'Delimiter', ',');
             fclose(fid);
-            header=header{1};
+            header = header{1};
         end % end if
         D.(part_name)= readmatrix(file);
     else
@@ -280,158 +397,140 @@ end % end function
 
 % ----------------------------------------------------------------------- %
 
-function D= get_position_data(D, header)
-
-    for i=1:length(header)
-        param=header{i};
-        D.pos3.(param).data= mean([ D.P1(:,i), D.P2(:,i), D.P3(:,i)], 2);
-        D.pos3.(param).sd= std([    D.P1(:,i), D.P2(:,i), D.P3(:,i)], [],2);
-        
-        D.pos2.(param).data= mean([ D.P4(:,i), D.P5(:,i), D.P6(:,i)], 2);
-        D.pos2.(param).sd= std([    D.P4(:,i), D.P5(:,i), D.P6(:,i)], [],2);
-        
-        D.pos1.(param).data=        D.P7(:,i);
-        D.pos1.(param).sd= std(     D.P7(:,i), [], 2);
-        
-        D.all.(param).data= mean([  D.P1(:,i), D.P2(:,i), D.P3(:,i), D.P4(:,i), D.P5(:,i), D.P6(:,i), D.P7(:,i)], 2);
-        D.all.(param).sd= std([     D.P1(:,i), D.P2(:,i), D.P3(:,i), D.P4(:,i), D.P5(:,i), D.P6(:,i), D.P7(:,i)], [],2);
-    end % end for
-par= {'P1','P2','P3','P4','P5','P6','P7'};
-par2= {'p1','p2','p3','p4','p5','p6','p7'};
-for i= 1:length(par)
-    D.(par2{i}).BFABS.data=D.(par{i})(:,1);
-    D.(par2{i}).BFABS.sd= D.(par{i})(:,2);
-    D.(par2{i}).BFABS.n= D.(par{i})(:,3);
-    
-    D.(par2{i}).FRCABS.data= D.(par{i})(:,5);
-    D.(par2{i}).FRCABS.sd= D.(par{i})(:,6);
-    D.(par2{i}).FRCABS.n= D.(par{i})(:,7);
-    
-    D.(par2{i}).TVABS.data= D.(par{i})(:,9);
-    D.(par2{i}).TVABS.sd= D.(par{i})(:,10);
-    D.(par2{i}).TVABS.n= D.(par{i})(:,11);
+function E = get_position_data(D, header, params)
+POS1    = 'P07,P08,P10,P11,P12'; % 5
+% POS2    = 'P04,P05,P06,P09,P15,P16,P18'; % 7
+POS2    = 'P04,P05,P06,P09,P15,P18'; % 6
+% POS3    = 'P01,P02,P03,P13,P14,P17,P19'; % 7
+POS3    = 'P01,P02,P03,P13,P17,P19'; % 6
+par     = fieldnames(D);
+E       = struct;
+if nargin == 2
+    params = header;
 end
-end % end function
-
-% -------------------------------------------------------------------------
-
-function plot_parameters(data, variablenames, select)
-
-recordings= {'sref', 'pref', 'wref', 'wepos', 'epos'};
-timepoints= [0 1 2 3 4]*60;         n_timepoints=length(timepoints);
-x_ticklabels=cell(1,13);            rows=[1,2,3,8,13];
-n_variables=length(select);         colors= ['b','r','m'];
-y=zeros(13,n_variables);            clf;                   
-
-for i= 1:length(recordings)
-    record= recordings{i};
-    xax= data.(record)(:,1);
-    hold on
-    
-    for j=1:n_variables
-        idx=select(j);
-        
-        if i==1 || i==2 || i==5 %sref pref wepos
-            y(rows(i),j)= mean(data.(record)(:,idx));
-%             y(rows(i),j)= mean( data.(record)(:,idx) ./ data.(record)(:,4), 1);
-            x_ticklabels{rows(i)}= record;
-        else
-            something= sum(xax>timepoints, 2);
-            
-            for k=0:n_timepoints-1
-                row=rows(i)+k;
-                y(row,j)= mean(data.(record)(something==k+1,idx));
-%                 y(row,j)= mean( data.(record)(something==k+1,idx) ./ data.(record)(something==k+1,4), 1);
-                x_ticklabels{row}= horzcat(record, ' ', num2str(k+1));
-            end % end for k
-            
-        end % end if
-        
-    end % end for j
-    
-end % end for i
-y= y./ max(y, [], 1);
-for i=1:n_variables
-    hold on    
-    if length(select)== 2 && select== [2, 3]
-        subplot(n_variables,1,1);plot(y(:,i),colors(i));
-        xticks(1:13); xticklabels(x_ticklabels); xtickangle(45);
-        legend('Inspiratory Time', 'Expiratory Time');
-        xlabel('Position');ylabel('Proportion of Total breath time (%)');
-    else
-        subplot(n_variables,1,i);plot(y(:,i),colors(i));
-        xticks(1:13); xticklabels(x_ticklabels); xtickangle(45);
-        legend(horzcat('Normalized ', remove_underscores(variablenames{select(i)})));
-        xlabel('Position');ylabel('Arbitrary Units');
+for i = 1:length(params)
+    pos1Mu  = [];
+    pos2Mu  = [];
+    pos3Mu  = [];
+    param = params{i};
+    for j = 1:length(par)
+        p = par{j};
+        try
+            E.(p).(param).data  = D.(p)(:,strcmp(header,param));
+            E.(p).(param).sd    = D.(p)(:,strcmp(header,sprintf('%sSD',param)));
+            E.(p).(param).n     = D.(p)(:,strcmp(header,sprintf('%sN',param)));
+        catch
+        end
+        if contains(POS1, p)
+            pos1Mu = [pos1Mu, D.(p)(:,strcmp(header,param))];
+        end
+        if contains(POS2, p)
+            pos2Mu = [pos2Mu, D.(p)(:,strcmp(header,param))];
+        end
+        if contains(POS3, p)
+            pos3Mu = [pos3Mu, D.(p)(:,strcmp(header,param))];
+        end
     end
-end % end for i
-
+    E.pos1.(param).data = mean(pos1Mu, 2,'omitnan');
+    E.pos1.(param).sd   = std( pos1Mu, [], 2,'omitnan');
+    E.pos1.(param).n    = sum(~isnan(pos1Mu),2);
+    
+    E.pos2.(param).data = mean(pos2Mu, 2,'omitnan');
+    E.pos2.(param).sd   = std( pos2Mu, [], 2,'omitnan');
+    E.pos2.(param).n    = sum(~isnan(pos2Mu),2);
+    
+    E.pos3.(param).data = mean(pos3Mu, 2,'omitnan');
+    E.pos3.(param).sd   = std( pos3Mu, [], 2,'omitnan');
+    E.pos3.(param).n    = sum(~isnan(pos3Mu),2);
+    
+    E.all.(param).data  = mean([pos1Mu,pos2Mu,pos3Mu], 2,'omitnan');
+    E.all.(param).sd    = std( [pos1Mu,pos2Mu,pos3Mu], [], 2,'omitnan');
+    E.all.(param).n     = sum(~isnan([pos1Mu,pos2Mu,pos3Mu]),2);
+end % end for
 end % end function
 
 % -------------------------------------------------------------------------
 
-function tprob= welch_t(x1, s1, n1, x2, s2, n2)
+function tprob = welch_t(x1, s1, n1, x2, s2, n2)
 
-tval= (x1 - x2) / sqrt( s1^2 / n1 + s2^2 / n2 );
-v= (s1^2 / n1 + s2^2 / n2)^2 / ( s1^4/ (n1^2 * n1-1) + s2^4/ (n2^2 * n2-1) );
-
+tval    = (x1 - x2) / sqrt( s1^2 / n1 + s2^2 / n2 );
+v       = (s1^2 / n1 + s2^2 / n2)^2 / ( s1^4/ (n1^2 * n1-1) + s2^4/ (n2^2 * n2-1) );
 tdist2T = @(t,v) (1-betainc(v./(v+t.^2),v./2,0.5));    % 2-tailed t-distribution
-tprob = 1- tdist2T(tval,v);
-
+tprob   = 1- tdist2T(tval,v);
+% tdist1T = @(t,v) 1-(1-tdist2T(t,v))/2;              % 1-tailed t-distribution
+% tprob   = 1- tdist1T(tval,v);
 end % end function
 
 % -------------------------------------------------------------------------
 
 function results_figs(D)
-cd 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\paper';
-pp={'all','pos1','pos2','pos3'};
-abs={'TV','BF','FRCM'};
-lab={'TV','BF','FRCM'};
-colours = {	'#0072BD', '#D95319', '#EDB120', '#7E2F8E'};
+SAVEDIR = 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\paper\';
+pp      = {'all','pos1','pos2','pos3'};
+% relFeats= {'TVREL','BFREL','FRCMREL','MINVNTREL'};
+% lab     = {'TV','BF','FRCM','MINVNT'};
+relFeats= {'FRCBREL','FRCMREL','FRCTREL'};
+lab     = {'FRCB','FRCM','FRCT'};
+colours = {'#0072BD', '#D95319', '#EDB120', '#7E2F8E'};
 markers = {'-o','--^',':s','-.d'};
 % titles={'Normalized respiration rate', 'Normalized tidal volume', 'Delta FRC Middle Plane change from R as a ratio of mean R tidal volume'};
-ylabels={'Normalized tidal volume (AU * breath^{-1})','Normalized respiration rate (breaths * min^{-1})','Delta FRC middle plane (% change)'};
-lw = 2;
-cpsz = 12;
-mrkrsz = 10;
+ylabels = {'Relative delta FRC (bottom plane)','Relative delta FRC (middle plane)','Relative delta FRC (top plane)'};
+% ylabels = {'Relative tidal volume (RU * breath^{-1})','Relative respiration rate (breaths * min^{-1})','Relative delta FRC (middle plane)','Relative minute ventilation'};
+lw      = 2;
+cpsz    = 12;
+mrkrsz  = 10;
 
-for h= 1:length(abs)
+for h = 1:length(relFeats)
     legEntries = [];
-    fig=figure('units','normalized','outerposition',[0 0 1 1]);clf; hold on;
-    fig.PaperOrientation='landscape';
-    ax1=fig.Children;
-    for i=1:length(pp)
-        mrkr = markers{i};
+    fig = figure(h);
+    fig.Units='normalized';fig.OuterPosition=[0 0 1 1];clf(); hold on;fig.PaperOrientation='landscape';
+    ax1 = fig.Children;
+    for i = 1:length(pp)
+        mrkr    = markers{i};
         mrkrclr = colours{i};
-        err = D.(pp{i}).(abs{h}).sd;
-        errorbar(1,     D.(pp{i}).(abs{h}).data(1),     err(1),     mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
-        errorbar(2,     D.(pp{i}).(abs{h}).data(2),     err(2),     mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
-        errorbar(3:7,   D.(pp{i}).(abs{h}).data(3:7),   err(3:7),   mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
-        errorbar(8:12,  D.(pp{i}).(abs{h}).data(8:12),  err(8:12),  mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
-        entry = errorbar(13,    D.(pp{i}).(abs{h}).data(13),    err(13),    mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
-        % create legend entry
+        err     = D.(pp{i}).(relFeats{h}).sd ./ sqrt(D.(pp{i}).(relFeats{h}).n);
+        if strcmp(pp{i}, 'all')
+            errorbar(1,     D.(pp{i}).(relFeats{h}).data(1),     err(1),     mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
+            errorbar(2,     D.(pp{i}).(relFeats{h}).data(2),     err(2),     mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
+            errorbar(3:7,   D.(pp{i}).(relFeats{h}).data(3:7),   err(3:7),   mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
+%             plot(8:12,  D.(pp{i}).(relFeats{h}).data(8:12), mrkr, 'linewidth', lw, 'Color', mrkrclr, 'MarkerSize', mrkrsz);
+            entry = errorbar(13,D.(pp{i}).(relFeats{h}).data(13),    err(13),    mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
+            txt1 = sprintf('n=%.0f',D.(pp{i}).(relFeats{h}).n(1));
+            t1 = text(1,D.(pp{i}).(relFeats{h}).data(1)+err(1),txt1,'FontSize',16);
+            txt2 = sprintf('n=%.0f',D.(pp{i}).(relFeats{h}).n(13));
+            t2 = text(13,D.(pp{i}).(relFeats{h}).data(13)+err(13),txt2,'FontSize',16);
+        else
+            entry = errorbar(8:12,  D.(pp{i}).(relFeats{h}).data(8:12),  err(8:12),  mrkr, 'linewidth', lw, 'Color', mrkrclr, 'CapSize', cpsz, 'MarkerSize', mrkrsz);
+        end
         legEntries = [legEntries, entry];
     end % end for i
-    
     leg = legend(legEntries,...  
                 '\begin{tabular}{p{.05cm}r}&group average\end{tabular}',...
-                '\begin{tabular}{p{.05cm}r}&control posture\end{tabular}',...
-                '\begin{tabular}{p{.05cm}r}&restraint posture 1\end{tabular}',...
-                '\begin{tabular}{p{.05cm}r}&restraint posture 2\end{tabular}',... 
-                'FontSize', 15, 'Box', 'off', 'Location', 'northwest');
+                '\begin{tabular}{p{.05cm}r}&control \hspace{0.52cm}(arms at side)\end{tabular}',...
+                '\begin{tabular}{p{.05cm}r}&restraint 1 (hands behind back)\end{tabular}',...
+                '\begin{tabular}{p{.05cm}r}&restraint 2 (hands behind head)\end{tabular}',... 
+                'FontSize', 15, 'Box', 'on', 'Location', 'best');
     set(leg,'interpreter','latex'); % set interpreter
-    
-%     title(titles{h}, 'fontsize', 20);
-    ax1.XLim=[0.5 13.5];
-    ax1.XTick=1:13;     
-    ax1.XLabel.FontSize= 60;
-    ax1.YLabel.FontSize= 60;
-    ax1.XTickLabels={'U', 'R', 'W_1','W_2','W_3','W_4','W_5','X_1','X_2','X_3','X_4','X_5','P'};
+        
+    ax1.XTickLabels     = {'U', 'R', 'W_1','W_2','W_3','W_4','W_5','X_1','X_2','X_3','X_4','X_5','P'};
+%     ax1.XTickLabels     = {'R', 'W_1','W_2','W_3','W_4','W_5','X_1','X_2','X_3','X_4','X_5'};
+    ax1.XLim            = [0.5 length(ax1.XTickLabels)+.5];
+    ax1.XTick           = 1:length(ax1.XTickLabels);
+    ax1.XLabel.FontSize = 60;
+    ax1.YLabel.FontSize = 60;
     set(gca,'XTickLabel', ax1.XTickLabels, 'fontsize', 15);
     ylabel(ylabels{h});
     xlabel('Experimental phase');
-    saveas(gcf, horzcat('paper_',lab{h}, '.svg'));
+    
+    t1.Units = 'normalized';
+    t1.Position(1) = t1.Position(1)-t1.Extent(3)/2;
+    t1.Position(2) = t1.Position(2)+t1.Extent(4);
+    t2.Units = 'normalized';
+    t2.Position(1) = t2.Position(1)-t2.Extent(3)/2;
+    t2.Position(2) = t2.Position(2)+t2.Extent(4);
+    printPDF(sprintf('%spaper_%s.pdf', SAVEDIR, lab{h}));
+%     saveas(gcf, sprintf('%spaper_%s.svg', SAVEDIR, lab{h}));
 end % end for h
+
 end % end function
 
 % -------------------------------------------------------------------------

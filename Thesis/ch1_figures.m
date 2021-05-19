@@ -48,17 +48,21 @@ for iter=1:length(inclusions)
     imgc = img;
     imgc.fwd_model.mdl_slice_mapper.npx = res;
     imgc.fwd_model.mdl_slice_mapper.npy = res;
-    % show_fem(fmdl, [0 1 0]);
-    % axis equal;axis off
-    % fg=gcf;
-    % ax=fg.Children;
-    % for i=1:length(ax.Children)
-    %     ch = ax.Children(i);
-    %     if strcmp(class(ch), 'matlab.graphics.primitive.Text')
-    %         ch.FontSize = 20;
-    %     end
-    % end
-    % printPDF( sprintf('%sFEM', saveDir) );
+    if iter == 1
+        show_fem(fmdl, [0 1 0]);
+        axis equal;axis off
+        fg=gcf;
+        ax=fg.Children;
+        for i=1:length(ax.Children)
+            ch = ax.Children(i);
+            if strcmp(class(ch), 'matlab.graphics.primitive.Text')
+                ch.FontSize = 20;
+            end
+        end
+    %     printPDF( sprintf('%sFEM', saveDir) );
+        saveas(gcf, sprintf('%sFEM.svg', saveDir) );
+        clf();
+    end
 % ======================================================================= %
     % show current density
     % reset variables
@@ -76,14 +80,15 @@ for iter=1:length(inclusions)
         figure('units','normalized','outerposition',[0 0 1 1]);
         subplot(1,2,1); show_fem(img); axis equal; axis off; axis tight; box on;
         ax=gca; pos = ax.Position;
-        title(sprintf('Ground Truth - FEM with Background of %.1f and Inclusion of %.1f', inclusions(1),inclusions(2)),'FontSize',20);
+%         title(sprintf('Ground Truth - FEM with Background of %.1f and Inclusion of %.1f', inclusions(1),inclusions(2)),'FontSize',16);
         
         subplot(1,2,2); show_slices(imgr); axis equal; axis off; axis tight; box on;
-        title(sprintf('Reconstruction Image with an SNR of %.1f dB', SNR),'FontSize',20);
+%         title(sprintf('Reconstruction Image with an SNR of %.1f dB', SNR),'FontSize',16);
         fg = gcf; fg.Colormap(1,:) = [1 1 1];
         colorbar;
         ax=gca; ax.Position(3:4) = pos(3:4);
-        printPDF( sprintf('%sRecon', saveDir) );
+        saveas(gcf, sprintf('%sRecon.svg', saveDir));
+%         printPDF( sprintf('%sRecon', saveDir) );
         % =============================================================== %
     end % end if
     
@@ -164,7 +169,8 @@ for iter=1:length(inclusions)
         set(hh,'EdgeColor',[1,1,1]);
 
         % show equipotential lines
-        imgv2.node_data = vh.volt(:,i);
+%         imgv2.node_data = vh.volt(:,i);
+        imgv2.node_data = mean(vh.volt(:,i),2);
         V = log(abs(flipud(calc_slices( imgv2 ))));
         hContour = contourf(X,Y,V);
         axis equal; axis off; axis tight;
@@ -187,6 +193,7 @@ for i=1:nElec*2
 end
 set_colourbars(fg, nElec, INCR, 1);
 % printPDF( sprintf('%sQlines.pdf', saveDir) );
+saveas(gcf, sprintf('%sQlines.svg', saveDir));
 
 fg = figure(2);
 for i=1:nElec*2
@@ -195,7 +202,7 @@ for i=1:nElec*2
 end
 set_colourbars(fg, nElec, INCR, 2);
 % printPDF( sprintf('%sVlines.pdf', saveDir) );
-    
+saveas(gcf, sprintf('%sVlines.svg', saveDir));
 % ======================================================================= %
 % ======================================================================= %
 

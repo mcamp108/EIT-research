@@ -1,34 +1,27 @@
-function files= load_wr_data(folder)
-    
-while strcmp(folder(end), ' ')
-    folder= folder(1:end-1);
-end % end while
-
-hdr= length(horzcat(folder, '_'))+ 1;
-cd(folder);
-files= ls;
-for f= 3: size(files, 1)
-    file= files(f, :);
-    while strcmp(file(end), ' ')
-        file= file(1:end-1);
-    end % end while
-    if strcmp(file(end-3:end), '.eit')
-        if strcmp(file(hdr:hdr+8), 'proneRef.')
-            pref= file;
-        elseif strcmp(file(hdr:hdr+13), 'proneRefWeight')
-            wref= file;
-        elseif strcmp(file(hdr:hdr+16), 'standingReference')
-            sref= file;
-        elseif strcmp(file(hdr:hdr+18), 'proneWeightExercise')
-            wepos= file;
-        elseif strcmp(file(hdr:hdr+20), 'proneNoWeightExercise')
-            epos= file;
+function filesOut = load_wr_data(path)
+    thing   = strfind(path, '\');
+    folder  = path(thing(end)+1 : end);
+    hdr     = length(horzcat(folder, '_'))+ 1;
+    files   = ls(path);
+    filesOut = cell(5,1);
+    for f = 3: size(files, 1)
+        file = files(f, :);
+        FILE = lower(file);
+        while strcmp(file(end), ' ')
+            file = file(1:end-1);
+        end % end while
+        if contains(FILE, 'standingreference') || contains(FILE, 'minstanding.eit')
+            filesOut{1} = file;
+        elseif contains(FILE, 'proneref.eit') || contains(FILE, 'minprone.eit')
+            filesOut{2} = file;
+        elseif contains(FILE, 'pronerefweight') || contains(FILE, 'minwithweight.eit')
+            filesOut{3} = file;
+        elseif contains(FILE, 'proneweightexercise') || contains(FILE, 'minwithwafterexercise.eit')
+            filesOut{4} = file;
+        elseif contains(FILE, 'pronenoweightexercise')
+            filesOut{5} = file;
         else
-            disp("Unrecognized file name!")
+            fprintf('\nUnrecognized: %s', file);
         end % end if
-    end % end if
-end % end for f
-
-files= {sref, pref, wref, wepos, epos};
-% cd ../.
+    end % end for f
 end % end function

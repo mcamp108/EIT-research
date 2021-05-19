@@ -1,49 +1,47 @@
-function D= load_HamburgBrain_data(pig, ref)
+function D = load_HamburgBrain_data(pig, ref, modelDir)
 % -------------------------------------------------------------------------
 % DESCRIPTION:
-%
-%   D= load_HamburgBrain_data(pig)
+%   D = load_HamburgBrain_data(pig, ref, modelDir)
 % -------------------------------------------------------------------------
 % RETURNS: 
-%   D: 
-%       A struct containing one field per sequence taken using this
-%       pig. Each sequence in the data struct is an experimental trial. Each
-%       sequence has the following fields: 
-%       
-%     name: 
-%         Formatted file name used as
-%         title of figures for this sequence pig: Pig name imgr: Reconstructed
-%         images using eit.fdata and imdl for this pig eit: EIT part of data struct
-%     data: 
-%           EIT data output from eidors_readdata()
-%     fs: 
-%           EIT data framerate
-%     sync1: 
-%           First syncronization spike in EIT data
-%     sync2: 
-%           Second syncronization spike in EIT data
-%     apn: 
-%           Using the LabChart file, the time relative to the beginning of
-%           the first EIT synchronization spike that the apnoea flush
-%           occured in the arterial pressure data
-%     inj: 
-%           Same as above, but for the injection flush
-%     vnt: 
-%           Same as above, but for the end of apnoea flush
-%     fdata: 
-%           9 Hz lowpass-filtered EIT data
-%     perf: 
-%           Arterial pressure part of data struct
-%     data: 
-%           Perfusion data
-%     tickrate: 
-%           Arterial pressure framerate
-%     apn: 
-%           Apnoea flush spike in arterial pressure data
-%     inj: 
-%           Injection flush spike in arterial pressure data
-%     vnt: 
-%           End of apnoea flush spike in arterial pressure data
+% D: 
+%     A struct containing one field per sequence taken using this
+%     pig. Each sequence in the data struct is an experimental trial. Each
+%     sequence has the following fields: 
+% name: 
+%     Formatted file name used as
+%     title of figures for this sequence pig: Pig name imgr: Reconstructed
+%     images using eit.fdata and imdl for this pig eit: EIT part of data struct
+% data: 
+%       EIT data output from eidors_readdata()
+% fs: 
+%       EIT data framerate
+% sync1: 
+%       First syncronization spike in EIT data
+% sync2: 
+%       Second syncronization spike in EIT data
+% apn: 
+%       Using the LabChart file, the time relative to the beginning of
+%       the first EIT synchronization spike that the apnoea flush
+%       occured in the arterial pressure data
+% inj: 
+%       Same as above, but for the injection flush
+% vnt: 
+%       Same as above, but for the end of apnoea flush
+% fdata: 
+%       9 Hz lowpass-filtered EIT data
+% perf: 
+%       Arterial pressure part of data struct
+% data: 
+%       Perfusion data
+% tickrate: 
+%       Arterial pressure framerate
+% apn: 
+%       Apnoea flush spike in arterial pressure data
+% inj: 
+%       Injection flush spike in arterial pressure data
+% vnt: 
+%       End of apnoea flush spike in arterial pressure data
 % -------------------------------------------------------------------------
 % NOTES:
 %   To change the lowpass filter stopband, go to lowpass_iir function.
@@ -54,9 +52,11 @@ function D= load_HamburgBrain_data(pig, ref)
 %   markacampbell@cmail.carleton.ca
 % -------------------------------------------------------------------------
 
-[~, imdl] = get_pig_mdl(pig);
+[~, imdl] = get_pig_mdl(pig, modelDir);
 ELECSCORETHRESH = 0.25;
+
 switch pig
+    
     case '8-2'
         eit_files= {    'EIT_8.2_nativ_1.eit',                  'EIT_8.2_nativ_2.eit',... 
                         'EIT_8.2_30_Min_nach_Embolisation.eit', 'EIT_8.2_rechts_embolisiert.eit'};    
@@ -104,6 +104,7 @@ switch pig
         p_vnt= [85388,  88633,  77865,  90452,  104515, 82125];
     
     case '11-2'
+        
         eit_files= {    'EIT_11.2_Nativ_1_Schleuse.eit',                'EIT_11.2_Nativ_2_ZVK.eit',... 
                         'EIT_Sequenz_3_Schleuse.eit',                   'EIT_Seqeunz4_zvk.eit',...
                         'EIT_11.2_4h_nach_Stroke_Schleuse_Sequ5.eit',   'EIT_4h_nach_Stroke_ZVk_Sequ6.eit'};
@@ -120,6 +121,7 @@ switch pig
         p_vnt= [111004, 91873,  125489, 113239, 88339,  93187];
     
     case '12-2'
+        
         eit_files= {    'EIT_12.2. Seqeunz 1 nativ Schleuse.eit',           'EIT_12.2_NATIV_ZVK_Sequ_2.eit',... 
                         'EIT_direkt_nach_Stroke_12.2._Sequ_3_Schleuse.eit', 'EIT_12.2_Sequ_4_nach_Stroke_ZVK.eit',...
                         'EIT_12.2._3,5_nach_Stroke_Sequ_5_Schleuse.eit',    'EIT_12.2._Sequ_6_3,5h_nach_Stroke_ZVK.eit'};
@@ -138,20 +140,16 @@ end % end switch
 
 D = hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj, e_vnt, p_apn, p_inj, p_vnt, pig, imdl);
 
-% find worst 6 electrodes
-[rmElecs, scores, mmScores, ~] = worst_n_elecs(D, imdl, 6);
-rmMeas = mmScores >= ELECSCORETHRESH;
-fprintf('measurements removed: %s \n', num2str(sum(rmMeas)));
-imdl_comp= comp_RM_bad_elec(imdl, mmScores, 'meas');
-
-% [rmElecs, scores, mmScores, ~] = worst_n_elecs(D, imdl, 6);
-% rmElecs = rmElecs(scores >= ELECSCORETHRESH);
-% fprintf('electrodes removed: %s \n', num2str(rmElecs'));
-% imdl_comp= comp_RM_bad_elec(imdl, rmElecs);
-
+% find worst 120 measurements
 % remove measurements from noisy electrodes by adjusting imdl
 % reconstruction matrix
+opt.n = 120;
+opt.type = 'meas';
 
+[rmMeas, scores, mmScores, ~] = worst_n_elecs(D, imdl, opt);
+rmMeas = rmMeas(scores >= ELECSCORETHRESH);
+fprintf('measurements removed: %s \n', num2str(length(rmMeas)));
+imdl_comp = comp_RM_bad_elec(imdl, rmMeas, 'meas');
 
 % filter eit data
 fn = fieldnames(D);
@@ -172,10 +170,16 @@ elseif ~strcmp(ref, 'self')
     use_ref = get_glbl_ref(D, pig);
 end % end if
 
-for i=1:length(fn)
+for i= 1: length(fn)
     % calculate reconstructed images
     if strcmp(ref, 'self')
-        use_ref = mean( D.(fn{i}).eit.fdata( :, max(D.(fn{i}).eit.apn, 1) : D.(fn{i}).eit.inj ), 2 );
+        % take reference as 5 seconds after injection to avoid flush noise
+        start = D.(fn{i}).eit.inj + round (5 * D.(fn{i}).eit.fs );
+        stop = D.(fn{i}).eit.inj + round( 10 * D.(fn{i}).eit.fs );
+        use_ref = mean( D.(fn{i}).eit.fdata( :, start: stop), 2 );
+        
+%         use_ref = mean( D.(fn{i}).eit.fdata( :, max(D.(fn{i}).eit.apn, 1) : D.(fn{i}).eit.inj ), 2 );
+
     end % end if
     D.(fn{i}).imgr = get_imgr( D.(fn{i}).eit.fdata, use_ref, imdl_comp );
     clim = max( clim, max( D.(fn{i}).imgr.elem_data(:) ) );
@@ -190,7 +194,7 @@ end % end function
 
 % ======================================================================= %
 
-function D= hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj, e_vnt, p_apn, p_inj, p_vnt, pig, imdl)
+function D = hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj, e_vnt, p_apn, p_inj, p_vnt, pig, imdl)
 
     % Field names
     fn = {'seq1', 'seq2', 'seq3', 'seq4', 'seq5', 'seq6'};
@@ -201,9 +205,9 @@ function D= hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj,
         eitfs = median(1e6/median(diff(aux.t_rel))); % framerate
 
         % assign struct fields
-        D.(fn{i}).eit.data= vv;
+        D.(fn{i}).eit.data = vv;
         impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
-        D.(fn{i}).eit.elec_impedance= impedanceFactor* aux.elec_impedance;
+        D.(fn{i}).eit.elec_impedance = impedanceFactor* aux.elec_impedance;
         D.(fn{i}).name = horzcat( num2str(i), '-', char(remove_underscores(eit_files{i})) );
         D.(fn{i}).pig = pig;
         D.(fn{i}).eit.fs = eitfs;
@@ -231,7 +235,7 @@ end % end function
 
 % ======================================================================= %
 
-function seq= allign_eit_and_perf(seq)
+function seq = allign_eit_and_perf(seq)
     % Find optimal alignment between eit and perfusion data
     % Annotate peaks and troughs of perfusion signal and transfer annotations
     % to EIT data
@@ -255,87 +259,60 @@ function seq= allign_eit_and_perf(seq)
     seq.perf.inj = round( seq.perf.inj / 10 );
     seq.perf.vnt = round( seq.perf.vnt / 10 );
     
-    pstart= round( (estart/ seq.eit.fs)* seq.perf.tickrate );
-    pend=   round( (eend/ seq.eit.fs)* seq.perf.tickrate );
+    pstart = round( (estart / seq.eit.fs)* seq.perf.tickrate );
+    pend = round( (eend / seq.eit.fs)* seq.perf.tickrate );
 
-    eapn= seq.eit.apn/ seq.eit.fs;
-    einj= seq.eit.inj/ seq.eit.fs;
-    evnt= seq.eit.vnt/ seq.eit.fs;
-    papn= seq.perf.apn/ seq.perf.tickrate;
-    pinj= seq.perf.inj/ seq.perf.tickrate;
-    pvnt= seq.perf.vnt/ seq.perf.tickrate;
+    eapn = seq.eit.apn / seq.eit.fs;
+    einj = seq.eit.inj / seq.eit.fs;
+    evnt = seq.eit.vnt / seq.eit.fs;
+    papn = seq.perf.apn / seq.perf.tickrate;
+    pinj = seq.perf.inj / seq.perf.tickrate;
+    pvnt = seq.perf.vnt / seq.perf.tickrate;
 
-    t1= eapn- papn;
-    t2= einj- pinj;
-    t3= evnt- pvnt;
-    shift= mean( [t1, t2, t3] );
+    t1 = eapn - papn;
+    t2 = einj - pinj;
+    t3 = evnt - pvnt;
+    shift = mean( [t1, t2, t3] );
 
     if shift> 0 % EIT sequence is ahead of perfusion sequence
-        ecut= round( estart + shift * seq.eit.fs);
-        pcut= pstart;   
+        ecut = round( estart + shift * seq.eit.fs);
+        pcut = pstart;   
     elseif shift< 0 % Perfusion sequence is ahead of EIT sequence
-        ecut= estart;
-        pcut= pstart+ abs(round( shift*  seq.perf.tickrate));
+        ecut = estart;
+        pcut = pstart+ abs(round( shift*  seq.perf.tickrate));
     end % end if
     eend = round(eend);
     ecut = round( ecut + trim * seq.eit.fs );
     pcut = round( pcut + trim * seq.perf.tickrate);
 
-    seq.eit.data=   seq.eit.data(:, ecut+1: eend);
+    seq.eit.data = seq.eit.data(:, ecut+1: eend);
 
     seq.eit.sync1 = seq.eit.sync1- ecut;
     seq.eit.sync2 = seq.eit.sync2- ecut;
-    seq.eit.apn =   seq.eit.apn- ecut;
-    seq.eit.inj =   seq.eit.inj- ecut;
-    seq.eit.vnt =   seq.eit.vnt- ecut;
+    seq.eit.apn = seq.eit.apn- ecut;
+    seq.eit.inj = seq.eit.inj- ecut;
+    seq.eit.vnt = seq.eit.vnt- ecut;
 
     seq.perf.data = movmean( seq.perf.data(:, pcut + 1: pend + pcut), 15);
-    seq.perf.apn =  seq.perf.apn - pcut;
-    seq.perf.inj =  seq.perf.inj - pcut;
-    seq.perf.vnt =  seq.perf.vnt - pcut;
+    seq.perf.apn = seq.perf.apn - pcut;
+    seq.perf.inj = seq.perf.inj - pcut;
+    seq.perf.vnt = seq.perf.vnt - pcut;
     
 end % end function
 
 % ======================================================================= %
 
-function imgr= get_imgr(fdata, ref, imdl)
+function imgr = get_imgr(fdata, ref, imdl)
     
-    vv= real(fdata);
-    imgr= inv_solve(imdl, ref, vv);
-    imgr.calc_colours.ref_level= 0;
+    vv = real(fdata);
+    imgr = inv_solve(imdl, ref, vv);
+    imgr.calc_colours.ref_level = 0;
 
 end % end function
 
 % ======================================================================= %
 
-% function [w_elecs, scores] = worst_n_elecs(D, imdl, n)
-% 
-%     % find worst n electrodes across all sequences
-%     fn= fieldnames(D);
-%     n_files=length(fn);
-%     elec_scores= zeros(32, n_files);
-% 
-%     for i= 1:n_files
-%         elec_scores(:,i)= find_bad_elecs( D.(fn{i}).eit.data, imdl );
-%     end % end for
-% 
-%     elec_scores= mean(elec_scores, 2);
-%     [hi_lo_scores, elecs]= sort(elec_scores, 'descend');
-%     w_elecs = elecs(hi_lo_scores > 0);
-% 
-%     if length(w_elecs) > n
-%         w_elecs = w_elecs(1:n);
-%     end % end if
-% 
-%     if nargout == 2
-%         scores = hi_lo_scores(1:n);
-%     end % end if
-% 
-% end % end function
-
-% ======================================================================= %
-
-function seq= find_perf_landmarks(seq)
+function seq = find_perf_landmarks(seq)
     
     FS = seq.perf.tickrate;
     
@@ -443,16 +420,28 @@ function seq= find_perf_landmarks(seq)
     seq.perf.peaks = seq.perf.peaks(:, seq.perf.peaks(1,:) ~= 0);
     
     % Transfer these annotations to the EIT data
-    seq.eit.peaks=  round( (seq.perf.peaks ./ FS).* seq.eit.fs );
-    seq.eit.vals=   round( (seq.perf.vals ./ FS).* seq.eit.fs );
+    eitPeaks = round( (seq.perf.peaks ./ FS) .* seq.eit.fs );
+    eitVals = round( (seq.perf.vals ./ FS) .* seq.eit.fs );
     
-    if seq.eit.peaks(1) < 1
-        seq.eit.peaks(1)= 1;
+    eitPeaks = eitPeaks(eitPeaks <= size(seq.eit.data, 2));
+    if eitPeaks(1) < 1
+        eitPeaks(1) = 1;
     end % end if
     
-    if seq.eit.vals(1) < 1
-        seq.eit.vals(1)= 1;
+    keepVals = sum(eitVals <= size(seq.eit.data, 2), 1) == 2;
+    eitVals = eitVals(:, keepVals);
+    if eitVals(1) < 1
+        eitVals = 1;
     end % end if
+    nPeaks = length(eitPeaks);
+    nVals = size(eitVals, 2);
+    if nPeaks > nVals
+        eitPeaks = eitPeaks(1: nVals);
+    elseif nPeaks < nVals
+        eitVals = eitVals(:,  1: nPeaks);
+    end
+    seq.eit.peaks = eitPeaks;
+    seq.eit.vals = eitVals;
 % % testing
 % figure; plot(perf_data); hold on; plot(seq.perf.peaks, perf_data(seq.perf.peaks), 'o');
 end % end function
@@ -462,19 +451,33 @@ end % end function
 function glbl_ref = get_glbl_ref(D, pig)
     
     switch pig
-        
         case '8-2'
-            glbl_ref = mean( D.seq1.eit.fdata( :, D.seq1.eit.apn: D.seq1.eit.inj ), 2 );
+            D.seq2.eit.refStart = 1500;
+            D.seq2.eit.refEnd = 2475;
+            seq = D.seq2;
         case '9-2'
-            glbl_ref = mean( D.seq2.eit.fdata( :, D.seq1.eit.apn: D.seq1.eit.inj ), 2 );
+            D.seq1.eit.refStart = 1274;
+            D.seq1.eit.refEnd = 3149;
+            seq = D.seq1;
         case '10-2'
-            glbl_ref = mean( D.seq1.eit.fdata( :, D.seq1.eit.apn: D.seq1.eit.inj ), 2 );
+            D.seq2.eit.refStart = 744;
+            D.seq2.eit.refEnd = 1694;
+            seq = D.seq2;
         case '11-2'
-            glbl_ref = mean( D.seq2.eit.fdata( :, D.seq2.eit.apn: D.seq2.eit.inj ), 2 );
+            D.seq1.eit.refStart = D.seq1.eit.inj;
+            D.seq1.eit.refEnd = 1627;
+            seq = D.seq1;
         case '12-2'
-            glbl_ref = mean( D.seq1.eit.fdata( :, D.seq2.eit.apn: D.seq1.eit.inj ), 2 );
+            D.seq1.eit.refStart = 1045;
+            D.seq1.eit.refEnd = 1682;
+            seq = D.seq1;
     end % end switch
-        
+
+    start = seq.eit.refStart;
+    stop = seq.eit.refEnd;
+    
+    glbl_ref = mean( seq.eit.fdata( :, start: stop ), 2 );
+    
 end % end function
 
 % ======================================================================= %
