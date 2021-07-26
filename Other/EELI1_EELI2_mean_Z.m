@@ -1,16 +1,13 @@
-function endEx2Means = end_ex2_mean_Z(imgs, triads)
+function meanEELI = EELI1_EELI2_mean_Z(imgs, triads)
 % -------------------------------------------------------------------------
 % DESCRIPTION:
-%   endEx2Means = end_ex2_mean_Z(imgs, triads)
+%
 % -------------------------------------------------------------------------
 % PARAMETERS:
-%   imgs (array):
-%       images from calc_slices
-%   triads (n x 3 array):
-%       breath boundaries
+% 
 % -------------------------------------------------------------------------   
 % RETURNS:
-%   lower values mean less air
+% 
 % -------------------------------------------------------------------------   
 % AUTHOR:
 %   Mark Campbell
@@ -37,21 +34,23 @@ rtVentMask  = find(roi.RightVentral);
 rtDorsMask  = find(roi.RightDorsal);
 bothLngMask = find(roi.BothLungs);
 
-for i = 1:nBreaths
-    triad       = triads(i, :);
-    endEx2      = imgs(:, :, triad(3));
-    ltVent(i)   = sum(endEx2(ltVentMask), 'all') / length(ltVentMask);
-    ltDors(i)   = sum(endEx2(ltDorsMask), 'all') / length(ltDorsMask);
-    rtVent(i)   = sum(endEx2(rtVentMask), 'all') / length(rtVentMask);
-    rtDors(i)   = sum(endEx2(rtDorsMask), 'all') / length(rtDorsMask);
-    bothLungs(i)= sum(endEx2(bothLngMask), 'all') / length(bothLngMask);
+for i = 1: nBreaths
+    triad = triads(i, :);
+    eeli_1 = imgs(:, :, triad(1));
+    eeli_2 = imgs(:, :, triad(3));
+    mean_eeli = (eeli_1 + eeli_2) ./ 2;
+    ltVent(i) = sum(mean_eeli(ltVentMask), 'all') / length(ltVentMask);
+    ltDors(i) = sum(mean_eeli(ltDorsMask), 'all') / length(ltDorsMask);
+    rtVent(i) = sum(mean_eeli(rtVentMask), 'all') / length(rtVentMask);
+    rtDors(i) = sum(mean_eeli(rtDorsMask), 'all') / length(rtDorsMask);
+    bothLungs(i) = sum(mean_eeli(bothLngMask), 'all') / length(bothLngMask);
 end
 
-endEx2Means          = struct;
-endEx2Means.ltVent   = ltVent;
-endEx2Means.ltDors   = ltDors;
-endEx2Means.rtVent   = rtVent;
-endEx2Means.rtDors   = rtDors;
-endEx2Means.bothLungs= bothLungs;
+meanEELI = struct;
+meanEELI.ltVent = ltVent;
+meanEELI.ltDors = ltDors;
+meanEELI.rtVent = rtVent;
+meanEELI.rtDors = rtDors;
+meanEELI.bothLungs = bothLungs;
 
 end % end function

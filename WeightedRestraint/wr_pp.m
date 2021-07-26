@@ -1,41 +1,53 @@
 function [D, imdl_comp] = wr_pp(files, imdl, timeSeriesLength)
 
+if nargin == 2
+    timeSeriesLength = inf;
+end
 % Weighted restraint pre-processing
-clip        = 50;
-D           = struct;
+clip = 50;
+D = struct;
 RMTHRESHOLD = 0.25;
-msel        = imdl.fwd_model.meas_select;
-mm          = find(msel);
-sequences   = {};
+msel = imdl.fwd_model.meas_select;
+mm = find(msel);
+sequences = cell(length(files), 1);
+
 for i = 1:length(files)
+    
     file = files{i};
+    
     if isempty(file)
         continue
     end
-    field   = sprintf('seq_%0.f', i);
+    field = sprintf('seq_%0.f', i);
     [ dd, D.(field).aux ] = eidors_readdata(file);
-    inspect_eit_elec_and_data({dd, D.(field).aux} , imdl, RMTHRESHOLD);
+    
+    % visualize
+%     inspect_eit_elec_and_data({dd, D.(field).aux} , imdl, RMTHRESHOLD);
 %     sgtitle(remove_underscores(file));
 %     savefigdir = 'C:\Users\Mark\Documents\GraduateStudies\LAB\EIT-restraint\zzMC\figures\data quality\electrode quality\';
 %     printPDF( sprintf('%s%s.pdf', savefigdir, remove_underscores(file)) );
 %     clf();
+
+    % calculate framerate
     D.(field).aux.elec_impedance = D.(field).aux.elec_impedance(:, 1: size(dd, 2));
-    t_rel   = D.(field).aux.t_rel(:, 1: size(dd, 2));
+    t_rel = D.(field).aux.t_rel(:, 1: size(dd, 2));
     D.(field).fs = 1e6 ./ median( diff(t_rel) ); %framerate is median dif of time points/ 1000000 (convert to s)
-    dd      = dd( :, 1: min(size(dd, 2), round(D.(field).fs * timeSeriesLength)) ); % ensure all time series are timeSeriesLength or less
+    
+    % filter
+    dd = dd( :, 1: min(size(dd, 2), round(D.(field).fs * timeSeriesLength)) ); % ensure all time series are timeSeriesLength or less
     D.(field).data = dd;
     sequences{i} = dd;
     useData = real(dd(mm, :));
     useData = lowpass(useData', 1, D.(field).fs)'; % 1 Hz lowpass
-    useData = useData(:, clip:(size(useData,2)-clip) ); % trim filter edge artifacts
+    useData = useData(:, clip: (size(useData, 2) - clip) ); % trim filter edge artifacts
     D.(field).useData = useData;
 end % end for
 
-% find worst N electrodes
-specs=struct; specs.n=90; specs.type='meas';
-[worst, scores, ~, ~] = worst_n_elecs(D, imdl, specs);
-rmMeas = worst(scores >= RMTHRESHOLD);
-fprintf('\nmeasurements removed: %.0f \n', length(rmMeas));
-imdl_comp = comp_RM_bad_elec(imdl, rmMeas, 'meas');
+% noise compensation
+specs = struct; 
+specs.n = 6; 
+specs.type = 'elec';
+specs.thresh = RMTHRESHOLD;
+[imdl_comp, ~, ~] = eqadr(D, imdl, specs);
 
 end % end function

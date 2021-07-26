@@ -39,38 +39,38 @@ if nargin == 2
    thresh = 0.25; 
 end % end if
 
+impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
 if isstruct(eit_file) && strcmp(thresh, 'hamburg')
-    data            = eit_file.data;
-    elec_impedance  = eit_file.elec_impedance;
-    fs              = eit_file.fs;
-    thresh          = 0.25;
+    data = eit_file.data;
+    elec_impedance = eit_file.elec_impedance;
+    fs = eit_file.fs;
+    thresh = 0.25;
 elseif iscell(eit_file) % input is output of eidors_read_data
-    if length(eit_file)==2
+    if length(eit_file) == 2
         if isstruct(eit_file{2})
-            data    = eit_file{1};
+            data = eit_file{1};
             auxdata = eit_file{2};
         else
             auxdata = eit_file{1};
-            data    = eit_file{2};
+            data = eit_file{2};
         end % end if
-        fs              = 1e6./median(diff(auxdata.t_rel));     % framerate is median dif of time points/ 1000000 (convert to s)
-        impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15; % = 0.9633 / 2^15;
-        elec_impedance  = auxdata.elec_impedance* impedanceFactor;
+        fs = 1e6./median(diff(auxdata.t_rel));     % framerate is median dif of time points/ 1000000 (convert to s)
+        
+        elec_impedance = auxdata.elec_impedance* impedanceFactor;
     else
         disp("Whoops!");
     end % end if
 elseif strcmp(eit_file(end-3:end), '.eit')
     [data, auxdata] = eidors_readdata(eit_file);
-    fs              = 1e6./median(diff(auxdata.t_rel));         % framerate is median dif of time points/ 1000000 (convert to s)
-    impedanceFactor =  2.048 / (2^12 * 0.173 * 0.003) / 2^15;   % = 0.9633 / 2^15;
-    elec_impedance  = auxdata.elec_impedance* impedanceFactor;
+    fs = 1e6./median(diff(auxdata.t_rel));         % framerate is median dif of time points/ 1000000 (convert to s)
+    elec_impedance = auxdata.elec_impedance * impedanceFactor;
 else
     data = eit_file;
 end % end if
 
-n_samples       = size(data, 2);
-data_samp       = round(1:(n_samples/100):n_samples);
-elec_impedance  = abs(elec_impedance);
+n_samples = size(data, 2);
+data_samp = round(1: (n_samples / 100): n_samples);
+elec_impedance = abs(elec_impedance);
 
 specs = struct; 
 specs.n = 32;

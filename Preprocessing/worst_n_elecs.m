@@ -147,6 +147,12 @@ function [elec_scores, mmScores] = elec_clip_scores(data, imdl, params)
     % mark measurements with negative in-phase component.
     rDataNeg = real(data_) < 0;                 
     
+%     plot(data_(~rDataNeg), '+g'); hold on;
+%     plot(data_(rDataNeg), '+r');
+%     axis equal;
+%     xlabel('In-phase');
+%     ylabel('Quadrature');
+    
     % Calculate total score
     allMarked = sum( (clipped * 1 + rDataNeg * 1) > 0, 2);
     mmScores = allMarked ./ size(data_, 2);
@@ -193,6 +199,62 @@ function clipped = find_clipped_agresive(data)
     stoppingIter = find(diff(foundInIter) > 0, 1, 'last');
     clipDist = maxDist * (stoppingIter * DELTA);
     clipped = distFromC >= clipDist;
+    
+%     % demo figures
+%     ALPHA = 0;
+%     for i = 1: ITERS-1
+%         ALPHA = ALPHA + DELTA;
+%         insideIdx = distFromC < maxDist * ALPHA;
+%         inside = data(insideIdx);
+%         outside = data(~insideIdx);
+%         close all;
+%         figure('units','normalized','outerposition',[-1.0042 0.2259 0.8083 0.7778]);
+%         
+%         subplot(2, 2, [1, 3]);
+%         plot(real(outside), imag(outside), '+k');
+%         hold on;
+%         plot(real(inside), imag(inside), '+g');
+%         axis equal;
+%         xlabel('In-phase');
+%         ylabel('Quadrature');
+%         
+%         subplot(2, 2, 2);
+%         semilogy(insideCirc(1: i), '-ok');
+%         xlabel('Iteration number');
+%         xlim([0, ITERS + 1]);
+%         ylabel('Points inside circle');
+%         ylim([min(insideCirc)-10, max(insideCirc)+10]);
+%         
+%         subplot(2, 2, 4);
+%         semilogy(foundInIter(1: i), '-ok');
+%         xlabel('Iteration number');
+%         xlim([0, ITERS + 1]);
+%         ylabel('Points found this iteration');
+%         ylim([0.1, max(foundInIter)]);
+%         
+%         ttl = sprintf('frame_%0.f.png', i);
+%         
+%         pause(1);
+%         saveas(gcf(), horzcat('C:\Users\Mark\Documents\EIT\proj\2021\EIT2021_conf\eqadr\', ttl));
+%         
+%     end
+%     
+%     good = data(~clipped);
+%     bad = data(clipped);
+%     subplot(2, 2, [1, 3]);
+%     cla();
+%     plot(real(bad), imag(bad), '+r');
+%     hold on;
+%     plot(real(good), imag(good), '+g');
+%     axis equal;
+%     xlabel('In-phase');
+%     ylabel('Quadrature');
+% 
+%     subplot(2, 2, 4);
+%     xline(stoppingIter, '--');
+%     ttl = sprintf('frame_%0.f.png', i+1);
+%     saveas(gcf(), horzcat('C:\Users\Mark\Documents\EIT\proj\2021\EIT2021_conf\eqadr\', ttl));
+    
 end % end function
 
 

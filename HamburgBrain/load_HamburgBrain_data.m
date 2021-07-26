@@ -145,11 +145,9 @@ D = hamburg_load_data(eit_files, perf_files, sync1, sync2, e_apn, e_inj, e_vnt, 
 % reconstruction matrix
 opt.n = 120;
 opt.type = 'meas';
+opt.thresh = ELECSCORETHRESH;
+[imdl_comp, ~, ~] = eqadr(D, imdl, opt);
 
-[rmMeas, scores, mmScores, ~] = worst_n_elecs(D, imdl, opt);
-rmMeas = rmMeas(scores >= ELECSCORETHRESH);
-fprintf('measurements removed: %s \n', num2str(length(rmMeas)));
-imdl_comp = comp_RM_bad_elec(imdl, rmMeas, 'meas');
 
 % filter eit data
 fn = fieldnames(D);

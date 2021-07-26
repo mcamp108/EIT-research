@@ -66,7 +66,7 @@ end
 etcImg = zeros(nPixPerDim, nPixPerDim);
 etcImgCounts = zeros(nPixPerDim, nPixPerDim);
 
-for i = 1:nBreaths
+for i = 1: nBreaths
     thisTriad = triads(i, :);
     breathZ = calc_breath_delta_z(imgs, thisTriad);
     breathZ = breathZ .* roi.BothLungs;
@@ -83,7 +83,7 @@ for i = 1:nBreaths
         end
     end
     if pixelwise
-        ETC(:,:,i) = tauImg;
+        ETC(:, :, i) = tauImg;
     elseif regional
         tempMask = ltVentMask(ismember(ltVentMask, includedPixelIdx));
         ltVent(i) = mean(tauImg(tempMask), 'omitnan');
@@ -117,8 +117,8 @@ if regional
     ETC.rtVent = rtVent;
     ETC.rtDors = rtDors;
 end
-
-etc_image(etcImg ./ etcImgCounts);
+ETC.image = etcImg ./ etcImgCounts;
+etc_image(ETC.image);
 
 end % end function
 

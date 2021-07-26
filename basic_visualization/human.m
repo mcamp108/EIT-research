@@ -1,5 +1,5 @@
 % Reconstruct human EIT data
-[fmdl, imdl] = mk_model('human');
+% [fmdl, imdl] = mk_model('human');
 % files = {'C:\Users\Mark\Documents\EIT\Will_Ditcham\Peter_Test_2_-_Left_recumbency.eit',...
 %         'C:\Users\Mark\Documents\EIT\Will_Ditcham\Peter_Test_3_-_Right_Recumbency.eit'};
 
@@ -16,18 +16,38 @@
 %     'C:\Users\Mark\Documents\EIT\Will_Ditcham\#2 Will Mitcham (22-04-2021)-20210506T001539Z-001\Will_-_Seated_upright_Post-Protocol.eit',...
 %     'C:\Users\Mark\Documents\EIT\Will_Ditcham\#2 Will Mitcham (22-04-2021)-20210506T001539Z-001\WIll_-_Seated_Upright_Pre-Protocol.eit',...
 %     'C:\Users\Mark\Documents\EIT\Will_Ditcham\#2 Will Mitcham (22-04-2021)-20210506T001539Z-001\Will_-_Supine_(on_back).eit'};
-files = {'C:\Users\Mark\Documents\EIT\Will_Ditcham\#2 Will Mitcham (22-04-2021)-20210506T001539Z-001\Will_-_Left_Laterel_Recumbency.eit'};
+% files = {'C:\Users\Mark\Documents\EIT\Will_Ditcham\#2 Will Mitcham (22-04-2021)-20210506T001539Z-001\Will_-_Left_Laterel_Recumbency.eit'};
+% saveDir = 'C:\Users\Mark\Documents\EIT\Will_Ditcham\#2 Will Mitcham (22-04-2021)-20210506T001539Z-001\';
+%%
+% Angelika
+close all
+[fmdl, imdl] = mk_model('horse');
+figure();
+show_fem(fmdl, [0 1 0])
+dataDir = 'C:\Users\Mark\Dropbox\EIT 2021\Study files\';
+eitFiles = {};
+fIdx = 1;
+files = ls(dataDir);
 
-saveDir = 'C:\Users\Mark\Documents\EIT\Will_Ditcham\#2 Will Mitcham (22-04-2021)-20210506T001539Z-001\';
-[D, imdl_comp] = wr_pp(files, imdl, 60);
+for i = 1:size(files, 1)
+    f = strtrim(files(i, :));
+    if ~isempty(regexp(f, '.eit', 'once'))
+        eitFiles{fIdx} = horzcat(dataDir, f);
+        fIdx = fIdx + 1;
+    end
+end
+
+[D, imdl_comp] = wr_pp(eitFiles, imdl, 60);
 fn = fieldnames(D);
 
-for i = 1:length(files)
+for i = 1:length(eitFiles)
     imgr = inv_solve(imdl_comp, mean(D.(fn{i}).useData, 2), D.(fn{i}).useData);
-    img_slices = calc_slices(imgr, [inf inf 1]);
+%     img_slices = calc_slices(imgr, [inf inf 1]);
+    img_slices = calc_slices(imgr);
     img_slices(isnan(img_slices)) = 0;
     img_slices = img_slices .* lung_segmentation();
     lungZ = squeeze( sum( img_slices, [1 2]) )';
+    
     [end_in, end_ex, Ti_by_Tt, BF] = select_breaths(-lungZ, D.seq_1.fs);
 
     tvImg = imgr;
@@ -35,19 +55,22 @@ for i = 1:length(files)
 %     tvImg.elem_data(isnan(tvImg.elem_data)) = 0;
 
     tvImg.calc_colours.clim = max(tvImg.elem_data, [], 'all');
-    imgs = calc_colours(calc_slices(tvImg, [inf inf 1]));
+    imgs = calc_colours(calc_slices(tvImg));
+%     imgs = calc_colours(calc_slices(tvImg, [inf inf 1]));
     
     fig = figure();
     fig.Units = 'normalized';
     fig.OuterPosition = [0 0 1 1];
     
     show_slices(imgs);
-    ttl = strsplit(files{i}, '\');
+    ttl = strsplit(eitFiles{i}, '\');
     ttl = ttl{end};
     ttl = strrep(ttl, '.eit', '');
     title(remove_underscores(ttl));
-    printPDF(horzcat(saveDir, ttl));
+%     printPDF(horzcat(saveDir, ttl));
 end
+%%
+
 for i = 1:length(files)
     figure();
     plot_file(files{i});
@@ -93,18 +116,21 @@ function plot_file(file)
 end
 
 
-function [fmdl, imdl] = mk_model(animal)
+function [fmdl, imdl] = mk_model(animal, shift)
+    if nargin == 1
+        shift = 0;
+    end
     switch animal
         case 'human'
             thorax = shape_library('get','adult_male','boundary');
-            shape = { 2, {thorax}, [4,40], 0.5};
+            shape = { 2, {thorax}, [4, 40], 0.5};
 
             % 32 electrodes evenly spaced
             elec_pos = [32, 0, 1];
             elec_spec = [0.01];
             fmdl = ng_mk_extruded_model(shape, elec_pos, elec_spec);
             % shift belt
-%             fmdl = shift_electrodes(fmdl, 16);
+            fmdl = shift_electrodes(fmdl, shift);
 %             fmdl = shift_electrodes(fmdl, 'lr');
             % Stim pattern
             [fmdl.stimulation, fmdl.meas_select] = mk_stim_patterns(32, 1, [0, 5], [0, 5], {'no_meas_current_next2'}, 1); % Skip 4
@@ -120,7 +146,7 @@ function [fmdl, imdl] = mk_model(animal)
             [imdl_t, opt.distr] = GREIT3D_distribution(fmdl, vopt);
             imdl = mk_GREIT_model(imdl_t, 0.2, [], opt);
         case 'horse'
-            [fmdl, imdl] = mk_horse_model(10);
+            [fmdl, imdl] = mk_horse_model(shift);
     end     
 end
 

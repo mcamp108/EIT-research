@@ -90,7 +90,8 @@ function [LV,LD,RV,RD] = calc_vent_distribution(img, roi)
     ltDorsMask = find(roi.LeftDorsal);
     rtVentMask = find(roi.RightVentral);
     rtDorsMask = find(roi.RightDorsal);
-    
+    % TODO: these should be the sums, rather than the division and the
+    % summing then more division!
     zLV     = sum(img(ltVentMask), 'all') ./ sum(img(ltVentMask) > 0, 'all');
     zLD     = sum(img(ltDorsMask), 'all') ./ sum(img(ltDorsMask) > 0, 'all');
     zRV     = sum(img(rtVentMask), 'all') ./ sum(img(rtVentMask) > 0, 'all');
